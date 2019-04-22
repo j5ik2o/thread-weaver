@@ -20,7 +20,7 @@ object ULID {
 
   type ULIDStringType = String Refined ULIDType
 
-  implicit def uuidValidate: Validate.Plain[String, ULIDType] =
+  implicit def ulidValidate: Validate.Plain[String, ULIDType] =
     Validate.fromPartial(
       s => require(parseFromString(s).isSuccess),
       "ULID",
