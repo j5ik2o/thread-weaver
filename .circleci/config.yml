@@ -1,0 +1,21 @@
+version: 2
+jobs:
+  build:
+    environment:
+      - JAVA_OPTS: "-XX:ReservedCodeCacheSize=256M -Xms1g -Xmx3g -Xss2m"
+    machine: true
+    steps:
+      - run:
+          command: |
+            sudo apt-get update -qq && sudo apt-get install -y libaio1 libevent-dev
+            sudo apt-get install -y software-properties-common
+            sudo apt-get install -y openjdk-8-jdk
+            sudo apt-get update -qq
+            sudo apt-get install -y sbt
+      - checkout
+      - restore_cache:
+          key: scala-library-dependencies-{{ checksum "build.sbt" }}
+      - run: sbt test
+      - save_cache:
+          paths: [ "~/.sbt/boot", "~/.ivy2", "~/.wixMySQL" ]
+          key: scala-library-dependencies-{{ checksum "build.sbt" }}
