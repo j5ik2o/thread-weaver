@@ -47,6 +47,7 @@ val baseSettings = Seq(
     "com.typesafe.akka" %% "akka-stream" % "2.5.22",
     "com.typesafe.akka" %% "akka-cluster" % "2.5.22",
     "com.typesafe.akka" %% "akka-cluster-sharding" % "2.5.22",
+    "com.typesafe.akka" %% "akka-discovery" % "2.5.22",
     "com.typesafe.akka" %% "akka-http" % "10.1.8",
     "com.typesafe.akka" %% "akka-http-core" % "10.1.8",
     "com.typesafe.akka" %% "akka-parsing" % "10.1.8"
