@@ -38,6 +38,7 @@ val baseSettings = Seq(
   resolvers += Resolver.bintrayRepo("tanukkii007", "maven"),
   libraryDependencies ++= Seq(
     "eu.timepit" %% "refined" % "0.9.5",
+    "org.wvlet.airframe" %% "airframe" % "19.4.1",
     "org.scalatest" %% "scalatest" % "3.0.4" % Test,
     "ch.qos.logback" % "logback-classic" % "1.2.3" % Test
   ),
@@ -88,6 +89,13 @@ val interface = (project in file("interface"))
   .settings(
     name := "thread-weaver-interface",
     libraryDependencies ++= Seq(
+      "io.kamon" %% "kamon-core" % "1.1.3",
+      "io.kamon" %% "kamon-system-metrics" % "1.0.1",
+      "io.kamon" %% "kamon-akka-2.5" % "1.0.0",
+      "io.kamon" %% "kamon-akka-http-2.5" % "1.0.0",
+      "io.kamon" %% "kamon-jmx-collector" % "0.1.8",
+      "io.kamon" %% "kamon-datadog" % "1.0.0",
+      "io.kamon" %% "kamon-logback" % "1.0.2",
       "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
       "com.typesafe.akka" %% "akka-stream-typed" % akkaVersion,
       "com.typesafe.akka" %% "akka-persistence-typed" % akkaVersion,
@@ -107,6 +115,9 @@ val interface = (project in file("interface"))
       "com.lightbend.akka.discovery" %% "akka-discovery-kubernetes-api" % akkaManagementVersion,
       "com.github.TanUkkii007" %% "akka-cluster-custom-downing" % "0.0.12",
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
+      "com.github.swagger-akka-http" %% "swagger-akka-http" % "2.0.2",
+      "javax.ws.rs" % "javax.ws.rs-api" % "2.0.1",
+      "ch.megard" %% "akka-http-cors" % "0.4.0",
       "com.typesafe.akka" %% "akka-testkit" % akkaVersion % Test,
       "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion % Test,
       "com.typesafe.akka" %% "akka-multi-node-testkit" % akkaVersion % Test,
