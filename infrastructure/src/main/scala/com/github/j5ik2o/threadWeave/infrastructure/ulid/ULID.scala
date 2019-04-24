@@ -28,7 +28,7 @@ object ULID {
     )
 }
 
-final class ULID private (private val value: Value) extends Ordered[ULID] {
+final case class ULID private (private val value: Value) extends Ordered[ULID] {
 
   def timestamp: Long = value.timestamp()
   def increment: ULID = new ULID(value.increment())

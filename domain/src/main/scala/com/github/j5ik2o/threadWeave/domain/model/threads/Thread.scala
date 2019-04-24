@@ -7,6 +7,7 @@ import cats.{ Monoid, Semigroup }
 import cats.data.NonEmptyList
 import com.github.j5ik2o.threadWeave.domain.model.accounts.AccountId
 import com.github.j5ik2o.threadWeave.infrastructure.ulid.ULID
+import org.slf4j.LoggerFactory
 
 final case class ThreadId(value: ULID = ULID())
 
@@ -118,6 +119,8 @@ final case class Thread(
     updatedAt: Instant
 ) {
 
+  val logger = LoggerFactory.getLogger(getClass)
+
   def isAdministratorId(accountId: AccountId): Boolean =
     administratorIds.contains(accountId)
 
@@ -139,9 +142,10 @@ final case class Thread(
   }
 
   def addMessages(values: Messages, at: Instant): Either[Exception, Thread] = {
-    if (values.breachEncapsulationOfValues.exists(v => isMemberId(v.senderId)))
+    if (values.breachEncapsulationOfValues.exists(v => isMemberId(v.senderId))) {
+      logger.info(s"addMessages: messages = $messages, values = $values")
       Right(copy(messages = messages combine values, updatedAt = at))
-    else
+    } else
       Left(new Exception("senderId is not member"))
   }
 

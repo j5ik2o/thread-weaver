@@ -199,4 +199,22 @@ object ThreadProtocol {
     override def toCommandRequest: CommandRequest = RemoveMessages(ULID(), threadId, messageIds, senderId, createdAt)
   }
 
+  final case class GetMessages(
+      id: ULID,
+      threadId: ThreadId,
+      senderId: AccountId,
+      createAt: Instant,
+      replyTo: ActorRef[GetMessagesResponse]
+  ) extends CommandRequest
+  trait GetMessagesResponse extends CommandResponse
+  final case class GetMessagesSucceeded(
+      id: ULID,
+      requestId: ULID,
+      threadId: ThreadId,
+      messages: Messages,
+      createAt: Instant
+  ) extends GetMessagesResponse
+  final case class GetMessagesFailed(id: ULID, requestId: ULID, threadId: ThreadId, message: String, createAt: Instant)
+      extends GetMessagesResponse
+
 }
