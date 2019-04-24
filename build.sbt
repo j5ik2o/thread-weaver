@@ -35,7 +35,11 @@ val baseSettings = Seq(
   scalafmtOnCompile in ThisBuild := true,
   addCompilerPlugin("org.scalamacros" %% "paradise" % "2.1.0" cross CrossVersion.full),
   wartremoverErrors in(Compile, compile) ++= Seq(Wart.ArrayEquals, Wart.AnyVal, Wart.Var, Wart.Null, Wart.OptionPartial),
-  resolvers += Resolver.bintrayRepo("tanukkii007", "maven"),
+  resolvers ++= Seq(
+    "Sonatype OSS Snapshot Repository" at "https://oss.sonatype.org/content/repositories/snapshots/",
+    "Sonatype OSS Release Repository" at "https://oss.sonatype.org/content/repositories/releases/",
+    Resolver.bintrayRepo("tanukkii007", "maven")
+  ),
   libraryDependencies ++= Seq(
     "eu.timepit" %% "refined" % "0.9.5",
     "org.wvlet.airframe" %% "airframe" % "19.4.1",
@@ -89,7 +93,7 @@ val interface = (project in file("interface"))
   .settings(
     name := "thread-weaver-interface",
     libraryDependencies ++= Seq(
-      "io.kamon" %% "kamon-core" % "1.1.3",
+      "io.kamon" %% "kamon-core" % "1.1.6",
       "io.kamon" %% "kamon-system-metrics" % "1.0.1",
       "io.kamon" %% "kamon-akka-2.5" % "1.0.0",
       "io.kamon" %% "kamon-akka-http-2.5" % "1.0.0",
@@ -163,7 +167,22 @@ val api = (project in file("api"))
   .settings(
     name := "thread-weaver-api",
     dockerBaseImage := "openjdk:8",
-    dockerUsername := Some("j5ik2o")
+    dockerUsername := Some("j5ik2o"),
+    fork in run := true,
+    javaAgents += "org.aspectj" % "aspectjweaver" % "1.8.13",
+    javaOptions in Universal += "-Dorg.aspectj.tracing.factory=default",
+    javaOptions in run ++= Seq(
+      s"-Dcom.sun.management.jmxremote.port=${sys.env.getOrElse("JMX_PORT", "8999")}",
+      "-Dcom.sun.management.jmxremote.authenticate=false",
+      "-Dcom.sun.management.jmxremote.ssl=false",
+      "-Dcom.sun.management.jmxremote.local.only=false",
+      "-Dcom.sun.management.jmxremote"
+    ),
+    javaOptions in Universal ++= Seq(
+      "-Dcom.sun.management.jmxremote",
+      "-Dcom.sun.management.jmxremote.local.only=true",
+      "-Dcom.sun.management.jmxremote.authenticate=false"
+    )
   ).dependsOn(interface)
 
 val root = (project in file("."))

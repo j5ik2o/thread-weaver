@@ -66,9 +66,13 @@ class RouteLogging()(implicit requestFormatter: RequestFormatter, requestResultF
 
 object RouteLogging {
 
-  def apply()(implicit requestFormatter: RequestFormatter,
-              requestResultFormatter: RequestResultFormatter): RouteLogging = new RouteLogging()
+  def apply()(
+      implicit requestFormatter: RequestFormatter,
+      requestResultFormatter: RequestResultFormatter
+  ): RouteLogging = new RouteLogging()
 
-  val default: RouteLogging = new RouteLogging()(DefaultRequestLoggingFormatter.requestFormatter,
-                                                 DefaultRequestLoggingFormatter.requestResultFormatter)
+  val default: RouteLogging = new RouteLogging()(
+    DefaultRequestLoggingFormatter.requestFormatter,
+    DefaultRequestLoggingFormatter.requestResultFormatter
+  )
 }
