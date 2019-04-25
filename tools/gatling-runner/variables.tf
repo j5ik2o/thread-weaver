@@ -1,0 +1,1 @@
+variable "S3PrivateRegistryBucketName" {}
