@@ -137,6 +137,7 @@ data "template_file" "cloud-config" {
   template = "${file("init.tpl")}"
 }
 
+// S3PrivateRegistryBucketNameあるときだけにしたい
 data "template_file" "get-docker-private-repository-credentials" {
   template = <<EOT
 #!/bin/bash
@@ -165,7 +166,6 @@ data "template_cloudinit_config" "config" {
   }
 
   part {
-    count = "${var.S3PrivateRegistryBucketName != "" ? 1 : 0 }"
     content_type = "text/x-shellscript"
     content = "${data.template_file.get-docker-private-repository-credentials.rendered}"
   }
@@ -176,7 +176,143 @@ data "template_cloudinit_config" "config" {
   }
 }
 
-# Start an AWS instance with the cloud-init config as user data
+resource "aws_launch_configuration" "thread-weaver" {
+  image_id = "ami-06cd52961ce9f0d85"
+  instance_type = "t2.micro"
+  key_name = "j5ik2o-root"
+  subnet_id = "${aws_subnet.thread-weaver-subnet-1b.id}"
+  security_group_ids = [
+    "${aws_security_group.allow-ssh-http.id}"]
+  associate_public_ip_address = true
+  security_groups = [
+    "${aws_security_group.allow-ssh-http}"]
+  user_data_base64 = "${data.template_cloudinit_config.config.rendered}"
+}
+
+resource "aws_autoscaling_group" "thread-weaver" {
+  name = "thread-weaver-gatling"
+  vpc_zone_identifier = [
+    "${aws_subnet.thread-weaver-subnet-1b}"]
+  launch_configuration = "${aws_launch_configuration.thread-weaver.name}"
+  min_size = 1
+  max_size = "${var.MaxSize}"
+  desired_capacity = "${var.DesiredCapacity}"
+
+}
+
+
+resource "aws_iam_role" "ecs" {
+  path = "/"
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": {
+    "Effect": "Allow",
+    "Action": [ "sts:AssumeRole" ],
+    "Principal": {
+      "Service": [ "ecs.amazonaws.com" ]
+    }
+  }
+}
+EOF
+  tags = {
+    Name = "thread-weaver-route-iam-role-ecs"
+  }
+}
+
+resource "aws_iam_role_policy" "ecs-service" {
+  role = "${aws_iam_role.ecs.id}"
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "elasticloadbalancing:Describe*",
+        "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+        "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+        "ec2:Describe*",
+        "ec2:AuthorizeSecurityGroupIngress"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role" "ec2" {
+  path = "/"
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Effect": "Allow",
+  "Action": [ "sts:AssumeRole" ],
+  "Principal": {
+    "Service": [
+      "ec2.amazonaws.com"
+    ]
+  }
+}
+EOF
+  tags = {
+    Name = "thread-weaver-route-iam-role-ec2"
+  }
+}
+
+resource "aws_iam_role_policy" "ec2-ecs-service" {
+  role = "${aws_iam_role.ec2.id}"
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ecs:CreateCluster",
+        "ecs:RegisterContainerInstance",
+        "ecs:DeregisterContainerInstance",
+        "ecs:DiscoverPollEndpoint",
+        "ecs:Submit*",
+        "ecs:Poll"
+      ],
+      "Resource": "*"
+    },
+    // -- S3PrivateRegistryBucketNameあるときだけ設定したい
+    {
+      "Effect": "Allow",
+      "Action": [ "s3:GetObject" ],
+      "Sid": "Stmt0123456789",
+      "Resource": [
+        "arn:aws:s3:::${var.S3PrivateRegistryBucketName}/ecs.config"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListAllMyBuckets",
+        "s3:GetBucketLocation",
+        "s3:ListBucket"
+      ],
+      "Resource": "arn:aws:s3:::*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "s3:*",
+      "Resource": [
+        "arn:aws:s3:::firebase-load-testing-logs",
+        "arn:aws:s3:::firebase-load-testing-logs/*"
+      ]
+    }
+  ]
+}
+EOF
+}
+
+
 resource "aws_instance" "web" {
   ami = "ami-06cd52961ce9f0d85"
   instance_type = "t2.micro"
