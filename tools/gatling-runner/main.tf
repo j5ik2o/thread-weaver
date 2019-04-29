@@ -167,6 +167,25 @@ data "template_cloudinit_config" "config" {
 
   part {
     content_type = "text/x-shellscript"
+    content = "${data.template_file.add-instance-to-cluster.rendered}"
+  }
+
+}
+
+
+data "template_cloudinit_config" "config-with-private" {
+  gzip = true
+  base64_encode = true
+
+  # Main cloud-config configuration file.
+  part {
+    filename = "init.cfg"
+    content_type = "text/cloud-config"
+    content = "${data.template_file.cloud-config.rendered}"
+  }
+
+  part {
+    content_type = "text/x-shellscript"
     content = "${data.template_file.get-docker-private-repository-credentials.rendered}"
   }
 
@@ -174,25 +193,24 @@ data "template_cloudinit_config" "config" {
     content_type = "text/x-shellscript"
     content = "${data.template_file.add-instance-to-cluster.rendered}"
   }
+
 }
 
 resource "aws_launch_configuration" "thread-weaver" {
   image_id = "ami-06cd52961ce9f0d85"
   instance_type = "t2.micro"
   key_name = "j5ik2o-root"
-  subnet_id = "${aws_subnet.thread-weaver-subnet-1b.id}"
-  security_group_ids = [
-    "${aws_security_group.allow-ssh-http.id}"]
   associate_public_ip_address = true
   security_groups = [
-    "${aws_security_group.allow-ssh-http}"]
-  user_data_base64 = "${data.template_cloudinit_config.config.rendered}"
+    "${aws_security_group.allow-ssh-http.id}"]
+  iam_instance_profile = "${aws_iam_instance_profile.gatling.name}"
+  user_data_base64 = "${var.S3PrivateRegistryBucketName == "" ? data.template_cloudinit_config.config.rendered : data.template_cloudinit_config.config-with-private.rendered}"
 }
 
 resource "aws_autoscaling_group" "thread-weaver" {
   name = "thread-weaver-gatling"
   vpc_zone_identifier = [
-    "${aws_subnet.thread-weaver-subnet-1b}"]
+    "${aws_subnet.thread-weaver-subnet-1b.id}"]
   launch_configuration = "${aws_launch_configuration.thread-weaver.name}"
   min_size = 1
   max_size = "${var.MaxSize}"
@@ -247,14 +265,16 @@ resource "aws_iam_role" "ec2" {
   path = "/"
   assume_role_policy = <<EOF
 {
-  "Version": "2012-10-17",
-  "Effect": "Allow",
-  "Action": [ "sts:AssumeRole" ],
-  "Principal": {
-    "Service": [
-      "ec2.amazonaws.com"
-    ]
-  }
+  "Version":"2008-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      }
+    }
+  ]
 }
 EOF
   tags = {
@@ -264,6 +284,7 @@ EOF
 
 resource "aws_iam_role_policy" "ec2-ecs-service" {
   role = "${aws_iam_role.ec2.id}"
+  count = "${var.S3PrivateRegistryBucketName == "" ? 1 : 0}"
 
   policy = <<EOF
 {
@@ -281,7 +302,48 @@ resource "aws_iam_role_policy" "ec2-ecs-service" {
       ],
       "Resource": "*"
     },
-    // -- S3PrivateRegistryBucketNameあるときだけ設定したい
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListAllMyBuckets",
+        "s3:GetBucketLocation",
+        "s3:ListBucket"
+      ],
+      "Resource": "arn:aws:s3:::*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "s3:*",
+      "Resource": [
+        "arn:aws:s3:::firebase-load-testing-logs",
+        "arn:aws:s3:::firebase-load-testing-logs/*"
+      ]
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy" "ec2-ecs-service-with-private" {
+  role = "${aws_iam_role.ec2.id}"
+  count = "${var.S3PrivateRegistryBucketName != "" ? 1 : 0}"
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ecs:CreateCluster",
+        "ecs:RegisterContainerInstance",
+        "ecs:DeregisterContainerInstance",
+        "ecs:DiscoverPollEndpoint",
+        "ecs:Submit*",
+        "ecs:Poll"
+      ],
+      "Resource": "*"
+    },
     {
       "Effect": "Allow",
       "Action": [ "s3:GetObject" ],
@@ -312,22 +374,33 @@ resource "aws_iam_role_policy" "ec2-ecs-service" {
 EOF
 }
 
-
-resource "aws_instance" "web" {
-  ami = "ami-06cd52961ce9f0d85"
-  instance_type = "t2.micro"
-  key_name = "j5ik2o-root"
-  subnet_id = "${aws_subnet.thread-weaver-subnet-1b.id}"
-  vpc_security_group_ids = [
-    "${aws_security_group.allow-ssh-http.id}"]
-  user_data_base64 = "${data.template_cloudinit_config.config.rendered}"
+resource "aws_iam_instance_profile" "gatling" {
+  name = "gatling"
+  path = "/"
+  role = "${aws_iam_role.ec2.name}"
 }
 
-resource "aws_eip" "web" {
-  instance = "${aws_instance.web.id}"
-  vpc = true
-}
-
+//resource "aws_ecs_task_definition" "random-bot-simulation" {
+//  family                = "random-bot-simulation"
+//  container_definitions = <<EOF
+//[
+//  {
+//    "name": "thread-weaver-gatling-runner",
+//    "cpu": "512",
+//    "memory": "497",
+//    "essential": true,
+//    "image": "thread-weaver/falcon-gatling-runner:1.0.0-SNAPSHOT",
+//    "environment": [
+//      { "name": "FALCON_GATLING_SIMULATION_CLASS", "value": "com.chatwork.falcon.gatling.RandomBotSimulation" },
+//      { "name": "FALCON_GATLING_WRITE_BASE_URL", "value": "${var.GatlingWriteBaseURL}" },
+//      { "name": "FALCON_GATLING_READ_BASE_URL", "value": "${var.GatlingReadBaseURL}" },
+//      { "name": "FALCON_GATLING_S3_BUCKET_NAME", "value": "${var.S3GatlingLogBucketName}" }
+//    ]
+//  }
+//]
+//EOF
+//
+//}
 
 output "vpc_id" {
   value = "${aws_vpc.thread-weaver-vpc.id}"

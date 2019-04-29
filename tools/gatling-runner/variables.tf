@@ -1,7 +1,23 @@
-variable "S3PrivateRegistryBucketName" {}
+variable "S3PrivateRegistryBucketName" {
+  default = ""
+}
 
-variable "MaxSize" {}
+variable "MaxSize" {
+  default = 1
+}
 
-variable "DesiredCapacity" {}
+variable "DesiredCapacity" {
+  default = 1
+}
 
-variable "S3GatlingLogBucketName" {}
+variable "S3GatlingLogBucketName" {
+  default = "thread-weaver-gatling"
+}
+
+variable "GatlingWriteBaseURL" {
+  default = ""
+}
+
+variable "GatlingReadBaseURL" {
+  default = ""
+}
