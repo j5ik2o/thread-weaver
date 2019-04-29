@@ -24,6 +24,7 @@ object PersistentThreadAggregate {
             Effect.persist(c.toEvent).thenRun { _ =>
               replyTo.foreach(_ ! CreateThreadSucceeded(ULID(), requestId, threadId, createAt))
             }
+
           case (
               DefinedState(thread),
               c @ AddAdministratorIds(requestId, threadId, administratorIds, senderId, createAt, replyTo)
@@ -37,8 +38,8 @@ object PersistentThreadAggregate {
                 case Right(_) =>
                   replyTo.foreach(_ ! AddAdministratorIdsSucceeded(ULID(), requestId, threadId, createAt))
               }
-
             }
+
           case (DefinedState(thread), c @ AddMemberIds(requestId, threadId, memberIds, senderId, createAt, replyTo)) =>
             Effect.persist(c.toEvent).thenRun { _ =>
               thread.addMemberIds(memberIds, senderId) match {
@@ -50,6 +51,7 @@ object PersistentThreadAggregate {
                   replyTo.foreach(_ ! AddMemberIdsSucceeded(ULID(), requestId, threadId, createAt))
               }
             }
+
           case (DefinedState(thread), c @ AddMessages(requestId, threadId, messages, createAt, replyTo)) =>
             Effect.persist(c.toEvent).thenRun { _ =>
               thread.addMessages(messages, createAt) match {
@@ -59,6 +61,7 @@ object PersistentThreadAggregate {
                   replyTo.foreach(_ ! AddMessagesSucceeded(ULID(), requestId, threadId, createAt))
               }
             }
+
           case (DefinedState(thread), GetMessages(requestId, threadId, senderId, createAt, replyTo)) =>
             Effect.none.thenRun { _ =>
               if (thread.isMemberId(senderId))
@@ -66,8 +69,10 @@ object PersistentThreadAggregate {
               else
                 replyTo ! GetMessagesFailed(ULID(), requestId, threadId, "", createAt)
             }
+
           case _ =>
             Effect.none
+
         },
         eventHandler = {
           case (EmptyState, e: ThreadCreated) =>

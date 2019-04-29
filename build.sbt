@@ -274,9 +274,6 @@ lazy val `gatling-test` = (project in file("tools/gatling-test"))
 "io.circe" %% "circe-generic" % circeVersion,
 "io.circe" %% "circe-parser" % circeVersion
     ),
-    // これがあれば、falcon-gatling-runnerでdocker:stageしたとき、
-    // com.chatwork.gatling-test-0.0.4-it.jar
-    // のようなtest classが含まれるjarが生成されてくれる。
     publishArtifact in(GatlingIt, packageBin) := true
   )
   .settings(addArtifact(artifact in(GatlingIt, packageBin), packageBin in GatlingIt))
@@ -300,7 +297,7 @@ lazy val `gatling-runner` = (project in file("tools/gatling-runner"))
       Cmd("USER", "root"),
       Cmd("RUN", "mkdir /var/log/gatling"),
       Cmd("RUN", "chown daemon:daemon /var/log/gatling"),
-      Cmd("ENV", "MR_GATLING_RESULT_DIR=/var/log/gatling")
+      Cmd("ENV", "TW_GATLING_RESULT_DIR=/var/log/gatling")
     )
   )
   .dependsOn(

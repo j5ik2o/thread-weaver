@@ -3,6 +3,7 @@ package com.github.j5ik2o.threadWeave.adaptor.aggregates
 import java.time.Instant
 
 import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
+import akka.actor.typed.ActorRef
 import com.github.j5ik2o.threadWeave.adaptor.aggregates.ThreadProtocol._
 import com.github.j5ik2o.threadWeave.domain.model.accounts.AccountId
 import com.github.j5ik2o.threadWeave.domain.model.threads._
@@ -11,10 +12,12 @@ import org.scalatest.{ FreeSpecLike, Matchers }
 
 class ThreadAggregateSpec extends ScalaTestWithActorTestKit with FreeSpecLike with Matchers {
 
+  def newThreadRef(threadId: ThreadId): ActorRef[CommandRequest] = spawn(ThreadAggregate.behavior(threadId))
+
   "ThreadAggregate" - {
     "create" in {
       val threadId          = ThreadId()
-      val threadRef         = spawn(ThreadAggregate.behavior(threadId))
+      val threadRef         = newThreadRef(threadId)
       val now               = Instant.now
       val createThreadProbe = TestProbe[CreateThreadResponse]()
 
@@ -34,7 +37,7 @@ class ThreadAggregateSpec extends ScalaTestWithActorTestKit with FreeSpecLike wi
     }
     "add members" in {
       val threadId          = ThreadId()
-      val threadRef         = spawn(ThreadAggregate.behavior(threadId))
+      val threadRef         = newThreadRef(threadId)
       val now               = Instant.now
       val createThreadProbe = TestProbe[CreateThreadResponse]()
       val administratorId   = AccountId()
@@ -79,7 +82,7 @@ class ThreadAggregateSpec extends ScalaTestWithActorTestKit with FreeSpecLike wi
     }
     "add messages" in {
       val threadId          = ThreadId()
-      val threadRef         = spawn(ThreadAggregate.behavior(threadId))
+      val threadRef         = newThreadRef(threadId)
       val now               = Instant.now
       val createThreadProbe = TestProbe[CreateThreadResponse]()
       val administratorId   = AccountId()
