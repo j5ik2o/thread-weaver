@@ -1,0 +1,38 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Parameters": {
+    "GatlingDockerImage": {
+      "Type": "String",
+      "Default": "738575627980.dkr.ecr.ap-northeast-1.amazonaws.com/chatwork/reaction-gatling-runner"
+    }
+  },
+  "Resources": {
+    "GatlingSimulationTaskDefinition": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "ContainerDefinitions": [
+          {
+            "Name": "gatling-runner",
+            "Cpu": "512",
+            "Essential": "true",
+            "Image": { "Ref" : "GatlingDockerImage" },
+            "Memory": "1024",
+            "MountPoints": [
+            ],
+            "PortMappings": [
+            ]
+          }
+        ],
+        "Volumes": [
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "GatlingSimulationTaskDefinition": {
+      "Value": {
+        "Ref": "GatlingSimulationTaskDefinition"
+      }
+    }
+  }
+}
