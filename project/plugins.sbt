@@ -18,3 +18,9 @@ addSbtPlugin("org.wartremover" % "sbt-wartremover" % "2.4.1")
 addSbtPlugin("com.typesafe.sbt" % "sbt-multi-jvm" % "0.4.0")
 
 addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.3.10")
+
+addSbtPlugin("io.gatling" % "gatling-sbt" % "2.2.2")
+
+addSbtPlugin("io.spray" % "sbt-revolver" % "0.9.1")
+
+addSbtPlugin("org.lyranthe.sbt" % "partial-unification" % "1.1.2")
