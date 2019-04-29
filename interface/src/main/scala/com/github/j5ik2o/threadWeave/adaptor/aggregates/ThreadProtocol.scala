@@ -216,4 +216,15 @@ object ThreadProtocol {
   final case class GetMessagesFailed(id: ULID, requestId: ULID, threadId: ThreadId, message: String, createAt: Instant)
       extends GetMessagesResponse
 
+  case object Idle extends CommandRequest {
+    override def id: ULID           = throw new UnsupportedOperationException
+    override def threadId: ThreadId = throw new UnsupportedOperationException
+    override def createAt: Instant  = throw new UnsupportedOperationException
+  }
+
+  case object Stop extends CommandRequest {
+    override def id: ULID           = throw new UnsupportedOperationException
+    override def threadId: ThreadId = throw new UnsupportedOperationException
+    override def createAt: Instant  = throw new UnsupportedOperationException
+  }
 }
