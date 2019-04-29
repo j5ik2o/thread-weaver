@@ -63,7 +63,6 @@ object ThreadProtocol {
   }
 
   // --- スレッドの破棄
-
   final case class DestroyThread(
       id: ULID,
       threadId: ThreadId,
@@ -177,7 +176,7 @@ object ThreadProtocol {
       replyTo: Option[ActorRef[RemoveMessagesResponse]] = None
   ) extends CommandRequest
       with ToEvent {
-    override def toEvent: Event = ???
+    override def toEvent: Event = MessagesRemoved(ULID(), threadId, messageIds, senderId, createAt)
   }
   sealed trait RemoveMessagesResponse extends CommandResponse
   final case class RemoveMessagesSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
