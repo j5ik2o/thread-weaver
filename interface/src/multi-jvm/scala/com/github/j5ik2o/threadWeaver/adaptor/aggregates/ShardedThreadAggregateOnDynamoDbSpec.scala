@@ -2,13 +2,10 @@ package com.github.j5ik2o.threadWeaver.adaptor.aggregates
 
 import java.time.Instant
 
-import akka.actor._
-import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.adapter._
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.persistence.Persistence
-import akka.persistence.journal.leveldb.{ SharedLeveldbJournal, SharedLeveldbStore }
 import akka.remote.testkit.MultiNodeSpec
 import akka.testkit.ImplicitSender
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{
@@ -23,65 +20,77 @@ import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 
 import scala.concurrent.duration._
 
-class ShardedThreadAggregateMultiJvmNode1 extends ShardedThreadAggregateSpec
-class ShardedThreadAggregateMultiJvmNode2 extends ShardedThreadAggregateSpec
-class ShardedThreadAggregateMultiJvmNode3 extends ShardedThreadAggregateSpec
+class ShardedThreadAggregateOnDynamoDbMultiJvmNode1 extends ShardedThreadAggregateOnDynamoDbSpec
+class ShardedThreadAggregateOnDynamoDbMultiJvmNode2 extends ShardedThreadAggregateOnDynamoDbSpec
+class ShardedThreadAggregateOnDynamoDbMultiJvmNode3 extends ShardedThreadAggregateOnDynamoDbSpec
 
-class ShardedThreadAggregateSpec
-    extends MultiNodeSpec(MultiNodeLevelDbConfig)
-    with LevelDbSpecSupport
+class ShardedThreadAggregateOnDynamoDbSpec
+    extends MultiNodeSpec(DynamoDbConfig)
+    with DynamoDbSpecSupport
     with ImplicitSender {
-  import MultiNodeLevelDbConfig._
+  import DynamoDbConfig._
 
   override def initialParticipants: Int = roles.size
 
   implicit def typedSystem[T]: ActorSystem[T] = system.toTyped.asInstanceOf[ActorSystem[T]]
 
+  var clusterSharding1: ClusterSharding = _
+
   "ShardedThreadAggregate" - {
     "setup shared journal" in {
       Persistence(system)
       runOn(controller) {
-        system.actorOf(Props[SharedLeveldbStore], "store")
+        startDynamoDBLocal()
       }
-      enterBarrier("persistence-started")
-      runOn(node1, node2) {
-        system.actorSelection(node(controller) / "user" / "store") ! Identify(None)
-        val sharedStore = expectMsgType[ActorIdentity].ref.get
-        SharedLeveldbJournal.setStore(sharedStore, system)
+      enterBarrier("start dynamo-db")
+      runOn(controller, node1, node2) {
+        waitDynamoDBLocal()
       }
-      enterBarrier("after-1")
+      enterBarrier("wait dynamo-db")
+      runOn(controller) {
+        createJournalTable()
+        createSnapshotTable()
+      }
+      enterBarrier("wait creating table")
     }
     "join cluster" in within(15 seconds) {
-      join(node1, node1) {
-        ShardedThreadAggregates.initEntityActor(ClusterSharding(typedSystem), 1 hours)
+      join(controller, controller) {
+        val clusterSharding = ClusterSharding(typedSystem)
+        ShardedThreadAggregates.initEntityActor(clusterSharding, 1 hours)
       }
-      join(node2, node1) {
-        ShardedThreadAggregates.initEntityActor(ClusterSharding(typedSystem), 1 hours)
+      enterBarrier("after-1")
+      join(node1, controller) {
+        clusterSharding1 = ClusterSharding(typedSystem)
+        ShardedThreadAggregates.initEntityActor(clusterSharding1, 1 hours)
       }
       enterBarrier("after-2")
+      join(node2, controller) {
+        val clusterSharding = ClusterSharding(typedSystem)
+        ShardedThreadAggregates.initEntityActor(clusterSharding, 1 hours)
+      }
+      enterBarrier("after-3")
     }
     "createThread" in {
       runOn(node1) {
         val accountId = AccountId()
         val threadId  = ThreadId()
         val threadRef =
-          ClusterSharding(typedSystem).entityRefFor(ShardedThreadAggregates.TypeKey, threadId.value.toString)
-        val createThreadResponseProbe = TestProbe[CreateThreadResponse]
+          clusterSharding1.entityRefFor(ShardedThreadAggregates.TypeKey, threadId.value.asString)
         threadRef ! CreateThread(ULID(),
                                  threadId,
                                  None,
                                  AdministratorIds(accountId),
                                  MemberIds.empty,
                                  Instant.now,
-                                 Some(createThreadResponseProbe.ref))
-        createThreadResponseProbe.expectMessageType[CreateThreadResponse] match {
+                                 Some(self.toTyped[CreateThreadResponse]))
+        expectMsgType[CreateThreadResponse] match {
           case f: CreateThreadFailed =>
             fail(f.message)
           case s: CreateThreadSucceeded =>
             s.threadId shouldBe threadId
         }
       }
-      enterBarrier("after-3")
+      enterBarrier("after-4")
     }
   }
 }

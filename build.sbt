@@ -204,6 +204,7 @@ val interface = (project in file("interface"))
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
       "de.heikoseeberger" %% "akka-http-circe" % "1.25.2",
       "ch.megard" %% "akka-http-cors" % "0.4.0",
+      "com.github.j5ik2o" %% "akka-persistence-dynamodb" % "1.0.2",
       "com.typesafe.akka" %% "akka-testkit" % akkaVersion % Test,
       "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion % Test,
       "com.typesafe.akka" %% "akka-multi-node-testkit" % akkaVersion % Test,
@@ -212,7 +213,9 @@ val interface = (project in file("interface"))
       "com.github.julien-truffaut" %% "monocle-law" % monocleVersion % Test,
       "org.fusesource.leveldbjni" % "leveldbjni-all" % "1.8" % Test,
       "org.iq80.leveldb" % "leveldb" % "0.9" % Test,
-      "commons-io" % "commons-io" % "2.4" % Test
+      "commons-io" % "commons-io" % "2.4" % Test,
+      "com.github.j5ik2o" %% "reactive-aws-dynamodb-core" % "1.1.0" % Test,
+      "com.github.j5ik2o" %% "reactive-aws-dynamodb-test" % "1.1.0" % Test
     ),
     // --- sbt-multi-jvm用の設定
     compile in MultiJvm := (compile in MultiJvm).triggeredBy(compile in Test).value,
@@ -238,7 +241,7 @@ val interface = (project in file("interface"))
         old(x)
     },
     Test / fork := true
-    //, logLevel := Level.Debug
+    , logLevel := Level.Debug
   )
   .enablePlugins(MultiJvmPlugin)
   .configs(MultiJvm)
