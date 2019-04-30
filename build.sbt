@@ -5,6 +5,7 @@ val akkaHttpVersion = "10.1.8"
 val akkaManagementVersion = "1.0.0"
 val circeVersion = "0.11.1"
 val monocleVersion = "1.5.0"
+val swaggerVersion = "2.0.8"
 
 lazy val dockerCommonSettings = Seq(
   dockerBaseImage := "adoptopenjdk/openjdk8:x86_64-alpine-jdk8u191-b12",
@@ -57,6 +58,7 @@ val baseSettings = Seq(
       Resolver.bintrayRepo("kamon-io", "snapshots")
   ),
   libraryDependencies ++= Seq(
+    "io.monix" %% "monix" % "3.0.0-RC2",
     "eu.timepit" %% "refined" % "0.9.5",
     "org.wvlet.airframe" %% "airframe" % "19.4.1",
     "io.kamon" %% "kamon-core" % "1.1.6",
@@ -153,6 +155,14 @@ val `contract-interface` = (project in file("contract-interface"))
   .settings(
     name := "reaction-contract-interface",
     libraryDependencies ++= Seq(
+      "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
+      "javax.ws.rs" % "javax.ws.rs-api" % "2.0.1",
+      "com.github.swagger-akka-http" %% "swagger-akka-http" % "2.0.2",
+      "com.github.swagger-akka-http" %% "swagger-scala-module" % "2.0.3",
+      "io.swagger.core.v3" % "swagger-core" % swaggerVersion,
+      "io.swagger.core.v3" % "swagger-annotations" % swaggerVersion,
+      "io.swagger.core.v3" % "swagger-models" % swaggerVersion,
+      "io.swagger.core.v3" % "swagger-jaxrs2" % swaggerVersion
     )
   )
   .dependsOn(`contract-use-case`)
@@ -160,7 +170,11 @@ val `contract-interface` = (project in file("contract-interface"))
 val `use-case` = (project in file("use-case"))
   .settings(baseSettings)
   .settings(
-    name := "thread-weaver-use-case"
+    name := "thread-weaver-use-case",
+    libraryDependencies ++= Seq(
+      "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
+      "com.typesafe.akka" %% "akka-cluster-sharding-typed" % akkaVersion
+    )
   ).dependsOn(`contract-use-case`, `contract-interface`, `domain`, `infrastructure`)
 
 val interface = (project in file("interface"))
@@ -188,8 +202,6 @@ val interface = (project in file("interface"))
       "com.github.TanUkkii007" %% "akka-cluster-custom-downing" % "0.0.12",
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
       "de.heikoseeberger" %% "akka-http-circe" % "1.25.2",
-      "com.github.swagger-akka-http" %% "swagger-akka-http" % "2.0.2",
-      "javax.ws.rs" % "javax.ws.rs-api" % "2.0.1",
       "ch.megard" %% "akka-http-cors" % "0.4.0",
       "com.typesafe.akka" %% "akka-testkit" % akkaVersion % Test,
       "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion % Test,
@@ -270,9 +282,9 @@ lazy val `gatling-test` = (project in file("tools/gatling-test"))
       "io.gatling" % "gatling-test-framework" % gatlingVersion,
       "com.amazonaws" % "aws-java-sdk-core" % awsSdkVersion,
       "com.amazonaws" % "aws-java-sdk-s3" % awsSdkVersion,
-"io.circe" %% "circe-core" % circeVersion,
-"io.circe" %% "circe-generic" % circeVersion,
-"io.circe" %% "circe-parser" % circeVersion
+      "io.circe" %% "circe-core" % circeVersion,
+      "io.circe" %% "circe-generic" % circeVersion,
+      "io.circe" %% "circe-parser" % circeVersion
     ),
     publishArtifact in(GatlingIt, packageBin) := true
   )

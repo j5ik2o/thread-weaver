@@ -12,6 +12,9 @@ final case class AdministratorIds(breachEncapsulationOfValues: NonEmptyList[Acco
 
 object AdministratorIds {
 
+  def apply(head: AccountId, tail: List[AccountId]): AdministratorIds =
+    new AdministratorIds(NonEmptyList.of(head, tail: _*))
+
   def apply(head: AccountId, tail: AccountId*): AdministratorIds =
     new AdministratorIds(NonEmptyList.of(head, tail: _*))
 
