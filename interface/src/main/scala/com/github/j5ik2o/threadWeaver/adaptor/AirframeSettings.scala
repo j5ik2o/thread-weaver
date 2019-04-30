@@ -38,11 +38,13 @@ object AirframeSettings {
         ActorSystem(ShardedThreadAggregatesProxy.behavior(clusterSharding, 30 seconds), name = "threads-proxy")
       }
 
-  def design(host: String,
-             port: Int,
-             system: ActorSystem[Nothing],
-             clusterSharding: ClusterSharding,
-             materializer: Materializer): Design =
+  def design(
+      host: String,
+      port: Int,
+      system: ActorSystem[Nothing],
+      clusterSharding: ClusterSharding,
+      materializer: Materializer
+  ): Design =
     com.github.j5ik2o.threadWeaver.useCase.AirframeSettings.design
       .add(designOfSwagger(host, port))
       .add(designOfActorSystem(system, materializer))

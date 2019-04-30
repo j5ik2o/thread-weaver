@@ -3,26 +3,59 @@ package com.github.j5ik2o.threadWeaver.adaptor.aggregates
 import java.time.Instant
 
 import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
+import com.github.j5ik2o.reactive.aws.test.RandomPortSupport
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol._
+import com.github.j5ik2o.threadWeaver.adaptor.util.{ DynamoDBSpecSupport, ScalaFuturesSpecSupport }
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
 import com.github.j5ik2o.threadWeaver.domain.model.threads._
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol._
+import com.typesafe.config.ConfigFactory
 import org.scalatest.FreeSpecLike
 
-class PersistentThreadAggregateSpec
-    extends ScalaTestWithActorTestKit
+object PersistentThreadAggregateOnDynamoDBSpec extends RandomPortSupport {
+  lazy val dbPort: Int = temporaryServerPort()
+}
+
+class PersistentThreadAggregateOnDynamoDBSpec
+    extends ScalaTestWithActorTestKit(ConfigFactory.parseString(s"""
+        |akka {
+        |  persistence {
+        |    journal {
+        |      plugin = dynamo-db-journal
+        |    }
+        |    snapshot-store {
+        |      plugin = dynamo-db-snapshot
+        |    }
+        |  }
+        |}
+        |
+        |dynamo-db-journal {
+        |  dynamodb-client {
+        |    access-key-id = "x"
+        |    secret-access-key = "x"
+        |    endpoint = "http://127.0.0.1:${PersistentThreadAggregateOnDynamoDBSpec.dbPort}/"
+        |  }
+        |}
+        |
+        |dynamo-db-snapshot {
+        |  dynamodb-client {
+        |    access-key-id = "x"
+        |    secret-access-key = "x"
+        |    endpoint = "http://127.0.0.1:${PersistentThreadAggregateOnDynamoDBSpec.dbPort}/"
+        |  }
+        |}
+      """.stripMargin).withFallback(ConfigFactory.load()))
     with FreeSpecLike
     with ActorSpecSupport
-    with PersistenceCleanup {
+    with DynamoDBSpecSupport
+    with ScalaFuturesSpecSupport {
+
+  override protected lazy val dynamoDBPort: Int = PersistentThreadAggregateOnDynamoDBSpec.dbPort
 
   override protected def beforeAll(): Unit = {
-    deleteStorageLocations()
     super.beforeAll()
-  }
-
-  override protected def afterAll(): Unit = {
-    deleteStorageLocations()
-    super.afterAll()
+    createJournalTable()
+    createSnapshotTable()
   }
 
   "PersistentThreadAggregate" - {

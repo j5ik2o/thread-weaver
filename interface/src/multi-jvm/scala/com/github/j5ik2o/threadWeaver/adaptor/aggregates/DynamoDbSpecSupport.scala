@@ -1,22 +1,22 @@
 package com.github.j5ik2o.threadWeaver.adaptor.aggregates
 
-import java.io.File
-
 import akka.cluster.Cluster
 import akka.remote.testconductor.RoleName
 import akka.remote.testkit.{ MultiNodeSpec, MultiNodeSpecCallbacks }
-import org.apache.commons.io.FileUtils
+import com.github.j5ik2o.threadWeaver.adaptor.util.DynamoDBSpecSupport
 import org.scalatest.{ BeforeAndAfterAll, FreeSpecLike, Matchers }
 
-trait LevelDbSpecSupport extends MultiNodeSpecCallbacks with FreeSpecLike with Matchers with BeforeAndAfterAll {
+trait DynamoDbSpecSupport
+    extends MultiNodeSpecCallbacks
+    with FreeSpecLike
+    with Matchers
+    with BeforeAndAfterAll
+    with DynamoDBSpecSupport {
   this: MultiNodeSpec =>
 
   import DynamoDbConfig._
 
-  val storageLocations: List[File] =
-    List("akka.persistence.journal.leveldb.dir",
-         "akka.persistence.journal.leveldb-shared.store.dir",
-         "akka.persistence.snapshot-store.local.dir").map(s => new File(system.settings.config.getString(s)))
+  override protected lazy val dynamoDBPort: Int = 8000
 
   override def beforeAll(): Unit = multiNodeSpecBeforeAll()
 
@@ -30,15 +30,11 @@ trait LevelDbSpecSupport extends MultiNodeSpecCallbacks with FreeSpecLike with M
     enterBarrier(from.name + "-joined")
   }
 
-  override protected def atStartup() {
-    runOn(controller) {
-      storageLocations.foreach(dir => FileUtils.deleteDirectory(dir))
-    }
-  }
+  override protected def atStartup() {}
 
   override protected def afterTermination() {
     runOn(controller) {
-      storageLocations.foreach(dir => FileUtils.deleteDirectory(dir))
+      shutdownDynamoDBLocal()
     }
   }
 

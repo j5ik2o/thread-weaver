@@ -3,7 +3,7 @@ package com.github.j5ik2o.threadWeaver.adaptor.aggregates
 import akka.remote.testkit.MultiNodeConfig
 import com.typesafe.config.ConfigFactory
 
-object MultiNodeLevelDbConfig extends MultiNodeConfig {
+object LevelDbConfig extends MultiNodeConfig {
   val controller = role("controller")
   val node1      = role("node1")
   val node2      = role("node2")
@@ -20,14 +20,17 @@ object MultiNodeLevelDbConfig extends MultiNodeConfig {
           |akka.actor.debug.receive = on
           |
           |akka.cluster.metrics.enabled=off
-          |akka.actor.provider = "akka.cluster.ClusterActorRefProvider"
+          |akka.actor.provider = "cluster"
+          |
           |akka.persistence.journal.plugin = "akka.persistence.journal.leveldb-shared"
           |akka.persistence.journal.leveldb-shared.store {
           |  native = off
           |  dir = "target/test-shared-journal"
           |}
+          |
           |akka.persistence.snapshot-store.plugin = "akka.persistence.snapshot-store.local"
           |akka.persistence.snapshot-store.local.dir = "target/test-snapshots"
+          |
           |passivate-timeout = 60 seconds
         """.stripMargin
       )

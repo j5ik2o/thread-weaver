@@ -11,29 +11,26 @@ import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{ Create
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
 import com.github.j5ik2o.threadWeaver.domain.model.threads.{ AdministratorIds, MemberIds, ThreadId }
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
+import com.typesafe.config.ConfigFactory
 import org.scalatest.FreeSpecLike
 
 import scala.concurrent.duration._
 
 class ShardedThreadAggregatesSpec
-    extends ScalaTestWithActorTestKit("""
-                                    |akka.loglevel = DEBUG
-                                    |akka.loggers = ["akka.event.slf4j.Slf4jLogger"]
-                                    |akka.logging-filter = "akka.event.slf4j.Slf4jLoggingFilter"
-                                    |akka.actor.debug.receive = on
-                                    |
-                                    |akka.actor.provider = cluster
-                                    |
-                                    |akka.persistence.journal.plugin = "akka.persistence.journal.inmem"
-                                    |passivate-timeout = 60 seconds
-      """.stripMargin)
+    extends ScalaTestWithActorTestKit(
+      ConfigFactory.parseString("""
+      |akka.actor.provider = cluster
+      |akka.persistence.journal.plugin = "akka.persistence.journal.inmem"
+      |passivate-timeout = 60 seconds
+    """.stripMargin).withFallback(ConfigFactory.load())
+    )
     with FreeSpecLike
     with ActorSpecSupport {
 
-  def typedSystem[T]: ActorSystem[T] = system.asInstanceOf[ActorSystem[T]]
-
   val cluster: Cluster                 = Cluster(system)
   val clusterSharding: ClusterSharding = ClusterSharding(typedSystem)
+
+  def typedSystem[T]: ActorSystem[T] = system.asInstanceOf[ActorSystem[T]]
 
   "ShardedThreadAggregates" - {
     "sharding" in {
