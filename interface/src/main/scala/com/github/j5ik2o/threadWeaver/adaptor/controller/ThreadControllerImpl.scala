@@ -16,8 +16,8 @@ import io.circe.generic.auto._
 trait ThreadControllerImpl extends ThreadController with ThreadValidateDirectives with MetricsDirectives {
   import com.github.j5ik2o.threadWeaver.adaptor.directives.ThreadValidateDirectives._
 
-  private val createThreadUseCase  = bind[CreateThreadUseCase]
-  private val createThradPresenter = bind[CreateThreadPresenter]
+  private val createThreadUseCase   = bind[CreateThreadUseCase]
+  private val createThreadPresenter = bind[CreateThreadPresenter]
 
   override def toRoutes(implicit context: Context): Route = handleRejections(RejectionHandlers.default) {
     pathPrefix("v1") {
@@ -36,7 +36,7 @@ trait ThreadControllerImpl extends ThreadController with ThreadValidateDirective
                   commandRequest
                 ).via(
                   createThreadUseCase.execute
-                ).via(createThradPresenter.response).runWith(Sink.head)
+                ).via(createThreadPresenter.response).runWith(Sink.head)
               onSuccess(responseFuture) { response =>
                 complete(response)
               }
