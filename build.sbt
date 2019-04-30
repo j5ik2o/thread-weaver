@@ -146,6 +146,7 @@ val `contract-use-case` = (project in file("contract-use-case"))
   .settings(
     name := "thread-weaver-contract-use-case",
     libraryDependencies ++= Seq(
+      "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion
     )
   )
   .dependsOn(`domain`)
@@ -265,6 +266,10 @@ val api = (project in file("api"))
       "-Dcom.sun.management.jmxremote",
       "-Dcom.sun.management.jmxremote.local.only=true",
       "-Dcom.sun.management.jmxremote.authenticate=false"
+    ),
+    libraryDependencies ++= Seq(
+      "org.slf4j" % "jul-to-slf4j" % "1.7.26",
+      "ch.qos.logback" % "logback-classic" % "1.2.3"
     )
   ).dependsOn(`interface`)
 

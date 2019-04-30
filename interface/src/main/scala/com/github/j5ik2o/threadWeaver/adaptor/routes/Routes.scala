@@ -1,6 +1,6 @@
 package com.github.j5ik2o.threadWeaver.adaptor.routes
 
-import akka.actor.ActorSystem
+import akka.actor.typed.ActorSystem
 import akka.http.scaladsl.model.{ ContentTypes, HttpEntity, HttpResponse }
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
@@ -10,7 +10,7 @@ import com.github.j5ik2o.threadWeaver.adaptor.controller.ThreadController
 import com.github.j5ik2o.threadWeaver.adaptor.swagger.SwaggerDocService
 
 class Routes(val swaggerDocService: SwaggerDocService, threadController: ThreadController)(
-    implicit system: ActorSystem,
+    implicit system: ActorSystem[Nothing],
     mat: Materializer
 ) extends MetricsDirectives {
 

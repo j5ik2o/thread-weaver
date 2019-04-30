@@ -5,12 +5,11 @@ import java.time.Instant
 import akka.actor._
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
-import akka.remote.testkit.MultiNodeSpec
-import com.github.j5ik2o.threadWeaver.adaptor._
 import akka.actor.typed.scaladsl.adapter._
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.persistence.Persistence
 import akka.persistence.journal.leveldb.{ SharedLeveldbJournal, SharedLeveldbStore }
+import akka.remote.testkit.MultiNodeSpec
 import akka.testkit.ImplicitSender
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{
   CreateThread,

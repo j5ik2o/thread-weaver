@@ -4,7 +4,8 @@ import wvlet.airframe._
 
 object AirframeSettings {
 
-  val design = newDesign
-    .bind[CreateThreadUseCase].to[CreateThreadUseCaseImpl]
+  def design: Design =
+    newDesign
+      .bind[CreateThreadUseCase].to[CreateThreadUseCaseImpl]
 
 }
