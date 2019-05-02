@@ -8,12 +8,13 @@ import akka.cluster.ClusterEvent.ClusterDomainEvent
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.cluster.{ Cluster, ClusterEvent, MemberStatus }
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.{ ContentTypes, HttpEntity, StatusCodes }
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{ Route, StandardRoute }
 import akka.management.cluster.bootstrap.ClusterBootstrap
 import akka.management.scaladsl.AkkaManagement
 import akka.stream.ActorMaterializer
+import cats.syntax.validated._
+import com.github.everpeace.healthchecks._
+import com.github.everpeace.healthchecks.k8s._
 import com.github.j5ik2o.threadWeaver.adaptor.AirframeSettings
 import com.github.j5ik2o.threadWeaver.adaptor.routes.Routes
 import com.github.j5ik2o.threadWeaver.api.config.EnvironmentURLStreamHandlerFactory
@@ -25,30 +26,29 @@ import kamon.system.SystemMetrics
 import org.slf4j.LoggerFactory
 import org.slf4j.bridge.SLF4JBridgeHandler
 
-class HealthCheck(host: String, port: Int)(implicit system: ActorSystem) {
-  private val cluster = Cluster(system)
+import scala.concurrent.Future
 
-  private def ready: StandardRoute = {
-    val status = cluster.selfMember.status
-    if (status == MemberStatus.Up || status == MemberStatus.WeaklyUp)
-      complete(HttpEntity(ContentTypes.`application/json`, s"""{ "heatlh": "OK" }"""))
-    else
-      complete(StatusCodes.NotFound)
-  }
+object HealthCheck {
 
-  val route: Route = path("health" / "ready") {
-    get {
-      ready
-    }
-  } ~
-  path("health" / "alive") {
-    get {
-      ready
+  def akka(host: String, port: Int)(implicit system: ActorSystem): HealthCheck = {
+    asyncHealthCheck("akka-cluster") {
+      import system.dispatcher
+      Future {
+        val cluster = Cluster(system)
+        val status  = cluster.selfMember.status
+        val result  = status == MemberStatus.Up || status == MemberStatus.WeaklyUp
+        if (result)
+          healthy
+        else
+          "Not Found".invalidNel
+
+      }
     }
   }
 }
 
 object Main extends App {
+
   SLF4JBridgeHandler.install()
   val logger = LoggerFactory.getLogger(getClass)
 
@@ -85,16 +85,18 @@ object Main extends App {
 
   val clusterSharding = ClusterSharding(system.toTyped)
 
-  val host        = config.getString("thread-weaver.api.host")
-  val port        = config.getInt("thread-weaver.api.port")
-  val healthCheck = new HealthCheck(host, port)
-  val design      = AirframeSettings.design(host, port, system.toTyped, clusterSharding, materializer)
-  val session     = design.newSession
+  val host = config.getString("thread-weaver.api.host")
+  val port = config.getInt("thread-weaver.api.port")
+
+  val akkaHealthCheck = HealthCheck.akka(host, port)
+  val design          = AirframeSettings.design(host, port, system.toTyped, clusterSharding, materializer)
+  val session         = design.newSession
   session.start
 
-  val routes = session.build[Routes]
+  val routes = session
+    .build[Routes].root ~ readinessProbe(akkaHealthCheck).toRoute ~ livenessProbe(akkaHealthCheck).toRoute
 
-  val bindingFuture = Http().bindAndHandle( /*healthCheck.route ~*/ routes.root, host, port).map { serverBinding =>
+  val bindingFuture = Http().bindAndHandle(routes, host, port).map { serverBinding =>
     system.log.info(s"Server online at ${serverBinding.localAddress}")
     serverBinding
   }
