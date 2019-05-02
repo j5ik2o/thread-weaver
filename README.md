@@ -51,3 +51,9 @@ $ curl http://$KUBE_IP:$MANAGEMENT_PORT/cluster/members | jq
 $ API_PORT=$(kubectl get svc thread-weaver-api -ojsonpath="{.spec.ports[?(@.name==\"api\")].nodePort}")
 $ curl http://$KUBE_IP:$API_PORT/
 ```
+
+### sbtでの動作確認
+
+```sh
+$ sbt api/run
+```
