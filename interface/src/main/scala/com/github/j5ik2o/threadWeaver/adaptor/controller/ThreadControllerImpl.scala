@@ -26,8 +26,8 @@ trait ThreadControllerImpl extends ThreadController with ThreadValidateDirective
   }
 
   override private[controller] def createThread(implicit context: Context) = traceName(context)("create-thread") {
-    extractMaterializer { implicit mat =>
-      path("threads") {
+    path("threads") {
+      extractMaterializer { implicit mat =>
         post {
           entity(as[CreateThreadRequestJson]) { json =>
             validateThreadRequestJson(json).apply { commandRequest =>
