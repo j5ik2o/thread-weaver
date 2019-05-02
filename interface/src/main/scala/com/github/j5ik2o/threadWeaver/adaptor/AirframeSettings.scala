@@ -46,8 +46,10 @@ object AirframeSettings {
   def designOfLocalAggregatesWithoutPersistence: Design =
     newDesign
       .bind[ActorRef[CommandRequest]].toInstance {
-        ActorSystem(ThreadAggregates.behavior(ThreadAggregate.name)(ThreadAggregate.behavior),
-                    name = "threads-without-persistence")
+        ActorSystem(
+          ThreadAggregates.behavior(ThreadAggregate.name)(ThreadAggregate.behavior),
+          name = "threads-without-persistence"
+        )
       }
 
   def design(

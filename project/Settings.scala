@@ -13,6 +13,7 @@ object Settings {
   val circeVersion          = "0.11.1"
   val monocleVersion        = "1.5.0"
   val swaggerVersion        = "2.0.8"
+  val slickVersion          = "3.2.3"
 
   lazy val dockerCommonSettings = Seq(
     dockerBaseImage := "adoptopenjdk/openjdk8:x86_64-alpine-jdk8u191-b12",

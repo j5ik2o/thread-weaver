@@ -23,8 +23,8 @@ class EnvironmentConnection(url: URL) extends URLConnection(url) {
     val property = Option(System.getProperty("environment"))
     val system   = Option(System.getenv("SYSTEM_ENV"))
     (property, system) match {
-      case (Some(env), _) => env // -Denvironment=[production|staging|development]
-      case (_, Some(env)) => env // export SYSTEM_ENV=[production|staging|development]
+      case (Some(env), _) => env           // -Denvironment=[production|staging|development]
+      case (_, Some(env)) => env           // export SYSTEM_ENV=[production|staging|development]
       case _              => "development" // default environment
     }
   }
