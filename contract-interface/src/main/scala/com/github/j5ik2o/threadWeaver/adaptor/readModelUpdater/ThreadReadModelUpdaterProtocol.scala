@@ -26,4 +26,16 @@ object ThreadReadModelUpdaterProtocol {
   private[readModelUpdater] case class EventMessage(persistenceId: String, sequenceNr: Long, event: Event)
       extends Message
 
+  case object Idle extends CommandRequest {
+    override def id: ULID           = throw new UnsupportedOperationException
+    override def threadId: ThreadId = throw new UnsupportedOperationException
+    override def createAt: Instant  = throw new UnsupportedOperationException
+  }
+
+  case object Stop extends CommandRequest {
+    override def id: ULID           = throw new UnsupportedOperationException
+    override def threadId: ThreadId = throw new UnsupportedOperationException
+    override def createAt: Instant  = throw new UnsupportedOperationException
+  }
+
 }
