@@ -1,5 +1,16 @@
 import Settings._
+import Utils.RandomPortSupport
 import com.typesafe.sbt.packager.docker._
+import org.seasar.util.lang.StringUtil
+
+import scala.concurrent.duration._
+
+val dbDriver   = "com.mysql.jdbc.Driver"
+val dbName     = "tw"
+val dbUser     = "tw"
+val dbPassword = "passwd"
+val dbPort     = RandomPortSupport.temporaryServerPort()
+val dbUrl      = s"jdbc:mysql://localhost:$dbPort/$dbName?useSSL=false"
 
 val `infrastructure` = (project in file("infrastructure"))
   .settings(baseSettings)
@@ -60,11 +71,46 @@ val `use-case` = (project in file("use-case"))
     )
   ).dependsOn(`contract-use-case`, `contract-interface`, `domain`, `infrastructure`)
 
+val `flyway` = (project in file("tools/flyway"))
+  .enablePlugins(FlywayPlugin)
+  .settings(baseSettings)
+  .settings(
+    name := "thread-weaver-flyway",
+    libraryDependencies ++= Seq("mysql" % "mysql-connector-java" % "5.1.42"),
+    parallelExecution in Test := false,
+    wixMySQLVersion := com.wix.mysql.distribution.Version.v5_6_21,
+    wixMySQLUserName := Some(dbUser),
+    wixMySQLPassword := Some(dbPassword),
+    wixMySQLSchemaName := dbName,
+    wixMySQLPort := Some(dbPort),
+    wixMySQLDownloadPath := Some(sys.env("HOME") + "/.wixMySQL/downloads"),
+    //wixMySQLTempPath := Some(sys.env("HOME") + "/.wixMySQL/work"),
+    wixMySQLTimeout := Some(2 minutes),
+    flywayDriver := dbDriver,
+    flywayUrl := dbUrl,
+    flywayUser := dbUser,
+    flywayPassword := dbPassword,
+    flywaySchemas := Seq(dbName),
+    flywayLocations := Seq(
+      s"filesystem:${baseDirectory.value}/src/test/resources/db-migration/",
+      s"filesystem:${baseDirectory.value}/src/test/resources/db-migration/test"
+    ),
+    flywayPlaceholderReplacement := true,
+    flywayPlaceholders := Map(
+      "engineName"                 -> "MEMORY",
+      "idSequenceNumberEngineName" -> "MyISAM"
+    ),
+    flywayMigrate := (flywayMigrate dependsOn wixMySQLStart).value
+  )
+
 val interface = (project in file("interface"))
   .settings(baseSettings)
   .settings(
     name := "thread-weaver-interface",
     libraryDependencies ++= Seq(
+      "mysql" % "mysql-connector-java" % "5.1.42",
+      "com.typesafe.slick" %% "slick"          % slickVersion,
+      "com.typesafe.slick" %% "slick-hikaricp" % slickVersion,
       "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
       "com.typesafe.akka" %% "akka-stream-typed" % akkaVersion,
       "com.typesafe.akka" %% "akka-persistence-typed" % akkaVersion,
@@ -94,6 +140,59 @@ val interface = (project in file("interface"))
       "com.github.j5ik2o" %% "reactive-aws-dynamodb-core" % "1.1.0" % Test,
       "com.github.j5ik2o" %% "reactive-aws-dynamodb-test" % "1.1.0" % Test
     ),
+    // sbt-dao-generator
+    // JDBCのドライバークラス名を指定します(必須)
+    driverClassName in generator := dbDriver,
+    // JDBCの接続URLを指定します(必須)
+    jdbcUrl in generator := dbUrl,
+    // JDBCの接続ユーザ名を指定します(必須)
+    jdbcUser in generator := dbUser,
+    // JDBCの接続ユーザのパスワードを指定します(必須)
+    jdbcPassword in generator := dbPassword,
+    // カラム型名をどのクラスにマッピングするかを決める関数を記述します(必須)
+    propertyTypeNameMapper in generator := {
+      case "INTEGER" | "TINYINT" | "INT"     => "Int"
+      case "BIGINT"                          => "Long"
+      case "VARCHAR"                         => "String"
+      case "BOOLEAN" | "BIT"                 => "Boolean"
+      case "DATE" | "TIMESTAMP" | "DATETIME" => "java.time.Instant"
+      case "DECIMAL"                         => "BigDecimal"
+      case "ENUM"                            => "String"
+    },
+    propertyNameMapper in generator := {
+      case "type"     => "`type`"
+      case columnName => StringUtil.decapitalize(StringUtil.camelize(columnName))
+    },
+    tableNameFilter in generator := { tableName: String =>
+      tableName.toUpperCase match {
+        case "SCHEMA_VERSION"                      => false
+        case "FLYWAY_SCHEMA_HISTORY"                => false
+        case t if t.endsWith("ID_SEQUENCE_NUMBER") => false
+        case _                                     => true
+      }
+    },
+    outputDirectoryMapper in generator := {
+      case s if s.endsWith("Spec") => (sourceDirectory in Test).value
+      case s =>
+        new java.io.File((scalaSource in Compile).value, "/com/github/j5ik2o/threadWeaver/adaptor/dao/jdbc")
+    },
+    // モデル名に対してどのテンプレートを利用するか指定できます。
+    templateNameMapper in generator := {
+      case className if className.endsWith("Spec") => "template_spec.ftl"
+      case _                                       => "template.ftl"
+    },
+    compile in Compile := ((compile in Compile) dependsOn (generateAll in generator)).value,
+    generateAll in generator := Def
+      .taskDyn {
+        val ga = (generateAll in generator).value
+        Def
+          .task {
+            (wixMySQLStop in flyway).value
+          }
+          .map(_ => ga)
+      }
+      .dependsOn(flywayMigrate in flyway)
+      .value,
     // --- sbt-multi-jvm用の設定
     compile in MultiJvm := (compile in MultiJvm).triggeredBy(compile in Test).value,
     executeTests in Test := Def.task {
@@ -118,7 +217,7 @@ val interface = (project in file("interface"))
         old(x)
     },
     Test / fork := true
-    , logLevel := Level.Debug
+    // , logLevel := Level.Debug
   )
   .enablePlugins(MultiJvmPlugin)
   .configs(MultiJvm)
@@ -160,6 +259,9 @@ val api = (project in file("api"))
       "org.codehaus.janino" % "janino" % "3.0.6"
     )
   ).dependsOn(`interface`)
+
+
+
 
 
 val gatlingVersion                 = "2.2.3"
