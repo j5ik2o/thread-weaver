@@ -154,7 +154,8 @@ val api = (project in file("api"))
       "com.lightbend.akka.discovery" %% "akka-discovery-kubernetes-api" % akkaManagementVersion,
       "com.github.TanUkkii007" %% "akka-cluster-custom-downing" % "0.0.12",
       "org.slf4j" % "jul-to-slf4j" % "1.7.26",
-      "ch.qos.logback" % "logback-classic" % "1.2.3"
+      "ch.qos.logback" % "logback-classic" % "1.2.3",
+      "org.codehaus.janino" % "janino" % "3.0.6"
     )
   ).dependsOn(`interface`)
 

@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
-    <property name="envName" value="${ENV_NAME:-DEV}"/>
+    <property name="envName" value="${ENV_NAME:-development}"/>
     <property name="appName" value="thread-weaver-${APPLICATION_NAME:-api}"/>
 
-    <if condition='property("envName").startsWith("PROD") || property("envName").startsWith("STAGE")'>
+    <if condition='property("envName").startsWith("production") || property("envName").startsWith("staging")'>
         <then>
             <appender name="default" class="ch.qos.logback.core.ConsoleAppender">
                 <encoder class="net.logstash.logback.encoder.LogstashEncoder">
@@ -63,6 +63,8 @@
     <logger name="com.github.j5ik2o" level="INFO" additivity="false">
         <appender-ref ref="akka-async"/>
     </logger>
+
+    <logger name="akka.management" level="ERROR"/>
 
     <root level="INFO">
         <appender-ref ref="async"/>

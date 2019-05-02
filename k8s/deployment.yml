@@ -27,6 +27,8 @@ spec:
               fieldRef:
                 apiVersion: v1
                 fieldPath: status.podIP
+          - name: ENV_NAME
+            value: "production"
         ports:
         - name: remoting
           containerPort: 2551
