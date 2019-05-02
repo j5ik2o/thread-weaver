@@ -15,7 +15,7 @@ object ThreadAggregate {
 
     def onCreated(thread: Thread, lastCommandId: ULID): Behaviors.Receive[CommandRequest] =
       Behaviors.receiveMessage[CommandRequest] {
-        case CreateThread(requestId, threadId, _, _, _, createAt, replyTo) if threadId == id =>
+        case CreateThread(requestId, threadId, _, _, _, _, createAt, replyTo) if threadId == id =>
           replyTo.foreach(_ ! CreateThreadFailed(ULID(), requestId, threadId, "Already created", createAt))
           Behaviors.same
 
@@ -26,7 +26,7 @@ object ThreadAggregate {
             replyTo ! GetMessagesFailed(ULID(), requestId, threadId, "The operation is not allowed.", createAt)
           Behaviors.same
 
-        case AddAdministratorIds(requestId, threadId, administratorIds, senderId, createAt, replyTo)
+        case AddAdministratorIds(requestId, threadId, senderId, administratorIds, createAt, replyTo)
             if threadId == id && lastCommandId != requestId =>
           thread.addAdministratorIds(administratorIds, senderId) match {
             case Left(exception) =>
@@ -39,7 +39,7 @@ object ThreadAggregate {
               onCreated(newThread, requestId)
           }
 
-        case AddMemberIds(requestId, threadId, memberIds, senderId, createAt, replyTo)
+        case AddMemberIds(requestId, threadId, senderId, memberIds, createAt, replyTo)
             if threadId == id && requestId != lastCommandId =>
           ctx.log.info("AddMemberIds: requestId = {}, last = {}, memberIds = {}", requestId, lastCommandId, memberIds)
           thread.addMemberIds(memberIds, senderId) match {
@@ -53,10 +53,10 @@ object ThreadAggregate {
               onCreated(newThread, requestId)
           }
 
-        case AddMessages(requestId, threadId, messages, createAt, replyTo)
+        case AddMessages(requestId, threadId, senderId, messages, createAt, replyTo)
             if threadId == id && requestId != lastCommandId =>
           ctx.log.info("AddMessages: requestId = {}, last = {}, messages = {}", requestId, lastCommandId, messages)
-          thread.addMessages(messages, createAt) match {
+          thread.addMessages(messages, senderId, createAt) match {
             case Left(exception) =>
               replyTo.foreach(_ ! AddMessagesFailed(ULID(), requestId, threadId, exception.getMessage, createAt))
               Behaviors.same
@@ -65,7 +65,7 @@ object ThreadAggregate {
               onCreated(newThread, requestId)
           }
 
-        case RemoveMessages(requestId, threadId, messageIds, senderId, createAt, replyTo)
+        case RemoveMessages(requestId, threadId, senderId, messageIds, createAt, replyTo)
             if threadId == id && requestId != lastCommandId =>
           thread.filterNotMessages(messageIds, senderId, createAt) match {
             case Left(exception) =>
@@ -76,13 +76,13 @@ object ThreadAggregate {
               onCreated(newThread, requestId)
           }
 
-        case DestroyThread(requestId, threadId, createAt, replyTo) if threadId == id =>
+        case DestroyThread(requestId, threadId, senderId, createAt, replyTo) if threadId == id =>
           replyTo.foreach(_ ! DestroyThreadSucceeded(ULID(), requestId, threadId, createAt))
           onDestroyed
       }
 
     def onStarted: Behaviors.Receive[CommandRequest] = Behaviors.receiveMessage[CommandRequest] {
-      case CreateThread(requestId, threadId, parentThreadId, administratorIds, memberIds, createAt, replyTo)
+      case CreateThread(requestId, threadId, creatorId, parentThreadId, administratorIds, memberIds, createAt, replyTo)
           if threadId == id =>
         ctx.log.info("CreateThread: requestId = {}, threadId = {}, memberIds = {}", requestId, threadId, memberIds)
         replyTo.foreach(_ ! CreateThreadSucceeded(ULID(), requestId, threadId, createAt))
@@ -91,11 +91,11 @@ object ThreadAggregate {
           requestId
         )
 
-      case DestroyThread(requestId, threadId, createAt, replyTo) if threadId == id =>
+      case DestroyThread(requestId, threadId, senderId, createAt, replyTo) if threadId == id =>
         replyTo.foreach(_ ! DestroyThreadFailed(ULID(), requestId, threadId, "Not created yet", createAt))
         Behaviors.same
 
-      case AddMessages(requestId, threadId, _, createAt, replyTo) if threadId == id =>
+      case AddMessages(requestId, threadId, senderId, _, createAt, replyTo) if threadId == id =>
         replyTo.foreach(_ ! AddMessagesFailed(ULID(), requestId, threadId, "Not created yet", createAt))
         Behaviors.same
 

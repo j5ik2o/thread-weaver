@@ -36,13 +36,14 @@ object ThreadValidateDirectives {
         value: CreateThreadRequestJson
     ): ValidationResult[CreateThread] = {
       (
+        validateAccountId(value.creatorId),
         validateThreadIdOpt(value.parentThreadId),
         validateAdministratorIds(value.administratorIds),
         validateMemberIds(value.memberIds),
         validateInstant(value.createAt)
       ).mapN {
-        case (parentThreadId, administratorIds, memberIds, createdAt) =>
-          CreateThread(ULID(), ThreadId(), parentThreadId, administratorIds, memberIds, createdAt)
+        case (creatorId, parentThreadId, administratorIds, memberIds, createdAt) =>
+          CreateThread(ULID(), ThreadId(), creatorId, parentThreadId, administratorIds, memberIds, createdAt)
       }
     }
   }

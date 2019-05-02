@@ -8,6 +8,7 @@ trait ThreadComponent extends SlickDaoSupport {
       id: String,
       deleted: Boolean,
       sequenceNr: Long,
+      creatorId: String,
       parentId: Option[String],
       createdAt: java.time.Instant,
       updatedAt: java.time.Instant
@@ -19,12 +20,13 @@ trait ThreadComponent extends SlickDaoSupport {
     def id: Rep[String]                   = column[String]("id")
     def deleted: Rep[Boolean]             = column[Boolean]("deleted")
     def sequenceNr: Rep[Long]             = column[Long]("sequence_nr")
+    def creatorId: Rep[String]            = column[String]("creator_id")
     def parentId: Rep[Option[String]]     = column[Option[String]]("parent_id")
     def createdAt: Rep[java.time.Instant] = column[java.time.Instant]("created_at")
     def updatedAt: Rep[java.time.Instant] = column[java.time.Instant]("updated_at")
     def pk                                = primaryKey("pk", (id))
     override def * =
-      (id, deleted, sequenceNr, parentId, createdAt, updatedAt) <> (ThreadRecord.tupled, ThreadRecord.unapply)
+      (id, deleted, sequenceNr, creatorId, parentId, createdAt, updatedAt) <> (ThreadRecord.tupled, ThreadRecord.unapply)
   }
 
   object ThreadDao extends TableQuery(Threads)

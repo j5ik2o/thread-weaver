@@ -20,14 +20,14 @@ object PersistentThreadAggregate {
         persistenceId = PersistenceId("P-" + id.value.asString),
         emptyState = EmptyState,
         commandHandler = {
-          case (EmptyState, c @ CreateThread(requestId, threadId, _, _, _, createAt, replyTo)) =>
+          case (EmptyState, c @ CreateThread(requestId, threadId, _, _, _, _, createAt, replyTo)) =>
             Effect.persist(c.toEvent).thenRun { _ =>
               replyTo.foreach(_ ! CreateThreadSucceeded(ULID(), requestId, threadId, createAt))
             }
 
           case (
               DefinedState(thread),
-              c @ AddAdministratorIds(requestId, threadId, administratorIds, senderId, createAt, replyTo)
+              c @ AddAdministratorIds(requestId, threadId, senderId, administratorIds, createAt, replyTo)
               ) =>
             Effect.persist(c.toEvent).thenRun { _ =>
               thread.addAdministratorIds(administratorIds, senderId) match {
@@ -40,7 +40,7 @@ object PersistentThreadAggregate {
               }
             }
 
-          case (DefinedState(thread), c @ AddMemberIds(requestId, threadId, memberIds, senderId, createAt, replyTo)) =>
+          case (DefinedState(thread), c @ AddMemberIds(requestId, threadId, senderId, memberIds, createAt, replyTo)) =>
             Effect.persist(c.toEvent).thenRun { _ =>
               thread.addMemberIds(memberIds, senderId) match {
                 case Left(exception) =>
@@ -52,9 +52,9 @@ object PersistentThreadAggregate {
               }
             }
 
-          case (DefinedState(thread), c @ AddMessages(requestId, threadId, messages, createAt, replyTo)) =>
+          case (DefinedState(thread), c @ AddMessages(requestId, threadId, senderId, messages, createAt, replyTo)) =>
             Effect.persist(c.toEvent).thenRun { _ =>
-              thread.addMessages(messages, createAt) match {
+              thread.addMessages(messages, senderId, createAt) match {
                 case Left(exception) =>
                   replyTo.foreach(_ ! AddMessagesFailed(ULID(), requestId, threadId, exception.getMessage, createAt))
                 case Right(_) =>
@@ -97,7 +97,7 @@ object PersistentThreadAggregate {
             )
           case (DefinedState(thread), e: MessagesAdded) =>
             DefinedState(
-              thread.addMessages(e.messages, e.createdAt).right.get
+              thread.addMessages(e.messages, e.senderId, e.createdAt).right.get
             )
           case (state, _) =>
             state

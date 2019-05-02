@@ -69,6 +69,7 @@ class ShardedThreadAggregateOnLevelDbSpec
         val createThreadResponseProbe = TestProbe[CreateThreadResponse]
         threadRef ! CreateThread(ULID(),
                                  threadId,
+                                 accountId,
                                  None,
                                  AdministratorIds(accountId),
                                  MemberIds.empty,

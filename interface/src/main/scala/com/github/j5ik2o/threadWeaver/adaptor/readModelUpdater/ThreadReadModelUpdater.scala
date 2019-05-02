@@ -1,12 +1,14 @@
 package com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater
 
+import java.time.Instant
+
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ Behavior, PostStop }
 import akka.persistence.query.scaladsl._
 import akka.stream.scaladsl.{ Keep, Sink, Source }
 import akka.stream.typed.scaladsl.ActorMaterializer
 import akka.stream.{ KillSwitch, KillSwitches }
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{ Event, ThreadCreated }
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{ Event, MemberIdsAdded, ThreadCreated }
 import com.github.j5ik2o.threadWeaver.adaptor.dao.jdbc.{
   ThreadAdministratorIdsComponent,
   ThreadComponent,
@@ -15,9 +17,11 @@ import com.github.j5ik2o.threadWeaver.adaptor.dao.jdbc.{
 }
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdater.ReadJournalType
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdaterProtocol._
-import com.github.j5ik2o.threadWeaver.domain.model.threads.ThreadId
+import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
+import com.github.j5ik2o.threadWeaver.domain.model.threads.{ AdministratorIds, MemberIds, ThreadId }
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 import slick.jdbc.JdbcProfile
+import slick.sql.FixedSqlAction
 
 object ThreadReadModelUpdater {
 
@@ -67,42 +71,17 @@ class ThreadReadModelUpdater(
         .receiveMessagePartial[Message] {
           case EventMessage(_, sequenceNr, event) =>
             event match {
-              case ThreadCreated(_, _, parentThreadId, administratorIds, memberIds, createdAt) =>
-                val insertThread = ThreadDao += ThreadRecord(
-                      threadId.value.asString,
-                      deleted = false,
-                      sequenceNr,
-                      parentThreadId.map(_.value.asString),
-                      createdAt,
-                      createdAt
-                    )
-                val insertAdministratorIds = administratorIds.breachEncapsulationOfValues
-                  .map(
-                    aid =>
-                      ThreadAdministratorIdsDao += ThreadAdministratorIdsRecord(
-                          ULID().asString,
-                          threadId.value.asString,
-                          aid.value.asString,
-                          createdAt,
-                          createdAt
-                        )
-                  ).toList
-                val insertMemberIds = memberIds.breachEncapsulationOfValues
-                  .map(
-                    aid =>
-                      ThreadMemberIdsDao += ThreadMemberIdsRecord(
-                          ULID().asString,
-                          threadId.value.asString,
-                          aid.value.asString,
-                          createdAt,
-                          createdAt
-                        )
-                  )
+              case ThreadCreated(_, _, senderId, parentThreadId, administratorIds, memberIds, createdAt) =>
+                val insertThread = insertThreadQuery(threadId, sequenceNr, senderId, parentThreadId, createdAt)
+                val insertAdministratorIds =
+                  insertAdministratorIdsQuery(threadId, senderId, administratorIds, createdAt)
+                val insertMemberIds = insertMemberIdsQuery(threadId, senderId, memberIds, createdAt)
                 db.run(
                   DBIO
-                    .seq(insertThread :: insertAdministratorIds ++ insertMemberIds: _*).transactionally
+                    .seq(insertThread :: insertAdministratorIds ::: insertMemberIds: _*).transactionally
                 )
-              case _ =>
+              case MemberIdsAdded(_, _, adderId, memberIds, _) =>
+              case _                                           =>
               // TODO
             }
             Behaviors.same
@@ -134,4 +113,57 @@ class ThreadReadModelUpdater(
         }
     }
 
+  private def insertMemberIdsQuery(
+      threadId: ThreadId,
+      adderId: AccountId,
+      memberIds: MemberIds,
+      createdAt: Instant
+  ): List[FixedSqlAction[Int, NoStream, slick.dbio.Effect.Write]] = {
+    memberIds.breachEncapsulationOfValues.map { accountId =>
+      ThreadMemberIdsDao += ThreadMemberIdsRecord(
+        id = ULID().asString,
+        threadId = threadId.value.asString,
+        accountId = accountId.value.asString,
+        adderId = adderId.value.asString,
+        createdAt = createdAt,
+        updatedAt = createdAt
+      )
+    }.toList
+  }
+
+  private def insertAdministratorIdsQuery(
+      threadId: ThreadId,
+      adderId: AccountId,
+      administratorIds: AdministratorIds,
+      createdAt: Instant
+  ): List[FixedSqlAction[Int, NoStream, slick.dbio.Effect.Write]] = {
+    administratorIds.breachEncapsulationOfValues.map { accountId =>
+      ThreadAdministratorIdsDao += ThreadAdministratorIdsRecord(
+        id = ULID().asString,
+        threadId = threadId.value.asString,
+        accountId = accountId.value.asString,
+        adderId = adderId.value.asString,
+        createdAt = createdAt,
+        updatedAt = createdAt
+      )
+    }.toList
+  }
+
+  private def insertThreadQuery(
+      threadId: ThreadId,
+      sequenceNr: Long,
+      senderId: AccountId,
+      parentThreadId: Option[ThreadId],
+      createdAt: Instant
+  ): FixedSqlAction[Int, NoStream, slick.dbio.Effect.Write] = {
+    ThreadDao += ThreadRecord(
+      id = threadId.value.asString,
+      deleted = false,
+      sequenceNr = sequenceNr,
+      creatorId = senderId.value.asString,
+      parentId = parentThreadId.map(_.value.asString),
+      createdAt = createdAt,
+      updatedAt = createdAt
+    )
+  }
 }

@@ -10,9 +10,11 @@ import slick.jdbc.JdbcProfile
 
 import scala.concurrent.duration.FiniteDuration
 
-class ShardedThreadReadModelUpdaterProxy(val readJournal: ReadJournalType,
-                                         val profile: JdbcProfile,
-                                         val db: JdbcProfile#Backend#Database) {
+class ShardedThreadReadModelUpdaterProxy(
+    val readJournal: ReadJournalType,
+    val profile: JdbcProfile,
+    val db: JdbcProfile#Backend#Database
+) {
 
   def behavior(clusterSharding: ClusterSharding, receiveTimeout: FiniteDuration): Behavior[CommandRequest] =
     Behaviors.setup[CommandRequest] { _ =>

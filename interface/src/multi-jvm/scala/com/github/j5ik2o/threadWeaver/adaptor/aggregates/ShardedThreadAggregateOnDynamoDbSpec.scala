@@ -78,6 +78,7 @@ class ShardedThreadAggregateOnDynamoDbSpec
           clusterSharding1.entityRefFor(ShardedThreadAggregates.TypeKey, threadId.value.asString)
         threadRef ! CreateThread(ULID(),
                                  threadId,
+                                 accountId,
                                  None,
                                  AdministratorIds(accountId),
                                  MemberIds.empty,

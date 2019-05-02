@@ -7,8 +7,7 @@ final case class Messages(breachEncapsulationOfValues: Vector[Message[_]]) {
 
   def filterNot(messageIds: MessageIds, senderId: AccountId): Messages = {
     copy(
-      breachEncapsulationOfValues =
-        breachEncapsulationOfValues.filterNot(v => v.senderId == senderId && messageIds.contains(v.id))
+      breachEncapsulationOfValues = breachEncapsulationOfValues.filterNot(v => messageIds.contains(v.id))
     )
   }
 

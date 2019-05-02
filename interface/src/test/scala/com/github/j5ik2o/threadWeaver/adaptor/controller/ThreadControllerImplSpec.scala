@@ -21,7 +21,8 @@ class ThreadControllerImplSpec extends FreeSpec with RouteSpec {
     "create" in {
       val administratorId = ULID().asString
       val createdAt       = Instant.now.toEpochMilli
-      val entity          = CreateThreadRequestJson(None, Seq(administratorId), Seq.empty, createdAt).toHttpEntity
+      val entity =
+        CreateThreadRequestJson(administratorId, None, Seq(administratorId), Seq.empty, createdAt).toHttpEntity
       Post("/threads", entity) ~> controller.createThread ~> check {
         response.status shouldEqual StatusCodes.OK
         val responseJson = responseAs[CreateThreadResponseJson]

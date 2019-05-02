@@ -20,12 +20,14 @@ class ThreadAggregateSpec extends ScalaTestWithActorTestKit with FreeSpecLike wi
       val threadRef         = newThreadRef(threadId)
       val now               = Instant.now
       val createThreadProbe = TestProbe[CreateThreadResponse]()
+      val administratorId   = AccountId()
 
       threadRef ! CreateThread(
         ULID(),
         threadId,
+        administratorId,
         None,
-        AdministratorIds(AccountId()),
+        AdministratorIds(administratorId),
         MemberIds.empty,
         now,
         Some(createThreadProbe.ref)
@@ -45,6 +47,7 @@ class ThreadAggregateSpec extends ScalaTestWithActorTestKit with FreeSpecLike wi
       threadRef ! CreateThread(
         ULID(),
         threadId,
+        administratorId,
         None,
         AdministratorIds(administratorId),
         MemberIds.empty,
@@ -66,8 +69,8 @@ class ThreadAggregateSpec extends ScalaTestWithActorTestKit with FreeSpecLike wi
       threadRef ! AddMemberIds(
         ULID(),
         threadId,
-        MemberIds(memberId),
         administratorId,
+        MemberIds(memberId),
         now,
         Some(addMemberIdsResponseProbe.ref)
       )
@@ -90,6 +93,7 @@ class ThreadAggregateSpec extends ScalaTestWithActorTestKit with FreeSpecLike wi
       threadRef ! CreateThread(
         ULID(),
         threadId,
+        administratorId,
         None,
         AdministratorIds(administratorId),
         MemberIds.empty,
@@ -107,8 +111,8 @@ class ThreadAggregateSpec extends ScalaTestWithActorTestKit with FreeSpecLike wi
       threadRef ! AddMemberIds(
         ULID(),
         threadId,
-        MemberIds(memberId),
         administratorId,
+        MemberIds(memberId),
         now,
         Some(addMemberIdsResponseProbe.ref)
       )
@@ -122,10 +126,11 @@ class ThreadAggregateSpec extends ScalaTestWithActorTestKit with FreeSpecLike wi
       }
 
       val addMessagesResponseProbe = TestProbe[AddMessagesResponse]()
-      val messages                 = Messages(TextMessage(MessageId(), None, ToAccountIds.empty, Text("ABC"), memberId, now, now))
+      val messages                 = Messages(TextMessage(MessageId(), None, ToAccountIds.empty, Text("ABC"), now, now))
       threadRef ! AddMessages(
         ULID(),
         threadId,
+        memberId,
         messages,
         now,
         Some(addMessagesResponseProbe.ref)

@@ -38,8 +38,8 @@ final case class Thread(
       Left(new Exception("senderId is not administrator."))
   }
 
-  def addMessages(values: Messages, at: Instant): Either[Exception, Thread] = {
-    if (values.breachEncapsulationOfValues.exists(v => isMemberId(v.senderId))) {
+  def addMessages(values: Messages, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
+    if (isMemberId(senderId)) {
       logger.info(s"addMessages: messages = $messages, values = $values")
       Right(copy(messages = messages combine values, updatedAt = at))
     } else

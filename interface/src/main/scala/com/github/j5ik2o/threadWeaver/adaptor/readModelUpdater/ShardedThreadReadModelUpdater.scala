@@ -14,9 +14,11 @@ import slick.jdbc.JdbcProfile
 
 import scala.concurrent.duration.FiniteDuration
 
-class ShardedThreadReadModelUpdater(val readJournal: ReadJournalType,
-                                    val profile: JdbcProfile,
-                                    val db: JdbcProfile#Backend#Database) {
+class ShardedThreadReadModelUpdater(
+    val readJournal: ReadJournalType,
+    val profile: JdbcProfile,
+    val db: JdbcProfile#Backend#Database
+) {
 
   val TypeKey: EntityTypeKey[CommandRequest] = EntityTypeKey[CommandRequest]("threads-rmu")
 
