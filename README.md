@@ -9,9 +9,9 @@ minikubeにデプロイします。
 $ minikube start
 $ eval $(minikube docker-env)
 $ sbt docker:publishLocal
-$ kubectl create -f k8s/simple-akka-cluster-rbac.yml
-$ kubectl create -f k8s/simple-akka-cluster-deployment.yml
-$ kubectl create -f k8s/simple-akka-cluster-service.yml
+$ kubectl create -f k8s/rbac.yml
+$ kubectl create -f k8s/deployment.yml
+$ kubectl create -f k8s/service.yml
 ```
 
 ## 動作確認方法
@@ -24,4 +24,4 @@ $ MANAGEMENT_PORT=$(kubectl get svc thread-weaver-api -ojsonpath="{.spec.ports[?
 $ curl http://$KUBE_IP:$MANAGEMENT_PORT/cluster/members | jq
 $ API_PORT=$(kubectl get svc thread-weaver-api -ojsonpath="{.spec.ports[?(@.name==\"api\")].nodePort}")
 $ curl http://$KUBE_IP:$API_PORT/
-```# thread-weaver
+```
