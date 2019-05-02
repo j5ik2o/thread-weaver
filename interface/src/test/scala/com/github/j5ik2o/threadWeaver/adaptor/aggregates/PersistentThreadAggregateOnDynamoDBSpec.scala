@@ -69,6 +69,7 @@ class PersistentThreadAggregateOnDynamoDBSpec
       threadRef ! CreateThread(
         ULID(),
         threadId,
+        administratorId,
         None,
         AdministratorIds(administratorId),
         MemberIds.empty,
@@ -90,8 +91,8 @@ class PersistentThreadAggregateOnDynamoDBSpec
       threadRef ! AddMemberIds(
         ULID(),
         threadId,
-        MemberIds(memberId),
         administratorId,
+        MemberIds(memberId),
         now,
         Some(addMemberIdsResponse.ref)
       )
@@ -105,10 +106,11 @@ class PersistentThreadAggregateOnDynamoDBSpec
       }
 
       val addMessagesResponseProbe = TestProbe[AddMessagesResponse]()
-      val messages                 = Messages(TextMessage(MessageId(), None, ToAccountIds.empty, Text("ABC"), memberId, now, now))
+      val messages                 = Messages(TextMessage(MessageId(), None, ToAccountIds.empty, Text("ABC"), now, now))
       threadRef ! AddMessages(
         ULID(),
         threadId,
+        memberId,
         messages,
         now,
         Some(addMessagesResponseProbe.ref)

@@ -47,6 +47,7 @@ class ShardedThreadAggregatesSpec
       threadRef ! CreateThread(
         ULID(),
         threadId,
+        administratorId,
         None,
         AdministratorIds(administratorId),
         MemberIds.empty,

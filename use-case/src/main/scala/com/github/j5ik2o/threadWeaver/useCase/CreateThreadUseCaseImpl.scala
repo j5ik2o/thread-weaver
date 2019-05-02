@@ -31,6 +31,7 @@ private[useCase] class CreateThreadUseCaseImpl(threadAggregates: ActorRef[Comman
           CreateThread(
             ULID(),
             request.threadId,
+            request.creatorId,
             None,
             request.administratorIds,
             request.memberIds,

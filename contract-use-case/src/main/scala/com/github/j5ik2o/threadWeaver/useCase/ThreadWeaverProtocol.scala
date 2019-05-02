@@ -2,6 +2,7 @@ package com.github.j5ik2o.threadWeaver.useCase
 
 import java.time.Instant
 
+import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
 import com.github.j5ik2o.threadWeaver.domain.model.threads.{ AdministratorIds, MemberIds, ThreadId }
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 
@@ -13,6 +14,7 @@ object ThreadWeaverProtocol {
   case class CreateThread(
       id: ULID,
       threadId: ThreadId,
+      creatorId: AccountId,
       parentThreadId: Option[ThreadId],
       administratorIds: AdministratorIds,
       memberIds: MemberIds,
