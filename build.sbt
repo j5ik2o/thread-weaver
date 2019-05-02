@@ -153,6 +153,8 @@ val api = (project in file("api"))
       "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % akkaManagementVersion,
       "com.lightbend.akka.discovery" %% "akka-discovery-kubernetes-api" % akkaManagementVersion,
       "com.github.TanUkkii007" %% "akka-cluster-custom-downing" % "0.0.12",
+      "com.github.everpeace" %% "healthchecks-core" % "0.4.0",
+      "com.github.everpeace" %% "healthchecks-k8s-probes" % "0.4.0",
       "org.slf4j" % "jul-to-slf4j" % "1.7.26",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
       "org.codehaus.janino" % "janino" % "3.0.6"
