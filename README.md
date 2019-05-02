@@ -1,6 +1,32 @@
 
 # Thread Weaver
 
+## ドメイン
+
+- Account
+    - 本システムの利用者を識別するアカウント情報
+- Thread
+    - Messageを交換するための場を示す
+- Message
+    - 何らかの言語で表現された伝言
+- Administrator
+    - 当該Threadの管理者
+- Member
+    - 当該Threadの利用者
+
+## アーキテクチャ
+
+CQRS+ESを採用。実装には以下のakkaのツールキットを利用しています。
+
+- akka-actor
+- akka-persistence
+- akka-cluster
+- akka-cluster-sharding
+- akka-cluster-tools
+
+関連するakka-typedモジュールも含まれます。
+
+
 ## デプロイ方法
 
 minikubeにデプロイします。
