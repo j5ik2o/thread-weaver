@@ -1,4 +1,10 @@
 
+# Thread Weaver
+
+## デプロイ方法
+
+minikubeにデプロイします。
+
 ```bash
 $ minikube start
 $ eval $(minikube docker-env)
@@ -7,6 +13,10 @@ $ kubectl create -f k8s/simple-akka-cluster-rbac.yml
 $ kubectl create -f k8s/simple-akka-cluster-deployment.yml
 $ kubectl create -f k8s/simple-akka-cluster-service.yml
 ```
+
+## 動作確認方法
+
+### minikubeでの動作確認方法
 
 ```bash
 $ KUBE_IP=$(minikube ip)
