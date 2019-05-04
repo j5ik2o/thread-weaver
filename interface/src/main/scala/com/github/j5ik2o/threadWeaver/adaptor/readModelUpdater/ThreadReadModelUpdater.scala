@@ -163,7 +163,8 @@ class ThreadReadModelUpdater(
       creatorId = senderId.value.asString,
       parentId = parentThreadId.map(_.value.asString),
       createdAt = createdAt,
-      updatedAt = createdAt
+      updatedAt = createdAt,
+      removedAt = None
     )
   }
 }
