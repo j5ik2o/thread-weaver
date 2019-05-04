@@ -6,6 +6,7 @@ CREATE TABLE `thread` (
   `parent_id`     VARCHAR(32),
   `created_at`    DATETIME(6)                 NOT NULL,
   `updated_at`    DATETIME(6)                 NOT NULL,
+  `removed_at`    DATETIME(6),
   PRIMARY KEY (`id`)
 )
   ENGINE = InnoDB
