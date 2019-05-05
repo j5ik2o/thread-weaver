@@ -5,8 +5,8 @@ import java.time.Instant
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ Behavior, PostStop }
 import akka.persistence.query.scaladsl._
-import akka.stream.scaladsl.{ Keep, Source }
-import akka.stream.typed.scaladsl.{ ActorMaterializer, ActorSink }
+import akka.stream.scaladsl.{ Keep, RestartSource, Sink, Source }
+import akka.stream.typed.scaladsl.ActorMaterializer
 import akka.stream.{ Attributes, KillSwitch, KillSwitches }
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{
   CommandRequest => _,
@@ -23,10 +23,13 @@ import com.github.j5ik2o.threadWeaver.adaptor.dao.jdbc.{
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdater.ReadJournalType
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdaterProtocol._
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
-import com.github.j5ik2o.threadWeaver.domain.model.threads.{ AdministratorIds, MemberIds, Messages, ThreadId }
+import com.github.j5ik2o.threadWeaver.domain.model.threads.{ Message => _, _ }
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 import slick.jdbc.JdbcProfile
 import slick.sql.FixedSqlAction
+
+import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.duration._
 
 object ThreadReadModelUpdater {
 
@@ -42,11 +45,13 @@ object ThreadReadModelUpdater {
 class ThreadReadModelUpdater(
     val readJournal: ReadJournalType,
     val profile: JdbcProfile,
-    val db: JdbcProfile#Backend#Database
+    val db: JdbcProfile#Backend#Database,
+    batchSize: Long = 10
 ) extends ThreadComponent
     with ThreadMessageComponent
     with ThreadAdministratorIdsComponent
     with ThreadMemberIdsComponent {
+
   import profile.api._
 
   def behavior: Behavior[CommandRequest] = Behaviors.setup[CommandRequest] { ctx =>
@@ -54,17 +59,62 @@ class ThreadReadModelUpdater(
       case s: Start =>
         ctx.child(s.threadId.value.asString) match {
           case None =>
-            ctx.spawn(projection(s.threadId), name = s"RMU-${s.threadId.value.asString}") ! s
+            ctx.spawn(projectionBehavior(s.threadId), name = s"RMU-${s.threadId.value.asString}") ! s
           case _ =>
-//          case Some(childRef) =>
-//            childRef.asInstanceOf[ActorRef[ThreadId]]
         }
         Behaviors.same
     }
   }
 
+  private val logLevels = Attributes.logLevels(
+    onElement = Attributes.LogLevels.Info,
+    onFailure = Attributes.LogLevels.Error,
+    onFinish = Attributes.LogLevels.Info
+  )
+
+  private def projectionHandler(
+      threadId: ThreadId
+  ): (Long, Event) => DBIOAction[Unit, NoStream, Effect.Write with Effect.Transactional] = {
+    case (sequenceNr, ThreadCreated(_, _, senderId, parentThreadId, administratorIds, memberIds, createdAt)) =>
+      val insertThread = insertThreadQuery(threadId, sequenceNr, senderId, parentThreadId, createdAt)
+      val insertAdministratorIds =
+        insertAdministratorIdsQuery(threadId, senderId, administratorIds, createdAt)
+      val insertMemberIds = insertMemberIdsQuery(threadId, senderId, memberIds, createdAt)
+      DBIO
+        .seq(insertThread :: insertAdministratorIds ::: insertMemberIds: _*).transactionally
+    case (sequenceNr, ThreadDestroyed(_, _, _, createdAt)) =>
+      DBIO
+        .seq(
+          removeThread(threadId, sequenceNr, createdAt)
+        )
+    case (sequenceNr, AdministratorIdsAdded(_, _, senderId, administratorIds, createdAt)) =>
+      DBIO
+        .seq(
+          updateSequenceNrInThread(threadId, sequenceNr, createdAt) ::
+          insertAdministratorIdsQuery(threadId, senderId, administratorIds, createdAt): _*
+        ).transactionally
+    case (sequenceNr, MemberIdsAdded(_, _, adderId, memberIds, createdAt)) =>
+      DBIO
+        .seq(
+          updateSequenceNrInThread(threadId, sequenceNr, createdAt) ::
+          insertMemberIdsQuery(threadId, adderId, memberIds, createdAt): _*
+        ).transactionally
+    case (sequenceNr, MessagesAdded(_, _, senderId, messages, createdAt)) =>
+      DBIO
+        .seq(
+          updateSequenceNrInThread(threadId, sequenceNr, createdAt) ::
+          insertMessages(threadId, senderId, messages, createdAt): _*
+        ).transactionally
+    case (sequenceNr, MessagesRemoved(_, _, messageIds, _, createdAt)) =>
+      DBIO
+        .seq(
+          updateSequenceNrInThread(threadId, sequenceNr, createdAt),
+          deleteMessages(messageIds, createdAt)
+        ).transactionally
+  }
+
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
-  private def projection(threadId: ThreadId): Behavior[Message] =
+  private def projectionBehavior(threadId: ThreadId): Behavior[Message] =
     Behaviors.setup[Message] { ctx =>
       implicit val system                = ctx.system
       implicit val ec                    = ctx.executionContext
@@ -73,71 +123,44 @@ class ThreadReadModelUpdater(
 
       Behaviors
         .receiveMessagePartial[Message] {
-          case EventMessage(_, sequenceNr, event) =>
-            event match {
-              case ThreadCreated(_, _, senderId, parentThreadId, administratorIds, memberIds, createdAt) =>
-                val insertThread = insertThreadQuery(threadId, sequenceNr, senderId, parentThreadId, createdAt)
-                val insertAdministratorIds =
-                  insertAdministratorIdsQuery(threadId, senderId, administratorIds, createdAt)
-                val insertMemberIds = insertMemberIdsQuery(threadId, senderId, memberIds, createdAt)
-                db.run(
-                  DBIO
-                    .seq(insertThread :: insertAdministratorIds ::: insertMemberIds: _*).transactionally
-                )
-              case ThreadDestroyed(_, _, _, createdAt) =>
-                db.run(ThreadDao.filter(_.id === threadId.value.asString).map(_.removedAt).update(Some(createdAt)))
-              case AdministratorIdsAdded(_, _, senderId, administratorIds, createdAt) =>
-                db.run(DBIO.seq(insertAdministratorIdsQuery(threadId, senderId, administratorIds, createdAt): _*))
-              case MemberIdsAdded(_, _, adderId, memberIds, createdAt) =>
-                db.run(DBIO.seq(insertMemberIdsQuery(threadId, adderId, memberIds, createdAt): _*))
-              case MessagesAdded(_, _, senderId, messages, createdAt) =>
-                db.run(DBIO.seq(insertMessages(threadId, senderId, messages, createdAt): _*))
-              case MessagesRemoved(_, _, messageIds, _, createdAt) =>
-                db.run(
-                  ThreadMessageDao
-                    .filter(_.id.inSet(messageIds.breachEncapsulationOfValues.map(_.value.asString))).map { v =>
-                      (v.deleted, v.updatedAt)
-                    }.update(
-                      (true, createdAt)
-                    )
-                )
-            }
-            Behaviors.same
-          case _: Start =>
+          case Start(_, tid, _) if tid == threadId =>
             killSwitch = Some(
-              Source
-                .fromFuture(
-                  db.run(ThreadDao.filter(_.id === threadId.value.asString).map(_.sequenceNr).max.result).map(
-                      _.getOrElse(0L)
-                    )
-                ).flatMapConcat { lastSequenceNr =>
-                  readJournal
-                    .eventsByPersistenceId(threadId.value.asString, lastSequenceNr + 1, Long.MaxValue)
-                }.map { ee =>
-                  EventMessage(ee.persistenceId, ee.sequenceNr, ee.event.asInstanceOf[Event])
-                }
-                .viaMat(
+              RestartSource
+                .withBackoff(
+                  minBackoff = 3.seconds,
+                  maxBackoff = 30.seconds,
+                  randomFactor = 0.2, // adds 20% "noise" to vary the intervals slightly
+                  maxRestarts = 20 // limits the amount of restarts to 20
+                ) { () =>
+                  Source
+                    .fromFuture(
+                      db.run(ThreadDao.filter(_.id === tid.value.asString).map(_.sequenceNr).max.result).map(
+                          _.getOrElse(0L)
+                        )
+                    ).flatMapConcat { lastSequenceNr =>
+                      readJournal
+                        .eventsByPersistenceId(threadId.value.asString, lastSequenceNr + 1, Long.MaxValue)
+                    }.map { ee =>
+                      projectionHandler(threadId)(ee.sequenceNr, ee.event.asInstanceOf[Event])
+                    }.log("event")
+                    .batch(batchSize, { v =>
+                      ArrayBuffer(v)
+                    }) {
+                      case (v, out) =>
+                        v :+ out
+                    }.log("batch")
+                    .mapAsync(1) { v =>
+                      db.run(DBIO.sequence(v.result.toVector))
+                    }.withAttributes(logLevels)
+                }.viaMat(
                   KillSwitches.single
                 )(
                   Keep.right
                 ).toMat(
-                  ActorSink
-                    .actorRef[Message](ref = ctx.self, onCompleteMessage = Complete, onFailureMessage = Fail.apply)
-                )(Keep.left).withAttributes(
-                  Attributes.logLevels(
-                    onElement = Attributes.LogLevels.Info,
-                    onFailure = Attributes.LogLevels.Error,
-                    onFinish = Attributes.LogLevels.Info
-                  )
-                ).run()
+                  Sink.ignore
+                )(Keep.left).withAttributes(logLevels).run()
             )
             Behaviors.same
-          case Complete =>
-            ctx.log.info("stream has completed")
-            Behaviors.stopped
-          case Fail(t) =>
-            ctx.log.error(t, "occurred error")
-            Behaviors.stopped
           case _: Stop =>
             Behaviors.stopped
         }.receiveSignal {
@@ -147,7 +170,38 @@ class ThreadReadModelUpdater(
         }
     }
 
-  private def insertMessages(threadId: ThreadId, senderId: AccountId, messages: Messages, createdAt: Instant) = {
+  private def removeThread(threadId: ThreadId,
+                           sequenceNr: Long,
+                           createdAt: Instant): FixedSqlAction[Int, NoStream, Effect.Write] = {
+    ThreadDao
+      .filter(_.id === threadId.value.asString).map { v =>
+        (v.sequenceNr, v.removedAt)
+      }.update((sequenceNr, Some(createdAt)))
+  }
+
+  private def updateSequenceNrInThread(threadId: ThreadId,
+                                       sequenceNr: Long,
+                                       createdAt: Instant): FixedSqlAction[Int, NoStream, Effect.Write] = {
+    ThreadDao
+      .filter(_.id === threadId.value.asString).map { v =>
+        (v.sequenceNr, v.updatedAt)
+      }.update((sequenceNr, createdAt))
+  }
+
+  private def deleteMessages(messageIds: MessageIds,
+                             createdAt: Instant): FixedSqlAction[Int, NoStream, Effect.Write] = {
+    ThreadMessageDao
+      .filter(_.id.inSet(messageIds.breachEncapsulationOfValues.map(_.value.asString))).map { v =>
+        (v.deleted, v.updatedAt)
+      }.update(
+        (true, createdAt)
+      )
+  }
+
+  private def insertMessages(threadId: ThreadId,
+                             senderId: AccountId,
+                             messages: Messages,
+                             createdAt: Instant): List[FixedSqlAction[Int, NoStream, Effect.Write]] = {
     messages.breachEncapsulationOfValues.map { message =>
       ThreadMessageDao += ThreadMessageRecord(
         id = message.id.value.asString,
@@ -159,7 +213,7 @@ class ThreadReadModelUpdater(
         createdAt = createdAt,
         updatedAt = createdAt
       )
-    }
+    }.toList
   }
 
   private def insertMemberIdsQuery(
@@ -167,7 +221,7 @@ class ThreadReadModelUpdater(
       adderId: AccountId,
       memberIds: MemberIds,
       createdAt: Instant
-  ): List[FixedSqlAction[Int, NoStream, slick.dbio.Effect.Write]] = {
+  ): List[FixedSqlAction[Int, NoStream, Effect.Write]] = {
     memberIds.breachEncapsulationOfValues.map { accountId =>
       ThreadMemberIdsDao += ThreadMemberIdsRecord(
         id = ULID().asString,
@@ -185,7 +239,7 @@ class ThreadReadModelUpdater(
       adderId: AccountId,
       administratorIds: AdministratorIds,
       createdAt: Instant
-  ): List[FixedSqlAction[Int, NoStream, slick.dbio.Effect.Write]] = {
+  ): List[FixedSqlAction[Int, NoStream, Effect.Write]] = {
     administratorIds.breachEncapsulationOfValues.map { accountId =>
       ThreadAdministratorIdsDao += ThreadAdministratorIdsRecord(
         id = ULID().asString,
@@ -204,7 +258,7 @@ class ThreadReadModelUpdater(
       senderId: AccountId,
       parentThreadId: Option[ThreadId],
       createdAt: Instant
-  ): FixedSqlAction[Int, NoStream, slick.dbio.Effect.Write] = {
+  ): FixedSqlAction[Int, NoStream, Effect.Write] = {
     ThreadDao += ThreadRecord(
       id = threadId.value.asString,
       deleted = false,

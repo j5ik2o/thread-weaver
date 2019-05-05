@@ -161,6 +161,7 @@ class ThreadReadModelUpdaterOnLevelDBSpec
             dbConfig.db.run(ThreadMessageDao.filter(_.threadId === threadId.value.asString).result).futureValue
           resultMessages should not be empty
           resultMessages should have length 1
+          resultMessages.head.body shouldBe "ABC"
         }
       }
     }

@@ -2,8 +2,8 @@ package com.github.j5ik2o.threadWeaver.adaptor.aggregates
 
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
-import akka.persistence.typed.PersistenceId
 import akka.persistence.typed.scaladsl.{ Effect, EventSourcedBehavior }
+import akka.persistence.typed.{ PersistenceId, RecoveryCompleted }
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol._
 import com.github.j5ik2o.threadWeaver.domain.model.threads.{ Messages, Thread, ThreadId }
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
@@ -124,7 +124,11 @@ object PersistentThreadAggregate {
             state
 
         }
-      )
+      ).receiveSignal {
+        case (state, RecoveryCompleted) =>
+          ctx.log.info("recovery completed")
+
+      }
     }
 
   sealed trait State
