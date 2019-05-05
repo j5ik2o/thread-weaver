@@ -138,7 +138,9 @@ val interface = (project in file("interface"))
       "org.iq80.leveldb" % "leveldb" % "0.9" % Test,
       "commons-io" % "commons-io" % "2.4" % Test,
       "com.github.j5ik2o" %% "reactive-aws-dynamodb-core" % "1.1.0" % Test,
-      "com.github.j5ik2o" %% "reactive-aws-dynamodb-test" % "1.1.0" % Test
+      "com.github.j5ik2o" %% "reactive-aws-dynamodb-test" % "1.1.0" % Test,
+      "com.github.j5ik2o" %% "scalatestplus-db" % "1.0.8" % Test
+
     ),
     // sbt-dao-generator
     // JDBCのドライバークラス名を指定します(必須)

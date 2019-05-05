@@ -16,7 +16,7 @@ import software.amazon.awssdk.services.dynamodb.{ DynamoDbAsyncClient => JavaDyn
 trait DynamoDBSpecSupport extends DynamoDBEmbeddedSpecSupport with ScalaFutures with Matchers with Eventually {
   this: Suite =>
 
-  val logger: Logger = LoggerFactory.getLogger(getClass)
+  private val logger: Logger = LoggerFactory.getLogger(getClass)
 
   private implicit val pc: PatienceConfig = PatienceConfig(20 seconds, 1 seconds)
 
