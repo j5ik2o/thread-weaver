@@ -33,7 +33,6 @@ object ThreadProtocol {
   }
 
   // --- スレッドの生成
-
   final case class CreateThread(
       id: ULID,
       threadId: ThreadId,
