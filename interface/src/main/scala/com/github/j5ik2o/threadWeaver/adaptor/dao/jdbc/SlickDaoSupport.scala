@@ -2,13 +2,16 @@ package com.github.j5ik2o.threadWeaver.adaptor.dao.jdbc
 
 import java.time.Instant
 
+import slick.ast.BaseTypedType
+import slick.jdbc.JdbcType
+
 trait SlickDaoSupport {
 
   val profile: slick.jdbc.JdbcProfile
 
   import profile.api._
 
-  implicit val instantColumnType =
+  implicit def instantColumnType: JdbcType[Instant] with BaseTypedType[Instant] =
     MappedColumnType.base[Instant, java.sql.Timestamp](
       { instant =>
         new java.sql.Timestamp(instant.toEpochMilli)
