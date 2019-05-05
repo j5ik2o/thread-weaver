@@ -8,7 +8,12 @@ import akka.persistence.query.scaladsl._
 import akka.stream.scaladsl.{ Keep, Sink, Source }
 import akka.stream.typed.scaladsl.ActorMaterializer
 import akka.stream.{ KillSwitch, KillSwitches }
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{ Event, MemberIdsAdded, ThreadCreated }
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{
+  CommandRequest => _,
+  Message => _,
+  Stop => _,
+  _
+}
 import com.github.j5ik2o.threadWeaver.adaptor.dao.jdbc.{
   ThreadAdministratorIdsComponent,
   ThreadComponent,
@@ -18,7 +23,7 @@ import com.github.j5ik2o.threadWeaver.adaptor.dao.jdbc.{
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdater.ReadJournalType
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdaterProtocol._
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
-import com.github.j5ik2o.threadWeaver.domain.model.threads.{ AdministratorIds, MemberIds, ThreadId }
+import com.github.j5ik2o.threadWeaver.domain.model.threads.{ AdministratorIds, MemberIds, Messages, ThreadId }
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 import slick.jdbc.JdbcProfile
 import slick.sql.FixedSqlAction
@@ -80,9 +85,23 @@ class ThreadReadModelUpdater(
                   DBIO
                     .seq(insertThread :: insertAdministratorIds ::: insertMemberIds: _*).transactionally
                 )
-              case MemberIdsAdded(_, _, adderId, memberIds, _) =>
-              case _                                           =>
-              // TODO
+              case ThreadDestroyed(_, _, _, createdAt) =>
+                db.run(ThreadDao.filter(_.id === threadId.value.asString).map(_.removedAt).update(Some(createdAt)))
+              case AdministratorIdsAdded(_, _, senderId, administratorIds, createdAt) =>
+                db.run(DBIO.seq(insertAdministratorIdsQuery(threadId, senderId, administratorIds, createdAt): _*))
+              case MemberIdsAdded(_, _, adderId, memberIds, createdAt) =>
+                db.run(DBIO.seq(insertMemberIdsQuery(threadId, adderId, memberIds, createdAt): _*))
+              case MessagesAdded(_, _, senderId, messages, createdAt) =>
+                db.run(DBIO.seq(insertMessages(threadId, senderId, messages, createdAt): _*))
+              case MessagesRemoved(_, _, messageIds, _, createdAt) =>
+                db.run(
+                  ThreadMessageDao
+                    .filter(_.id.inSet(messageIds.breachEncapsulationOfValues.map(_.value.asString))).map { v =>
+                      (v.deleted, v.updatedAt)
+                    }.update(
+                      (true, createdAt)
+                    )
+                )
             }
             Behaviors.same
           case _: Start =>
@@ -112,6 +131,21 @@ class ThreadReadModelUpdater(
             Behaviors.same
         }
     }
+
+  private def insertMessages(threadId: ThreadId, senderId: AccountId, messages: Messages, createdAt: Instant) = {
+    messages.breachEncapsulationOfValues.map { message =>
+      ThreadMessageDao += ThreadMessageRecord(
+        id = message.id.value.asString,
+        deleted = false,
+        threadId.value.asString,
+        senderId.value.asString,
+        message.`type`,
+        message.body.toString,
+        createdAt,
+        createdAt
+      )
+    }
+  }
 
   private def insertMemberIdsQuery(
       threadId: ThreadId,
