@@ -35,21 +35,23 @@ object ThreadProtocol {
     def requestId: ULID
   }
 
-  final case class AddSubscribers(id: ULID,
-                                  threadId: ThreadId,
-                                  senderId: AccountId,
-                                  subscribers: Seq[ActorRef[Message]],
-                                  createAt: Instant)
-      extends CommandRequest
+  final case class AddSubscribers(
+      id: ULID,
+      threadId: ThreadId,
+      senderId: AccountId,
+      subscribers: Seq[ActorRef[Message]],
+      createAt: Instant
+  ) extends CommandRequest
       with ToEvent {
     override def toEvent: Event = SubscribersAdded(ULID(), threadId, senderId, subscribers, createAt)
   }
-  final case class SubscribersAdded(id: ULID,
-                                    threadId: ThreadId,
-                                    senderId: AccountId,
-                                    subscribers: Seq[ActorRef[Message]],
-                                    createdAt: Instant)
-      extends Event
+  final case class SubscribersAdded(
+      id: ULID,
+      threadId: ThreadId,
+      senderId: AccountId,
+      subscribers: Seq[ActorRef[Message]],
+      createdAt: Instant
+  ) extends Event
       with ToCommandRequest {
     override def toCommandRequest: CommandRequest = AddSubscribers(ULID(), threadId, senderId, subscribers, createdAt)
   }
