@@ -136,7 +136,7 @@ class ThreadReadModelUpdater(
             ctx.log.info("stream has completed")
             Behaviors.stopped
           case Fail(t) =>
-            ctx.log.error("occurred error: {}", t)
+            ctx.log.error(t, "occurred error")
             Behaviors.stopped
           case _: Stop =>
             Behaviors.stopped
