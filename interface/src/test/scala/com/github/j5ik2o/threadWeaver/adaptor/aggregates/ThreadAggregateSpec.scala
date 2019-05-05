@@ -12,7 +12,7 @@ import org.scalatest.{ FreeSpecLike, Matchers }
 
 class ThreadAggregateSpec extends ScalaTestWithActorTestKit with FreeSpecLike with Matchers {
 
-  def newThreadRef(threadId: ThreadId): ActorRef[CommandRequest] = spawn(ThreadAggregate.behavior(threadId))
+  def newThreadRef(threadId: ThreadId): ActorRef[CommandRequest] = spawn(ThreadAggregate.behavior(threadId, Seq.empty))
 
   "ThreadAggregate" - {
     "create" in {

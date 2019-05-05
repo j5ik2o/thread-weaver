@@ -14,6 +14,9 @@ object ThreadProtocol {
     def id: ULID
     def threadId: ThreadId
     def createdAt: Instant
+  }
+
+  trait ToCommandRequest { this: Event =>
     def toCommandRequest: CommandRequest
   }
   sealed trait CommandMessage extends Message {
@@ -30,6 +33,25 @@ object ThreadProtocol {
   }
   sealed trait CommandResponse extends CommandMessage {
     def requestId: ULID
+  }
+
+  final case class AddSubscribers(id: ULID,
+                                  threadId: ThreadId,
+                                  senderId: AccountId,
+                                  subscribers: Seq[ActorRef[Message]],
+                                  createAt: Instant)
+      extends CommandRequest
+      with ToEvent {
+    override def toEvent: Event = SubscribersAdded(ULID(), threadId, senderId, subscribers, createAt)
+  }
+  final case class SubscribersAdded(id: ULID,
+                                    threadId: ThreadId,
+                                    senderId: AccountId,
+                                    subscribers: Seq[ActorRef[Message]],
+                                    createdAt: Instant)
+      extends Event
+      with ToCommandRequest {
+    override def toCommandRequest: CommandRequest = AddSubscribers(ULID(), threadId, senderId, subscribers, createdAt)
   }
 
   // --- スレッドの生成
@@ -60,7 +82,8 @@ object ThreadProtocol {
       administratorIds: AdministratorIds,
       memberIds: MemberIds,
       createdAt: Instant
-  ) extends Event {
+  ) extends Event
+      with ToCommandRequest {
     override def toCommandRequest: CommandRequest =
       CreateThread(ULID(), threadId, senderId, parentThreadId, administratorIds, memberIds, createdAt)
   }
@@ -87,7 +110,8 @@ object ThreadProtocol {
       createAt: Instant
   ) extends DestroyThreadResponse
   final case class ThreadDestroyed(id: ULID, threadId: ThreadId, senderId: AccountId, createdAt: Instant)
-      extends Event {
+      extends Event
+      with ToCommandRequest {
     override def toCommandRequest: CommandRequest = DestroyThread(ULID(), threadId, senderId, createdAt)
   }
 
@@ -119,7 +143,8 @@ object ThreadProtocol {
       senderId: AccountId,
       administratorIds: AdministratorIds,
       createdAt: Instant
-  ) extends Event {
+  ) extends Event
+      with ToCommandRequest {
     override def toCommandRequest: CommandRequest =
       AddAdministratorIds(ULID(), threadId, senderId, administratorIds, createdAt)
   }
@@ -147,7 +172,8 @@ object ThreadProtocol {
       senderId: AccountId,
       memberIds: MemberIds,
       createdAt: Instant
-  ) extends Event {
+  ) extends Event
+      with ToCommandRequest {
     override def toCommandRequest: CommandRequest = AddMemberIds(ULID(), threadId, senderId, memberIds, createdAt)
   }
 
@@ -174,7 +200,8 @@ object ThreadProtocol {
       senderId: AccountId,
       messages: Messages,
       createdAt: Instant
-  ) extends Event {
+  ) extends Event
+      with ToCommandRequest {
     override def toCommandRequest: CommandRequest = AddMessages(ULID(), threadId, senderId, messages, createdAt)
   }
 
@@ -206,7 +233,8 @@ object ThreadProtocol {
       messageIds: MessageIds,
       senderId: AccountId,
       createdAt: Instant
-  ) extends Event {
+  ) extends Event
+      with ToCommandRequest {
     override def toCommandRequest: CommandRequest = RemoveMessages(ULID(), threadId, senderId, messageIds, createdAt)
   }
 
@@ -242,4 +270,7 @@ object ThreadProtocol {
     override def senderId: AccountId = throw new UnsupportedOperationException
     override def createAt: Instant   = throw new UnsupportedOperationException
   }
+
+  case class Started(id: ULID, threadId: ThreadId, createdAt: Instant, sender: ActorRef[Nothing]) extends Event
+
 }

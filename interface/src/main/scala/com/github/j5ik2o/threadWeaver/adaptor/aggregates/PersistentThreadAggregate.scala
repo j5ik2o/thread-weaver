@@ -1,7 +1,9 @@
 package com.github.j5ik2o.threadWeaver.adaptor.aggregates
 
-import akka.actor.typed.Behavior
+import java.time.Instant
+
 import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.{ ActorRef, Behavior }
 import akka.persistence.typed.scaladsl.{ Effect, EventSourcedBehavior }
 import akka.persistence.typed.{ PersistenceId, RecoveryCompleted }
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol._
@@ -10,17 +12,21 @@ import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 
 object PersistentThreadAggregate {
 
-  def behavior(id: ThreadId): Behavior[CommandRequest] =
+  def behavior(id: ThreadId, subscribers: Seq[ActorRef[Message]]): Behavior[CommandRequest] =
     Behaviors.setup[CommandRequest] { ctx =>
+      subscribers.foreach(_ ! Started(ULID(), id, Instant.now, ctx.self))
+
       EventSourcedBehavior[CommandRequest, Event, State](
         persistenceId = PersistenceId(id.value.asString),
-        emptyState = EmptyState,
+        emptyState = State(None, subscribers),
         commandHandler = {
-          case (EmptyState, c @ CreateThread(requestId, threadId, _, _, _, _, createAt, replyTo)) =>
+          case (State(None, _), c @ CreateThread(requestId, threadId, _, _, _, _, createAt, replyTo)) =>
             Effect.persist(c.toEvent).thenRun { _ =>
               replyTo.foreach(_ ! CreateThreadSucceeded(ULID(), requestId, threadId, createAt))
             }
-          case (DefinedState(thread), c @ DestroyThread(requestId, threadId, senderId, createAt, replyTo)) =>
+          case (State(_, _), c @ AddSubscribers(_, _, _, _, _)) =>
+            Effect.persist(c.toEvent)
+          case (State(Some(thread), _), c @ DestroyThread(requestId, threadId, senderId, createAt, replyTo)) =>
             thread.destroy(senderId, createAt) match {
               case Left(exception) =>
                 Effect.none.thenRun { _ =>
@@ -34,7 +40,7 @@ object PersistentThreadAggregate {
                 }
             }
           case (
-              DefinedState(thread),
+              State(Some(thread), _),
               c @ AddAdministratorIds(requestId, threadId, senderId, administratorIds, createAt, replyTo)
               ) =>
             thread.addAdministratorIds(administratorIds, senderId) match {
@@ -50,7 +56,8 @@ object PersistentThreadAggregate {
                 }
             }
 
-          case (DefinedState(thread), c @ AddMemberIds(requestId, threadId, senderId, memberIds, createAt, replyTo)) =>
+          case (State(Some(thread), _),
+                c @ AddMemberIds(requestId, threadId, senderId, memberIds, createAt, replyTo)) =>
             thread.addMemberIds(memberIds, senderId) match {
               case Left(exception) =>
                 Effect.none.thenRun { _ =>
@@ -64,7 +71,7 @@ object PersistentThreadAggregate {
                 }
             }
 
-          case (DefinedState(thread), c @ AddMessages(requestId, threadId, senderId, messages, createAt, replyTo)) =>
+          case (State(Some(thread), _), c @ AddMessages(requestId, threadId, senderId, messages, createAt, replyTo)) =>
             thread.addMessages(messages, senderId, createAt) match {
               case Left(exception) =>
                 Effect.none.thenRun { _ =>
@@ -76,7 +83,7 @@ object PersistentThreadAggregate {
                 }
             }
 
-          case (DefinedState(thread), GetMessages(requestId, threadId, senderId, createAt, replyTo)) =>
+          case (State(Some(thread), _), GetMessages(requestId, threadId, senderId, createAt, replyTo)) =>
             Effect.none.thenRun { _ =>
               thread.getMessages(senderId) match {
                 case Left(exception) =>
@@ -91,49 +98,50 @@ object PersistentThreadAggregate {
 
         },
         eventHandler = {
-          case (EmptyState, e: ThreadCreated) =>
-            DefinedState(
-              Thread(
-                e.threadId,
-                e.senderId,
-                e.parentThreadId,
-                e.administratorIds,
-                e.memberIds,
-                Messages.empty,
-                e.createdAt,
-                e.createdAt
+          case (s @ State(None, _), e: ThreadCreated) =>
+            s.copy(
+              thread = Some(
+                Thread(
+                  e.threadId,
+                  e.senderId,
+                  e.parentThreadId,
+                  e.administratorIds,
+                  e.memberIds,
+                  Messages.empty,
+                  e.createdAt,
+                  e.createdAt
+                )
               )
             )
-          case (DefinedState(thread), e: ThreadDestroyed) =>
-            DefinedState(
-              thread.destroy(e.senderId, e.createdAt).right.get
+          case (s @ State(_, subscribers), e: SubscribersAdded) =>
+            s.copy(subscribers = subscribers ++ e.subscribers)
+          case (s @ State(Some(thread), _), e: ThreadDestroyed) =>
+            s.copy(
+              thread = Some(thread.destroy(e.senderId, e.createdAt).right.get)
             )
-          case (DefinedState(thread), e: AdministratorIdsAdded) =>
-            DefinedState(
-              thread.addAdministratorIds(e.administratorIds, e.senderId).right.get
+          case (s @ State(Some(thread), _), e: AdministratorIdsAdded) =>
+            s.copy(
+              thread = Some(thread.addAdministratorIds(e.administratorIds, e.senderId).right.get)
             )
-          case (DefinedState(thread), e: MemberIdsAdded) =>
-            DefinedState(
-              thread.addMemberIds(e.memberIds, e.senderId).right.get
+          case (s @ State(Some(thread), _), e: MemberIdsAdded) =>
+            s.copy(
+              thread = Some(thread.addMemberIds(e.memberIds, e.senderId).right.get)
             )
-          case (DefinedState(thread), e: MessagesAdded) =>
-            DefinedState(
-              thread.addMessages(e.messages, e.senderId, e.createdAt).right.get
+          case (s @ State(Some(thread), _), e: MessagesAdded) =>
+            s.copy(
+              thread = Some(thread.addMessages(e.messages, e.senderId, e.createdAt).right.get)
             )
           case (state, _) =>
             state
 
         }
       ).receiveSignal {
-        case (state, RecoveryCompleted) =>
+        case (_, RecoveryCompleted) =>
           ctx.log.info("recovery completed")
 
       }
     }
 
-  sealed trait State
+  case class State(thread: Option[Thread], subscribers: Seq[ActorRef[Message]])
 
-  case class DefinedState(thread: Thread) extends State
-
-  case object EmptyState extends State
 }

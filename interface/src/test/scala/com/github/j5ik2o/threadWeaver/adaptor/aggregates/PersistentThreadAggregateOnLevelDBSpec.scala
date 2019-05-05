@@ -45,7 +45,7 @@ class PersistentThreadAggregateOnLevelDBSpec
   "PersistentThreadAggregate" - {
     "add messages" in {
       val threadId          = ThreadId()
-      val threadRef         = spawn(PersistentThreadAggregate.behavior(threadId))
+      val threadRef         = spawn(PersistentThreadAggregate.behavior(threadId, Seq.empty))
       val now               = Instant.now
       val createThreadProbe = TestProbe[CreateThreadResponse]()
       val administratorId   = AccountId()
@@ -122,7 +122,7 @@ class PersistentThreadAggregateOnLevelDBSpec
       // アクターを停止する
       killActors(threadRef)
 
-      val threadRef2 = spawn(PersistentThreadAggregate.behavior(threadId))
+      val threadRef2 = spawn(PersistentThreadAggregate.behavior(threadId, Seq.empty))
 
       val getMessagesResponseProbe2 = TestProbe[GetMessagesResponse]()
       threadRef2 ! GetMessages(ULID(), threadId, memberId, now, getMessagesResponseProbe2.ref)

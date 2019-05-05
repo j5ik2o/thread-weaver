@@ -12,7 +12,7 @@ object ShardedThreadAggregatesProxy {
 
   def behavior(clusterSharding: ClusterSharding, receiveTimeout: FiniteDuration): Behavior[CommandRequest] =
     Behaviors.setup[CommandRequest] { _ =>
-      val actorRef = ShardedThreadAggregates.initEntityActor(clusterSharding, receiveTimeout)
+      val actorRef = ShardedThreadAggregates.initEntityActor(clusterSharding, receiveTimeout, Seq.empty)
       Behaviors.receiveMessagePartial[CommandRequest] {
         case msg =>
           actorRef ! typed.ShardingEnvelope(msg.threadId.value.asString, msg)
