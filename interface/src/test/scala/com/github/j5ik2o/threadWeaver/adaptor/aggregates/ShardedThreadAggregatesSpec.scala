@@ -38,7 +38,7 @@ class ShardedThreadAggregatesSpec
       eventually {
         cluster.selfMember.status shouldEqual MemberStatus.Up
       }
-      ShardedThreadAggregates.initEntityActor(clusterSharding, 1 hours)
+      ShardedThreadAggregates.initEntityActor(clusterSharding, 1 hours, Seq.empty)
 
       val probe           = TestProbe[CreateThreadResponse]()(typedSystem)
       val threadId        = ThreadId()

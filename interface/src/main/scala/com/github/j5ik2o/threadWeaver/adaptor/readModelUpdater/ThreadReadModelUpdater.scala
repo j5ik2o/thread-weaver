@@ -111,6 +111,8 @@ class ThreadReadModelUpdater(
           updateSequenceNrInThread(threadId, sequenceNr, createdAt),
           deleteMessages(messageIds, createdAt)
         ).transactionally
+    case _ =>
+      DBIO.successful(())
   }
 
   @SuppressWarnings(Array("org.wartremover.warts.Var"))

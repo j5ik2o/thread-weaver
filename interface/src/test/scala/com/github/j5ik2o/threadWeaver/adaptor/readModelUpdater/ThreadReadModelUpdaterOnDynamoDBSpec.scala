@@ -3,6 +3,7 @@ package com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater
 import java.time.Instant
 
 import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
+import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
 import akka.persistence.query.PersistenceQuery
 import com.github.j5ik2o.akka.persistence.dynamodb.query.scaladsl.DynamoDBReadJournal
@@ -10,7 +11,8 @@ import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol._
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.{
   ActorSpecSupport,
   PersistentThreadAggregate,
-  PersistentThreadAggregateOnDynamoDBSpec
+  PersistentThreadAggregateOnDynamoDBSpec,
+  ThreadProtocol
 }
 import com.github.j5ik2o.threadWeaver.adaptor.dao.jdbc.ThreadMessageComponent
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdaterProtocol.Start
@@ -94,8 +96,31 @@ class ThreadReadModelUpdaterOnDynamoDBSpec
 
   "ThreadReadModelUpdater" - {
     "add messages" in {
-      val threadId          = ThreadId()
-      val threadRef         = spawn(PersistentThreadAggregate.behavior(threadId))
+      val threadId = ThreadId()
+
+      val tmc = new ThreadMessageComponent {
+
+        override val profile = dbConfig.profile
+        import profile.api._
+
+        val trmuRef = spawn(new ThreadReadModelUpdater(readJournal, dbConfig.profile, dbConfig.db).behavior)
+
+        def assert = eventually {
+          val resultMessages =
+            dbConfig.db.run(ThreadMessageDao.filter(_.threadId === threadId.value.asString).result).futureValue
+          resultMessages should not be empty
+          resultMessages should have length 1
+          resultMessages.head.body shouldBe "ABC"
+        }
+      }
+
+      val subscriber = spawn(Behaviors.receiveMessagePartial[ThreadProtocol.Message] {
+        case Started(_, tid, _, _) =>
+          tmc.trmuRef ! Start(ULID(), tid, Instant.now)
+          Behaviors.same
+      })
+
+      val threadRef         = spawn(PersistentThreadAggregate.behavior(threadId, Seq(subscriber)))
       val now               = Instant.now
       val createThreadProbe = TestProbe[CreateThreadResponse]()
       val administratorId   = AccountId()
@@ -169,22 +194,8 @@ class ThreadReadModelUpdaterOnDynamoDBSpec
           s.messages shouldBe messages
       }
 
-      new ThreadMessageComponent {
+      tmc.assert
 
-        override val profile = dbConfig.profile
-        import profile.api._
-
-        val trmuRef = spawn(new ThreadReadModelUpdater(readJournal, dbConfig.profile, dbConfig.db).behavior)
-        trmuRef ! Start(ULID(), threadId, Instant.now)
-
-        eventually {
-          val resultMessages =
-            dbConfig.db.run(ThreadMessageDao.filter(_.threadId === threadId.value.asString).result).futureValue
-          resultMessages should not be empty
-          resultMessages should have length 1
-          resultMessages.head.body shouldBe "ABC"
-        }
-      }
     }
   }
 

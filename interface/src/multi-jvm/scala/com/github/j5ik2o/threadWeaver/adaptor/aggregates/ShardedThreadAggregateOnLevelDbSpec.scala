@@ -53,10 +53,10 @@ class ShardedThreadAggregateOnLevelDbSpec
     }
     "join cluster" in within(15 seconds) {
       join(node1, node1) {
-        ShardedThreadAggregates.initEntityActor(ClusterSharding(typedSystem), 1 hours)
+        ShardedThreadAggregates.initEntityActor(ClusterSharding(typedSystem), 1 hours, Seq.empty)
       }
       join(node2, node1) {
-        ShardedThreadAggregates.initEntityActor(ClusterSharding(typedSystem), 1 hours)
+        ShardedThreadAggregates.initEntityActor(ClusterSharding(typedSystem), 1 hours, Seq.empty)
       }
       enterBarrier("after-2")
     }

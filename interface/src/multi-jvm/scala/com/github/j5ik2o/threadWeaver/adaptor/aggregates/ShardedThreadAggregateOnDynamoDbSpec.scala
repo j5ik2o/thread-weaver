@@ -56,17 +56,17 @@ class ShardedThreadAggregateOnDynamoDbSpec
     "join cluster" in within(15 seconds) {
       join(controller, controller) {
         val clusterSharding = ClusterSharding(typedSystem)
-        ShardedThreadAggregates.initEntityActor(clusterSharding, 1 hours)
+        ShardedThreadAggregates.initEntityActor(clusterSharding, 1 hours, Seq.empty)
       }
       enterBarrier("after-1")
       join(node1, controller) {
         clusterSharding1 = ClusterSharding(typedSystem)
-        ShardedThreadAggregates.initEntityActor(clusterSharding1, 1 hours)
+        ShardedThreadAggregates.initEntityActor(clusterSharding1, 1 hours, Seq.empty)
       }
       enterBarrier("after-2")
       join(node2, controller) {
         val clusterSharding = ClusterSharding(typedSystem)
-        ShardedThreadAggregates.initEntityActor(clusterSharding, 1 hours)
+        ShardedThreadAggregates.initEntityActor(clusterSharding, 1 hours, Seq.empty)
       }
       enterBarrier("after-3")
     }
