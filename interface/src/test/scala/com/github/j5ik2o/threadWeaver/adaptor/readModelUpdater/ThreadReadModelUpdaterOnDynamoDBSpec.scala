@@ -169,8 +169,6 @@ class ThreadReadModelUpdaterOnDynamoDBSpec
           s.messages shouldBe messages
       }
 
-      java.lang.Thread.sleep(1000 * 3)
-
       new ThreadMessageComponent {
 
         override val profile = dbConfig.profile
