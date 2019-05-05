@@ -28,6 +28,7 @@
     <logger name="com.almworks.sqlite4java" level="OFF"/>
     <logger name="software.amazon" level="ERROR" />
     <logger name="io.netty" level="ERROR" />
+    <logger name="slick.jdbc.JdbcBackend.statement"  level="DEBUG" />
 
     <root level="INFO">
         <appender-ref ref="ASYNCSTDOUT" />

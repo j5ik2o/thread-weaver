@@ -13,7 +13,7 @@ object PersistentThreadAggregate {
   def behavior(id: ThreadId): Behavior[CommandRequest] =
     Behaviors.setup[CommandRequest] { ctx =>
       EventSourcedBehavior[CommandRequest, Event, State](
-        persistenceId = PersistenceId("P-" + id.value.asString),
+        persistenceId = PersistenceId(id.value.asString),
         emptyState = EmptyState,
         commandHandler = {
           case (EmptyState, c @ CreateThread(requestId, threadId, _, _, _, _, createAt, replyTo)) =>

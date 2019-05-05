@@ -5,9 +5,9 @@ import java.time.Instant
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ Behavior, PostStop }
 import akka.persistence.query.scaladsl._
-import akka.stream.scaladsl.{ Keep, Sink, Source }
-import akka.stream.typed.scaladsl.ActorMaterializer
-import akka.stream.{ KillSwitch, KillSwitches }
+import akka.stream.scaladsl.{ Keep, Source }
+import akka.stream.typed.scaladsl.{ ActorMaterializer, ActorSink }
+import akka.stream.{ Attributes, KillSwitch, KillSwitches }
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{
   CommandRequest => _,
   Message => _,
@@ -61,7 +61,6 @@ class ThreadReadModelUpdater(
         }
         Behaviors.same
     }
-    Behaviors.same
   }
 
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
@@ -114,15 +113,31 @@ class ThreadReadModelUpdater(
                 ).flatMapConcat { lastSequenceNr =>
                   readJournal
                     .eventsByPersistenceId(threadId.value.asString, lastSequenceNr, Long.MaxValue)
-                }.viaMat(
+                }.map { ee =>
+                  EventMessage(ee.persistenceId, ee.sequenceNr, ee.event.asInstanceOf[Event])
+                }
+                .viaMat(
                   KillSwitches.single
                 )(
                   Keep.right
-                ).toMat(Sink.foreach { ee =>
-                  ctx.self ! EventMessage(ee.persistenceId, ee.sequenceNr, ee.asInstanceOf[Event])
-                })(Keep.left).run()
+                ).toMat(
+                  ActorSink
+                    .actorRef[Message](ref = ctx.self, onCompleteMessage = Complete, onFailureMessage = Fail.apply)
+                )(Keep.left).withAttributes(
+                  Attributes.logLevels(
+                    onElement = Attributes.LogLevels.Info,
+                    onFailure = Attributes.LogLevels.Error,
+                    onFinish = Attributes.LogLevels.Info
+                  )
+                ).run()
             )
             Behaviors.same
+          case Complete =>
+            ctx.log.info("stream has completed")
+            Behaviors.stopped
+          case Fail(t) =>
+            ctx.log.error("occurred error: {}", t)
+            Behaviors.stopped
           case _: Stop =>
             Behaviors.stopped
         }.receiveSignal {
@@ -137,12 +152,12 @@ class ThreadReadModelUpdater(
       ThreadMessageDao += ThreadMessageRecord(
         id = message.id.value.asString,
         deleted = false,
-        threadId.value.asString,
-        senderId.value.asString,
-        message.`type`,
-        message.body.toString,
-        createdAt,
-        createdAt
+        threadId = threadId.value.asString,
+        senderId = senderId.value.asString,
+        `type` = message.`type`,
+        body = message.body.toString,
+        createdAt = createdAt,
+        updatedAt = createdAt
       )
     }
   }
