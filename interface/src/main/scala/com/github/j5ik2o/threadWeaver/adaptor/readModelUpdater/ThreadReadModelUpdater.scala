@@ -112,7 +112,7 @@ class ThreadReadModelUpdater(
                     )
                 ).flatMapConcat { lastSequenceNr =>
                   readJournal
-                    .eventsByPersistenceId(threadId.value.asString, lastSequenceNr, Long.MaxValue)
+                    .eventsByPersistenceId(threadId.value.asString, lastSequenceNr + 1, Long.MaxValue)
                 }.map { ee =>
                   EventMessage(ee.persistenceId, ee.sequenceNr, ee.event.asInstanceOf[Event])
                 }
