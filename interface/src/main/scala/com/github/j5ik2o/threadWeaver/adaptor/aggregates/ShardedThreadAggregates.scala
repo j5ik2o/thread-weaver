@@ -12,26 +12,27 @@ object ShardedThreadAggregates {
 
   val TypeKey: EntityTypeKey[CommandRequest] = EntityTypeKey[CommandRequest]("threads")
 
-  private def behavior(receiveTimeout: FiniteDuration,
-                       subscribers: Seq[ActorRef[Message]]): EntityContext => Behavior[CommandRequest] = {
-    entityContext =>
-      Behaviors.setup[CommandRequest] { ctx =>
-        val childRef = ctx.spawn(
-          ThreadAggregates.behavior(subscribers, _.value.asString)(PersistentThreadAggregate.behavior),
-          name = ThreadAggregates.name
-        )
-        ctx.setReceiveTimeout(receiveTimeout, Idle)
-        Behaviors.receiveMessagePartial {
-          case Idle =>
-            entityContext.shard ! ClusterSharding.Passivate(ctx.self)
-            Behaviors.same
-          case Stop =>
-            Behaviors.stopped
-          case msg =>
-            childRef ! msg
-            Behaviors.same
-        }
+  private def behavior(
+      receiveTimeout: FiniteDuration,
+      subscribers: Seq[ActorRef[Message]]
+  ): EntityContext => Behavior[CommandRequest] = { entityContext =>
+    Behaviors.setup[CommandRequest] { ctx =>
+      val childRef = ctx.spawn(
+        ThreadAggregates.behavior(subscribers, _.value.asString)(PersistentThreadAggregate.behavior),
+        name = ThreadAggregates.name
+      )
+      ctx.setReceiveTimeout(receiveTimeout, Idle)
+      Behaviors.receiveMessagePartial {
+        case Idle =>
+          entityContext.shard ! ClusterSharding.Passivate(ctx.self)
+          Behaviors.same
+        case Stop =>
+          Behaviors.stopped
+        case msg =>
+          childRef ! msg
+          Behaviors.same
       }
+    }
   }
 
   def initEntityActor(

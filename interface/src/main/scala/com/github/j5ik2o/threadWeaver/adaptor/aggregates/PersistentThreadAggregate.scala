@@ -56,8 +56,10 @@ object PersistentThreadAggregate {
                 }
             }
 
-          case (State(Some(thread), _),
-                c @ AddMemberIds(requestId, threadId, senderId, memberIds, createAt, replyTo)) =>
+          case (
+              State(Some(thread), _),
+              c @ AddMemberIds(requestId, threadId, senderId, memberIds, createAt, replyTo)
+              ) =>
             thread.addMemberIds(memberIds, senderId) match {
               case Left(exception) =>
                 Effect.none.thenRun { _ =>

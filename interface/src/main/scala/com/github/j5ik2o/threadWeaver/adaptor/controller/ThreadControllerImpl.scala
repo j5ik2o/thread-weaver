@@ -2,11 +2,10 @@ package com.github.j5ik2o.threadWeaver.adaptor.controller
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.{ Sink, Source }
-import com.github.j5ik2o.threadWeaver.adaptor.directives.ThreadValidateDirectives
+import com.github.j5ik2o.threadWeaver.adaptor.directives.{ MetricsDirectives, ThreadValidateDirectives }
 import com.github.j5ik2o.threadWeaver.adaptor.json.CreateThreadRequestJson
 import com.github.j5ik2o.threadWeaver.adaptor.presenter.CreateThreadPresenter
 import com.github.j5ik2o.threadWeaver.adaptor.rejections.RejectionHandlers
-import com.github.j5ik2o.threadWeaver.adaptor.routes.MetricsDirectives
 import com.github.j5ik2o.threadWeaver.useCase.CreateThreadUseCase
 import kamon.context.Context
 import wvlet.airframe._

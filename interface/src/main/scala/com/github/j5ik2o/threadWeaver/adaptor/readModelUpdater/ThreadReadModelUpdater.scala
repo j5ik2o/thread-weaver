@@ -132,7 +132,7 @@ class ThreadReadModelUpdater(
                   minBackoff = 3.seconds,
                   maxBackoff = 30.seconds,
                   randomFactor = 0.2, // adds 20% "noise" to vary the intervals slightly
-                  maxRestarts = 20 // limits the amount of restarts to 20
+                  maxRestarts = 20    // limits the amount of restarts to 20
                 ) { () =>
                   Source
                     .fromFuture(
@@ -172,26 +172,32 @@ class ThreadReadModelUpdater(
         }
     }
 
-  private def removeThread(threadId: ThreadId,
-                           sequenceNr: Long,
-                           createdAt: Instant): FixedSqlAction[Int, NoStream, Effect.Write] = {
+  private def removeThread(
+      threadId: ThreadId,
+      sequenceNr: Long,
+      createdAt: Instant
+  ): FixedSqlAction[Int, NoStream, Effect.Write] = {
     ThreadDao
       .filter(_.id === threadId.value.asString).map { v =>
         (v.sequenceNr, v.removedAt)
       }.update((sequenceNr, Some(createdAt)))
   }
 
-  private def updateSequenceNrInThread(threadId: ThreadId,
-                                       sequenceNr: Long,
-                                       createdAt: Instant): FixedSqlAction[Int, NoStream, Effect.Write] = {
+  private def updateSequenceNrInThread(
+      threadId: ThreadId,
+      sequenceNr: Long,
+      createdAt: Instant
+  ): FixedSqlAction[Int, NoStream, Effect.Write] = {
     ThreadDao
       .filter(_.id === threadId.value.asString).map { v =>
         (v.sequenceNr, v.updatedAt)
       }.update((sequenceNr, createdAt))
   }
 
-  private def deleteMessages(messageIds: MessageIds,
-                             createdAt: Instant): FixedSqlAction[Int, NoStream, Effect.Write] = {
+  private def deleteMessages(
+      messageIds: MessageIds,
+      createdAt: Instant
+  ): FixedSqlAction[Int, NoStream, Effect.Write] = {
     ThreadMessageDao
       .filter(_.id.inSet(messageIds.breachEncapsulationOfValues.map(_.value.asString))).map { v =>
         (v.deleted, v.updatedAt)
@@ -200,10 +206,12 @@ class ThreadReadModelUpdater(
       )
   }
 
-  private def insertMessages(threadId: ThreadId,
-                             senderId: AccountId,
-                             messages: Messages,
-                             createdAt: Instant): List[FixedSqlAction[Int, NoStream, Effect.Write]] = {
+  private def insertMessages(
+      threadId: ThreadId,
+      senderId: AccountId,
+      messages: Messages,
+      createdAt: Instant
+  ): List[FixedSqlAction[Int, NoStream, Effect.Write]] = {
     messages.breachEncapsulationOfValues.map { message =>
       ThreadMessageDao += ThreadMessageRecord(
         id = message.id.value.asString,

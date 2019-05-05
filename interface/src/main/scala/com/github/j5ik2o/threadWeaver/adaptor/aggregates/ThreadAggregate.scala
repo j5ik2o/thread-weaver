@@ -93,24 +93,28 @@ object ThreadAggregate {
         }
 
       def onStarted: Behaviors.Receive[CommandRequest] = Behaviors.receiveMessage[CommandRequest] {
-        case CreateThread(requestId,
-                          threadId,
-                          creatorId,
-                          parentThreadId,
-                          administratorIds,
-                          memberIds,
-                          createAt,
-                          replyTo) if threadId == id =>
+        case CreateThread(
+            requestId,
+            threadId,
+            creatorId,
+            parentThreadId,
+            administratorIds,
+            memberIds,
+            createAt,
+            replyTo
+            ) if threadId == id =>
           replyTo.foreach(_ ! CreateThreadSucceeded(ULID(), requestId, threadId, createAt))
           onCreated(
-            Thread(threadId,
-                   creatorId,
-                   parentThreadId,
-                   administratorIds,
-                   memberIds,
-                   Messages.empty,
-                   createAt,
-                   createAt),
+            Thread(
+              threadId,
+              creatorId,
+              parentThreadId,
+              administratorIds,
+              memberIds,
+              Messages.empty,
+              createAt,
+              createAt
+            ),
             requestId
           )
 

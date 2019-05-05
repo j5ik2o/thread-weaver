@@ -1,8 +1,8 @@
-package com.github.j5ik2o.threadWeaver.adaptor.routes
+package com.github.j5ik2o.threadWeaver.adaptor.directives
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{ Directive, Directive0, Directive1, RouteResult }
+import akka.http.scaladsl.server._
 import akka.http.scaladsl.util.FastFuture
 import akka.http.scaladsl.util.FastFuture._
 import kamon.Kamon
