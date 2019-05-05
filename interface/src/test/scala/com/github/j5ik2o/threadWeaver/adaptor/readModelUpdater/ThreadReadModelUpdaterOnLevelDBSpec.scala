@@ -34,10 +34,12 @@ class ThreadReadModelUpdaterOnLevelDBSpec
           |        dir = "target/persistence/journal"
           |        native = on
           |      }
+          |      auto-start-journals = ["akka.persistence.journal.leveldb"]
           |    }
           |    snapshot-store {
           |      plugin = akka.persistence.snapshot-store.local
           |      local.dir = "target/persistence/snapshots"
+          |      auto-start-snapshot-stores = ["akka.persistence.snapshot-store.local"]
           |    }
           |  }
           |}
@@ -56,9 +58,12 @@ class ThreadReadModelUpdaterOnLevelDBSpec
 
   val tables = Seq("thread")
 
+  var readJournal: LeveldbReadJournal = _
+
   override protected def beforeAll(): Unit = {
     deleteStorageLocations()
     super.beforeAll()
+    readJournal = PersistenceQuery(system.toUntyped).readJournalFor[LeveldbReadJournal](LeveldbReadJournal.Identifier)
   }
 
   override protected def afterAll(): Unit = {
@@ -67,8 +72,6 @@ class ThreadReadModelUpdaterOnLevelDBSpec
   }
 
   "ThreadReadModelUpdater" - {
-    val readJournal =
-      PersistenceQuery(system.toUntyped).readJournalFor[LeveldbReadJournal](LeveldbReadJournal.Identifier)
     "add messages" in {
       val threadId          = ThreadId()
       val threadRef         = spawn(PersistentThreadAggregate.behavior(threadId))

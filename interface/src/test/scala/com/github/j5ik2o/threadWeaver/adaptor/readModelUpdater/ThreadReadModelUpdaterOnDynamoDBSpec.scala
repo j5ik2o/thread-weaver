@@ -34,9 +34,11 @@ class ThreadReadModelUpdaterOnDynamoDBSpec
            |  persistence {
            |    journal {
            |      plugin = dynamo-db-journal
+           |      auto-start-journals = ["dynamo-db-journal"]
            |    }
            |    snapshot-store {
            |      plugin = dynamo-db-snapshot
+           |      auto-start-snapshot-stores = ["dynamo-db-snapshot"]
            |    }
            |  }
            |}
@@ -79,17 +81,18 @@ class ThreadReadModelUpdaterOnDynamoDBSpec
 
   val tables = Seq("thread")
 
+  var readJournal: DynamoDBReadJournal = _
+
   override protected lazy val dynamoDBPort: Int = PersistentThreadAggregateOnDynamoDBSpec.dbPort
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
     createJournalTable()
     createSnapshotTable()
+    readJournal = PersistenceQuery(system.toUntyped).readJournalFor[DynamoDBReadJournal](DynamoDBReadJournal.Identifier)
   }
 
   "ThreadReadModelUpdater" - {
-    val readJournal =
-      PersistenceQuery(system.toUntyped).readJournalFor[DynamoDBReadJournal](DynamoDBReadJournal.Identifier)
     "add messages" in {
       val threadId          = ThreadId()
       val threadRef         = spawn(PersistentThreadAggregate.behavior(threadId))

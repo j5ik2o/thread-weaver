@@ -5,6 +5,7 @@ import java.io.File
 import com.github.j5ik2o.scalatestplus.db._
 import com.wix.mysql.distribution.Version._
 import org.scalatest.TestSuite
+import org.seasar.util.io.ResourceUtil
 
 import scala.concurrent.duration._
 
@@ -23,10 +24,12 @@ trait FlywayWithMySQLSpecSupport extends FlywayWithMySQLdOneInstancePerSuite {
 
   override protected lazy val schemaConfigs: Seq[SchemaConfig] = Seq(SchemaConfig(name = "tw"))
 
-  override protected def flywayConfig(jdbcUrl: String): FlywayConfig =
+  override protected def flywayConfig(jdbcUrl: String): FlywayConfig = {
+    val buildDir = ResourceUtil.getBuildDir(getClass)
+    val file     = new File(buildDir, "/../../../../tools/flyway/src/test/resources/db-migration")
     FlywayConfig(
       locations = Seq(
-        "filesystem:tools/flyway/src/test/resources/db-migration"
+        s"filesystem:${file.getAbsolutePath}"
       ),
       placeholderConfig = Some(
         PlaceholderConfig(
@@ -35,5 +38,6 @@ trait FlywayWithMySQLSpecSupport extends FlywayWithMySQLdOneInstancePerSuite {
         )
       )
     )
+  }
 
 }
