@@ -24,8 +24,7 @@ object PersistentThreadAggregate {
             Effect.persist(c.toEvent).thenRun { _ =>
               replyTo.foreach(_ ! CreateThreadSucceeded(ULID(), requestId, threadId, createAt))
             }
-          case (State(_, _), c @ AddSubscribers(_, _, _, _, _)) =>
-            Effect.persist(c.toEvent)
+
           case (State(Some(thread), _), c @ DestroyThread(requestId, threadId, senderId, createAt, replyTo)) =>
             thread.destroy(senderId, createAt) match {
               case Left(exception) =>
@@ -115,8 +114,6 @@ object PersistentThreadAggregate {
                 )
               )
             )
-          case (s @ State(_, subscribers), e: SubscribersAdded) =>
-            s.copy(subscribers = subscribers ++ e.subscribers)
           case (s @ State(Some(thread), _), e: ThreadDestroyed) =>
             s.copy(
               thread = Some(thread.destroy(e.senderId, e.createdAt).right.get)
