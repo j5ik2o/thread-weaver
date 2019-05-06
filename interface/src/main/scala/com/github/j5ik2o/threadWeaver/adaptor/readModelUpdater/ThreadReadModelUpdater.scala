@@ -2,10 +2,12 @@ package com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater
 
 import java.time.Instant
 
+import akka.NotUsed
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ Behavior, PostStop }
+import akka.persistence.query.EventEnvelope
 import akka.persistence.query.scaladsl._
-import akka.stream.scaladsl.{ Keep, RestartSource, Sink, Source }
+import akka.stream.scaladsl.{ Flow, Keep, RestartSource, Sink, Source }
 import akka.stream.typed.scaladsl.ActorMaterializer
 import akka.stream.{ Attributes, KillSwitch, KillSwitches }
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{
@@ -57,7 +59,7 @@ class ThreadReadModelUpdater(
     val readJournal: ReadJournalType,
     val profile: JdbcProfile,
     val db: JdbcProfile#Backend#Database,
-    batchSize: Long = 10,
+    sqlBatchSize: Long = 10,
     backoffSettings: Option[BackoffSettings] = None
 ) extends ThreadComponent
     with ThreadMessageComponent
@@ -92,46 +94,50 @@ class ThreadReadModelUpdater(
 
   private def projectionHandler(
       threadId: ThreadId
-  ): (Long, Event) => DBIOAction[Unit, NoStream, Effect.Write with Effect.Transactional] = {
-    case (sequenceNr, ThreadCreated(_, _, senderId, parentThreadId, administratorIds, memberIds, createdAt)) =>
-      DBIO
-        .seq(
-          insertThread(threadId, sequenceNr, senderId, parentThreadId, createdAt) ::
-          insertAdministratorIds(threadId, senderId, administratorIds, createdAt) :::
-          insertMemberIds(threadId, senderId, memberIds, createdAt): _*
-        ).transactionally
-    case (sequenceNr, ThreadDestroyed(_, _, _, createdAt)) =>
-      DBIO
-        .seq(
-          updateThreadToRemove(threadId, sequenceNr, createdAt)
-        )
-    case (sequenceNr, AdministratorIdsAdded(_, _, senderId, administratorIds, createdAt)) =>
-      DBIO
-        .seq(
-          updateSequenceNrInThread(threadId, sequenceNr, createdAt) ::
-          insertAdministratorIds(threadId, senderId, administratorIds, createdAt): _*
-        ).transactionally
-    case (sequenceNr, MemberIdsAdded(_, _, adderId, memberIds, createdAt)) =>
-      DBIO
-        .seq(
-          updateSequenceNrInThread(threadId, sequenceNr, createdAt) ::
-          insertMemberIds(threadId, adderId, memberIds, createdAt): _*
-        ).transactionally
-    case (sequenceNr, MessagesAdded(_, _, senderId, messages, createdAt)) =>
-      DBIO
-        .seq(
-          updateSequenceNrInThread(threadId, sequenceNr, createdAt) ::
-          insertMessages(threadId, senderId, messages, createdAt): _*
-        ).transactionally
-    case (sequenceNr, MessagesRemoved(_, _, messageIds, _, createdAt)) =>
-      DBIO
-        .seq(
-          updateSequenceNrInThread(threadId, sequenceNr, createdAt),
-          deleteMessages(messageIds, createdAt)
-        ).transactionally
-    case _ =>
-      DBIO.successful(())
-  }
+  ): Flow[EventEnvelope, DBIOAction[Unit, NoStream, Effect.Write with Effect.Transactional], NotUsed] =
+    Flow[EventEnvelope]
+      .map { ee =>
+        (ee.sequenceNr, ee.event.asInstanceOf[Event])
+      }.map {
+        case (sequenceNr, ThreadCreated(_, _, senderId, parentThreadId, administratorIds, memberIds, createdAt)) =>
+          DBIO
+            .seq(
+              insertThread(threadId, sequenceNr, senderId, parentThreadId, createdAt) ::
+              insertAdministratorIds(threadId, senderId, administratorIds, createdAt) :::
+              insertMemberIds(threadId, senderId, memberIds, createdAt): _*
+            ).transactionally
+        case (sequenceNr, ThreadDestroyed(_, _, _, createdAt)) =>
+          DBIO
+            .seq(
+              updateThreadToRemove(threadId, sequenceNr, createdAt)
+            )
+        case (sequenceNr, AdministratorIdsAdded(_, _, senderId, administratorIds, createdAt)) =>
+          DBIO
+            .seq(
+              updateSequenceNrInThread(threadId, sequenceNr, createdAt) ::
+              insertAdministratorIds(threadId, senderId, administratorIds, createdAt): _*
+            ).transactionally
+        case (sequenceNr, MemberIdsAdded(_, _, adderId, memberIds, createdAt)) =>
+          DBIO
+            .seq(
+              updateSequenceNrInThread(threadId, sequenceNr, createdAt) ::
+              insertMemberIds(threadId, adderId, memberIds, createdAt): _*
+            ).transactionally
+        case (sequenceNr, MessagesAdded(_, _, senderId, messages, createdAt)) =>
+          DBIO
+            .seq(
+              updateSequenceNrInThread(threadId, sequenceNr, createdAt) ::
+              insertMessages(threadId, senderId, messages, createdAt): _*
+            ).transactionally
+        case (sequenceNr, MessagesRemoved(_, _, messageIds, _, createdAt)) =>
+          DBIO
+            .seq(
+              updateSequenceNrInThread(threadId, sequenceNr, createdAt),
+              deleteMessages(messageIds, createdAt)
+            ).transactionally
+        case _ =>
+          DBIO.successful(())
+      }
 
   private def projectionSource(threadId: ThreadId)(implicit ec: ExecutionContext) = {
     Source
@@ -142,10 +148,9 @@ class ThreadReadModelUpdater(
       ).flatMapConcat { lastSequenceNr =>
         readJournal
           .eventsByPersistenceId(threadId.value.asString, lastSequenceNr + 1, Long.MaxValue)
-      }.map { ee =>
-        projectionHandler(threadId)(ee.sequenceNr, ee.event.asInstanceOf[Event])
-      }.batch(batchSize, ArrayBuffer(_))(_ :+ _).mapAsync(1) { v =>
-        db.run(DBIO.sequence(v.result.toVector))
+      }.via(projectionHandler(threadId))
+      .batch(sqlBatchSize, ArrayBuffer(_))(_ :+ _).mapAsync(1) { sqlActions =>
+        db.run(DBIO.sequence(sqlActions.result.toVector))
       }.withAttributes(logLevels)
   }
 
