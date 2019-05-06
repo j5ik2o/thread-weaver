@@ -92,7 +92,7 @@ class ThreadReadModelUpdater(
     onFinish = Attributes.LogLevels.Info
   )
 
-  private def projectionHandler(
+  private def sqlActionFlow(
       threadId: ThreadId
   ): Flow[EventEnvelope, DBIOAction[Unit, NoStream, Effect.Write with Effect.Transactional], NotUsed] =
     Flow[EventEnvelope]
@@ -102,38 +102,38 @@ class ThreadReadModelUpdater(
         case (sequenceNr, ThreadCreated(_, _, senderId, parentThreadId, administratorIds, memberIds, createdAt)) =>
           DBIO
             .seq(
-              insertThread(threadId, sequenceNr, senderId, parentThreadId, createdAt) ::
-              insertAdministratorIds(threadId, senderId, administratorIds, createdAt) :::
-              insertMemberIds(threadId, senderId, memberIds, createdAt): _*
+              insertThreadAction(threadId, sequenceNr, senderId, parentThreadId, createdAt) ::
+              insertAdministratorIdsAction(threadId, senderId, administratorIds, createdAt) :::
+              insertMemberIdsAction(threadId, senderId, memberIds, createdAt): _*
             ).transactionally
         case (sequenceNr, ThreadDestroyed(_, _, _, createdAt)) =>
           DBIO
             .seq(
-              updateThreadToRemove(threadId, sequenceNr, createdAt)
+              updateThreadToRemoveAction(threadId, sequenceNr, createdAt)
             )
         case (sequenceNr, AdministratorIdsAdded(_, _, senderId, administratorIds, createdAt)) =>
           DBIO
             .seq(
-              updateSequenceNrInThread(threadId, sequenceNr, createdAt) ::
-              insertAdministratorIds(threadId, senderId, administratorIds, createdAt): _*
+              updateSequenceNrInThreadAction(threadId, sequenceNr, createdAt) ::
+              insertAdministratorIdsAction(threadId, senderId, administratorIds, createdAt): _*
             ).transactionally
         case (sequenceNr, MemberIdsAdded(_, _, adderId, memberIds, createdAt)) =>
           DBIO
             .seq(
-              updateSequenceNrInThread(threadId, sequenceNr, createdAt) ::
-              insertMemberIds(threadId, adderId, memberIds, createdAt): _*
+              updateSequenceNrInThreadAction(threadId, sequenceNr, createdAt) ::
+              insertMemberIdsAction(threadId, adderId, memberIds, createdAt): _*
             ).transactionally
         case (sequenceNr, MessagesAdded(_, _, senderId, messages, createdAt)) =>
           DBIO
             .seq(
-              updateSequenceNrInThread(threadId, sequenceNr, createdAt) ::
-              insertMessages(threadId, senderId, messages, createdAt): _*
+              updateSequenceNrInThreadAction(threadId, sequenceNr, createdAt) ::
+              insertMessagesAction(threadId, senderId, messages, createdAt): _*
             ).transactionally
         case (sequenceNr, MessagesRemoved(_, _, messageIds, _, createdAt)) =>
           DBIO
             .seq(
-              updateSequenceNrInThread(threadId, sequenceNr, createdAt),
-              deleteMessages(messageIds, createdAt)
+              updateSequenceNrInThreadAction(threadId, sequenceNr, createdAt),
+              deleteMessagesAction(messageIds, createdAt)
             ).transactionally
         case _ =>
           DBIO.successful(())
@@ -142,13 +142,11 @@ class ThreadReadModelUpdater(
   private def projectionSource(threadId: ThreadId)(implicit ec: ExecutionContext) = {
     Source
       .fromFuture(
-        db.run(ThreadDao.filter(_.id === threadId.value.asString).map(_.sequenceNr).max.result).map(
-            _.getOrElse(0L)
-          )
+        db.run(getSequenceNrAction(threadId)).map(_.getOrElse(0L))
       ).flatMapConcat { lastSequenceNr =>
         readJournal
           .eventsByPersistenceId(threadId.value.asString, lastSequenceNr + 1, Long.MaxValue)
-      }.via(projectionHandler(threadId))
+      }.via(sqlActionFlow(threadId))
       .batch(sqlBatchSize, ArrayBuffer(_))(_ :+ _).mapAsync(1) { sqlActions =>
         db.run(DBIO.sequence(sqlActions.result.toVector))
       }.withAttributes(logLevels)
@@ -187,7 +185,11 @@ class ThreadReadModelUpdater(
         }
     }
 
-  private def updateThreadToRemove(
+  private def getSequenceNrAction(threadId: ThreadId) = {
+    ThreadDao.filter(_.id === threadId.value.asString).map(_.sequenceNr).max.result
+  }
+
+  private def updateThreadToRemoveAction(
       threadId: ThreadId,
       sequenceNr: Long,
       createdAt: Instant
@@ -198,7 +200,7 @@ class ThreadReadModelUpdater(
       }.update((sequenceNr, Some(createdAt)))
   }
 
-  private def updateSequenceNrInThread(
+  private def updateSequenceNrInThreadAction(
       threadId: ThreadId,
       sequenceNr: Long,
       createdAt: Instant
@@ -209,7 +211,7 @@ class ThreadReadModelUpdater(
       }.update((sequenceNr, createdAt))
   }
 
-  private def deleteMessages(
+  private def deleteMessagesAction(
       messageIds: MessageIds,
       createdAt: Instant
   ): FixedSqlAction[Int, NoStream, Effect.Write] = {
@@ -221,7 +223,7 @@ class ThreadReadModelUpdater(
       )
   }
 
-  private def insertMessages(
+  private def insertMessagesAction(
       threadId: ThreadId,
       senderId: AccountId,
       messages: Messages,
@@ -241,7 +243,7 @@ class ThreadReadModelUpdater(
     }.toList
   }
 
-  private def insertMemberIds(
+  private def insertMemberIdsAction(
       threadId: ThreadId,
       adderId: AccountId,
       memberIds: MemberIds,
@@ -259,7 +261,7 @@ class ThreadReadModelUpdater(
     }.toList
   }
 
-  private def insertAdministratorIds(
+  private def insertAdministratorIdsAction(
       threadId: ThreadId,
       adderId: AccountId,
       administratorIds: AdministratorIds,
@@ -277,7 +279,7 @@ class ThreadReadModelUpdater(
     }.toList
   }
 
-  private def insertThread(
+  private def insertThreadAction(
       threadId: ThreadId,
       sequenceNr: Long,
       senderId: AccountId,
