@@ -20,7 +20,10 @@ import com.github.j5ik2o.threadWeaver.adaptor.dao.jdbc.{
   ThreadMemberIdsComponent,
   ThreadMessageComponent
 }
-import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdater.ReadJournalType
+import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdater.{
+  BackoffSettings,
+  ReadJournalType
+}
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdaterProtocol._
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
 import com.github.j5ik2o.threadWeaver.domain.model.threads.{ Message => _, _ }
@@ -29,6 +32,7 @@ import slick.jdbc.JdbcProfile
 import slick.sql.FixedSqlAction
 
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 object ThreadReadModelUpdater {
@@ -40,19 +44,32 @@ object ThreadReadModelUpdater {
     with CurrentEventsByPersistenceIdQuery
     with EventsByTagQuery
     with CurrentEventsByTagQuery
+
+  final case class BackoffSettings(
+      minBackoff: FiniteDuration,
+      maxBackoff: FiniteDuration,
+      randomFactor: Double,
+      maxRestarts: Int
+  )
 }
 
 class ThreadReadModelUpdater(
     val readJournal: ReadJournalType,
     val profile: JdbcProfile,
     val db: JdbcProfile#Backend#Database,
-    batchSize: Long = 10
+    batchSize: Long = 10,
+    backoffSettings: Option[BackoffSettings] = None
 ) extends ThreadComponent
     with ThreadMessageComponent
     with ThreadAdministratorIdsComponent
     with ThreadMemberIdsComponent {
 
   import profile.api._
+
+  private val minBackoff   = backoffSettings.fold(3 seconds)(_.minBackoff)
+  private val maxBackoff   = backoffSettings.fold(30 seconds)(_.maxBackoff)
+  private val randomFactor = backoffSettings.fold(0.2d)(_.randomFactor)
+  private val maxRestarts  = backoffSettings.fold(20)(_.maxRestarts)
 
   def behavior: Behavior[CommandRequest] = Behaviors.setup[CommandRequest] { ctx =>
     Behaviors.receiveMessagePartial[CommandRequest] {
@@ -61,6 +78,7 @@ class ThreadReadModelUpdater(
           case None =>
             ctx.spawn(projectionBehavior(s.threadId), name = s"RMU-${s.threadId.value.asString}") ! s
           case _ =>
+            ctx.log.warning("RMU already has started: threadId = {}", s.threadId.value.asString)
         }
         Behaviors.same
     }
@@ -76,28 +94,28 @@ class ThreadReadModelUpdater(
       threadId: ThreadId
   ): (Long, Event) => DBIOAction[Unit, NoStream, Effect.Write with Effect.Transactional] = {
     case (sequenceNr, ThreadCreated(_, _, senderId, parentThreadId, administratorIds, memberIds, createdAt)) =>
-      val insertThread = insertThreadQuery(threadId, sequenceNr, senderId, parentThreadId, createdAt)
-      val insertAdministratorIds =
-        insertAdministratorIdsQuery(threadId, senderId, administratorIds, createdAt)
-      val insertMemberIds = insertMemberIdsQuery(threadId, senderId, memberIds, createdAt)
       DBIO
-        .seq(insertThread :: insertAdministratorIds ::: insertMemberIds: _*).transactionally
+        .seq(
+          insertThread(threadId, sequenceNr, senderId, parentThreadId, createdAt) ::
+          insertAdministratorIds(threadId, senderId, administratorIds, createdAt) :::
+          insertMemberIds(threadId, senderId, memberIds, createdAt): _*
+        ).transactionally
     case (sequenceNr, ThreadDestroyed(_, _, _, createdAt)) =>
       DBIO
         .seq(
-          removeThread(threadId, sequenceNr, createdAt)
+          updateThreadToRemove(threadId, sequenceNr, createdAt)
         )
     case (sequenceNr, AdministratorIdsAdded(_, _, senderId, administratorIds, createdAt)) =>
       DBIO
         .seq(
           updateSequenceNrInThread(threadId, sequenceNr, createdAt) ::
-          insertAdministratorIdsQuery(threadId, senderId, administratorIds, createdAt): _*
+          insertAdministratorIds(threadId, senderId, administratorIds, createdAt): _*
         ).transactionally
     case (sequenceNr, MemberIdsAdded(_, _, adderId, memberIds, createdAt)) =>
       DBIO
         .seq(
           updateSequenceNrInThread(threadId, sequenceNr, createdAt) ::
-          insertMemberIdsQuery(threadId, adderId, memberIds, createdAt): _*
+          insertMemberIds(threadId, adderId, memberIds, createdAt): _*
         ).transactionally
     case (sequenceNr, MessagesAdded(_, _, senderId, messages, createdAt)) =>
       DBIO
@@ -115,6 +133,22 @@ class ThreadReadModelUpdater(
       DBIO.successful(())
   }
 
+  private def projectionSource(threadId: ThreadId)(implicit ec: ExecutionContext) = {
+    Source
+      .fromFuture(
+        db.run(ThreadDao.filter(_.id === threadId.value.asString).map(_.sequenceNr).max.result).map(
+            _.getOrElse(0L)
+          )
+      ).flatMapConcat { lastSequenceNr =>
+        readJournal
+          .eventsByPersistenceId(threadId.value.asString, lastSequenceNr + 1, Long.MaxValue)
+      }.map { ee =>
+        projectionHandler(threadId)(ee.sequenceNr, ee.event.asInstanceOf[Event])
+      }.batch(batchSize, ArrayBuffer(_))(_ :+ _).mapAsync(1) { v =>
+        db.run(DBIO.sequence(v.result.toVector))
+      }.withAttributes(logLevels)
+  }
+
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
   private def projectionBehavior(threadId: ThreadId): Behavior[Message] =
     Behaviors.setup[Message] { ctx =>
@@ -126,34 +160,10 @@ class ThreadReadModelUpdater(
       Behaviors
         .receiveMessagePartial[Message] {
           case Start(_, tid, _) if tid == threadId =>
-            killSwitch = Some(
+            killSwitch = Some {
               RestartSource
-                .withBackoff(
-                  minBackoff = 3.seconds,
-                  maxBackoff = 30.seconds,
-                  randomFactor = 0.2, // adds 20% "noise" to vary the intervals slightly
-                  maxRestarts = 20    // limits the amount of restarts to 20
-                ) { () =>
-                  Source
-                    .fromFuture(
-                      db.run(ThreadDao.filter(_.id === tid.value.asString).map(_.sequenceNr).max.result).map(
-                          _.getOrElse(0L)
-                        )
-                    ).flatMapConcat { lastSequenceNr =>
-                      readJournal
-                        .eventsByPersistenceId(threadId.value.asString, lastSequenceNr + 1, Long.MaxValue)
-                    }.map { ee =>
-                      projectionHandler(threadId)(ee.sequenceNr, ee.event.asInstanceOf[Event])
-                    }.log("event")
-                    .batch(batchSize, { v =>
-                      ArrayBuffer(v)
-                    }) {
-                      case (v, out) =>
-                        v :+ out
-                    }.log("batch")
-                    .mapAsync(1) { v =>
-                      db.run(DBIO.sequence(v.result.toVector))
-                    }.withAttributes(logLevels)
+                .withBackoff(minBackoff, maxBackoff, randomFactor, maxRestarts) { () =>
+                  projectionSource(tid)
                 }.viaMat(
                   KillSwitches.single
                 )(
@@ -161,7 +171,7 @@ class ThreadReadModelUpdater(
                 ).toMat(
                   Sink.ignore
                 )(Keep.left).withAttributes(logLevels).run()
-            )
+            }
             Behaviors.same
           case _: Stop =>
             Behaviors.stopped
@@ -172,7 +182,7 @@ class ThreadReadModelUpdater(
         }
     }
 
-  private def removeThread(
+  private def updateThreadToRemove(
       threadId: ThreadId,
       sequenceNr: Long,
       createdAt: Instant
@@ -226,7 +236,7 @@ class ThreadReadModelUpdater(
     }.toList
   }
 
-  private def insertMemberIdsQuery(
+  private def insertMemberIds(
       threadId: ThreadId,
       adderId: AccountId,
       memberIds: MemberIds,
@@ -244,7 +254,7 @@ class ThreadReadModelUpdater(
     }.toList
   }
 
-  private def insertAdministratorIdsQuery(
+  private def insertAdministratorIds(
       threadId: ThreadId,
       adderId: AccountId,
       administratorIds: AdministratorIds,
@@ -262,7 +272,7 @@ class ThreadReadModelUpdater(
     }.toList
   }
 
-  private def insertThreadQuery(
+  private def insertThread(
       threadId: ThreadId,
       sequenceNr: Long,
       senderId: AccountId,
