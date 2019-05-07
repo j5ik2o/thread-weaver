@@ -275,4 +275,6 @@ object ThreadProtocol {
 
   case class Started(id: ULID, threadId: ThreadId, createdAt: Instant, sender: ActorRef[Nothing]) extends Event
 
+  case class Stopped(id: ULID, threadId: ThreadId, createdAt: Instant, sender: ActorRef[Nothing]) extends Event
+
 }

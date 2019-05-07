@@ -1,4 +1,5 @@
 package com.github.j5ik2o.threadWeaver.useCase
+
 import akka.NotUsed
 import akka.actor.Scheduler
 import akka.actor.typed.scaladsl.AskPattern._
@@ -17,13 +18,15 @@ import com.github.j5ik2o.threadWeaver.useCase.ThreadWeaverProtocol.{
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
 
-private[useCase] class CreateThreadUseCaseImpl(threadAggregates: ActorRef[CommandRequest], parallelism: Int = 1)(
+private[useCase] class CreateThreadUseCaseImpl(threadAggregates: ActorRef[CommandRequest],
+                                               parallelism: Int = 1,
+                                               timeout: Timeout = 3 seconds)(
     implicit system: ActorSystem[Nothing]
 ) extends CreateThreadUseCase {
 
   override def execute: Flow[UCreateThread, UCreateThreadResponse, NotUsed] = {
     Flow[UCreateThread].mapAsync(parallelism) { request =>
-      implicit val timeout: Timeout             = 3.seconds
+      implicit val to: Timeout                  = timeout
       implicit val scheduler: Scheduler         = system.scheduler
       implicit val ec: ExecutionContextExecutor = system.executionContext
       threadAggregates

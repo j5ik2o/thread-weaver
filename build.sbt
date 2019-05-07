@@ -231,6 +231,7 @@ val api = (project in file("api"))
   .settings(dockerCommonSettings)
   .settings(
     name := "thread-weaver-api",
+    mainClass in reStart := Some("com.github.j5ik2o.threadWeaver.api.Main"),
     dockerBaseImage := "openjdk:8",
     dockerUsername := Some("j5ik2o"),
     fork in run := true,
