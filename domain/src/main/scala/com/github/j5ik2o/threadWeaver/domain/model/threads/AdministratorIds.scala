@@ -8,6 +8,11 @@ final case class AdministratorIds(breachEncapsulationOfValues: NonEmptyList[Acco
 
   def contains(value: AccountId): Boolean =
     breachEncapsulationOfValues.toList.contains(value)
+
+  def filterNot(other: AdministratorIds): AdministratorIds = {
+    val list = breachEncapsulationOfValues.filterNot(p => other.contains(p))
+    AdministratorIds(list.head, list.tail: _*)
+  }
 }
 
 object AdministratorIds {

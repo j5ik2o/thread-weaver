@@ -1,11 +1,10 @@
 package com.github.j5ik2o.threadWeaver.domain.model.threads
 
 import cats.Monoid
-import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
 
 final case class Messages(breachEncapsulationOfValues: Vector[Message[_]]) {
 
-  def filterNot(messageIds: MessageIds, senderId: AccountId): Messages = {
+  def filterNot(messageIds: MessageIds): Messages = {
     copy(
       breachEncapsulationOfValues = breachEncapsulationOfValues.filterNot(v => messageIds.contains(v.id))
     )

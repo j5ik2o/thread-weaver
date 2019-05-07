@@ -111,30 +111,49 @@ class ThreadReadModelUpdater(
             .seq(
               updateThreadToRemoveAction(threadId, sequenceNr, createdAt)
             )
+
+        // for Administrators
         case (sequenceNr, AdministratorIdsAdded(_, _, senderId, administratorIds, createdAt)) =>
           DBIO
             .seq(
               updateSequenceNrInThreadAction(threadId, sequenceNr, createdAt) ::
               insertAdministratorIdsAction(threadId, senderId, administratorIds, createdAt): _*
             ).transactionally
+        case (sequenceNr, AdministratorIdsRemoved(_, _, _, administratorIds, createdAt)) =>
+          DBIO
+            .seq(
+              updateSequenceNrInThreadAction(threadId, sequenceNr, createdAt),
+              deleteAdministratorIdsAction(threadId, administratorIds)
+            ).transactionally
+
+        // for Members
         case (sequenceNr, MemberIdsAdded(_, _, adderId, memberIds, createdAt)) =>
           DBIO
             .seq(
               updateSequenceNrInThreadAction(threadId, sequenceNr, createdAt) ::
               insertMemberIdsAction(threadId, adderId, memberIds, createdAt): _*
             ).transactionally
+        case (sequenceNr, MemberIdsRemoved(_, _, _, memberIds, createdAt)) =>
+          DBIO
+            .seq(
+              updateSequenceNrInThreadAction(threadId, sequenceNr, createdAt),
+              deleteMemberIdsAction(threadId, memberIds)
+            ).transactionally
+
+        // for Messages
         case (sequenceNr, MessagesAdded(_, _, senderId, messages, createdAt)) =>
           DBIO
             .seq(
               updateSequenceNrInThreadAction(threadId, sequenceNr, createdAt) ::
               insertMessagesAction(threadId, senderId, messages, createdAt): _*
             ).transactionally
-        case (sequenceNr, MessagesRemoved(_, _, messageIds, _, createdAt)) =>
+        case (sequenceNr, MessagesRemoved(_, _, _, messageIds, createdAt)) =>
           DBIO
             .seq(
               updateSequenceNrInThreadAction(threadId, sequenceNr, createdAt),
               deleteMessagesAction(messageIds, createdAt)
             ).transactionally
+
         case _ =>
           DBIO.successful(())
       }
@@ -261,6 +280,18 @@ class ThreadReadModelUpdater(
     }.toList
   }
 
+  private def deleteMemberIdsAction(
+      threadId: ThreadId,
+      memberIds: MemberIds
+  ): FixedSqlAction[Int, NoStream, Effect.Write] = {
+    ThreadMemberIdsDao
+      .filter(
+        v =>
+          v.threadId === threadId.value.asString && v.accountId
+            .inSet(memberIds.breachEncapsulationOfValues.map(_.value.asString).toList)
+      ).delete
+  }
+
   private def insertAdministratorIdsAction(
       threadId: ThreadId,
       adderId: AccountId,
@@ -277,6 +308,18 @@ class ThreadReadModelUpdater(
         updatedAt = createdAt
       )
     }.toList
+  }
+
+  private def deleteAdministratorIdsAction(
+      threadId: ThreadId,
+      administratorIds: AdministratorIds
+  ): FixedSqlAction[Int, NoStream, Effect.Write] = {
+    ThreadAdministratorIdsDao
+      .filter(
+        v =>
+          v.threadId === threadId.value.asString &&
+          v.accountId.inSet(administratorIds.breachEncapsulationOfValues.map(_.value.asString).toList)
+      ).delete
   }
 
   private def insertThreadAction(

@@ -28,22 +28,40 @@ final case class Thread(
   def isMemberId(accountId: AccountId): Boolean =
     memberIds.contains(accountId) || administratorIds.contains(accountId)
 
-  def addAdministratorIds(value: AdministratorIds, senderId: AccountId): Either[Exception, Thread] = {
+  def addAdministratorIds(value: AdministratorIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
     if (isRemoved)
       Left(new Exception("already removed thread"))
     else if (!isAdministratorId(senderId))
       Left(new Exception("senderId is not administrator"))
     else
-      Right(copy(administratorIds = administratorIds combine value))
+      Right(copy(administratorIds = administratorIds combine value, updatedAt = at))
   }
 
-  def addMemberIds(value: MemberIds, senderId: AccountId): Either[Exception, Thread] = {
+  def removeAdministratorIds(value: AdministratorIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
+    if (isRemoved)
+      Left(new Exception("already removed thread"))
+    else if (!isAdministratorId(senderId))
+      Left(new Exception("senderId is not administrator"))
+    else
+      Right(copy(administratorIds = administratorIds.filterNot(value), updatedAt = at))
+  }
+
+  def addMemberIds(value: MemberIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
     if (isRemoved)
       Left(new Exception("already removed thread"))
     else if (!isAdministratorId(senderId))
       Left(new Exception("senderId is not administrator."))
     else
-      Right(copy(memberIds = memberIds combine value))
+      Right(copy(memberIds = memberIds combine value, updatedAt = at))
+  }
+
+  def removeMemberIds(value: MemberIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
+    if (isRemoved)
+      Left(new Exception("already removed thread"))
+    else if (!isAdministratorId(senderId))
+      Left(new Exception("senderId is not administrator."))
+    else
+      Right(copy(memberIds = memberIds.filterNot(value), updatedAt = at))
   }
 
   def addMessages(values: Messages, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
@@ -55,6 +73,15 @@ final case class Thread(
       Right(copy(messages = messages combine values, updatedAt = at))
   }
 
+  def removeMessages(values: MessageIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
+    if (isRemoved)
+      Left(new Exception("already removed thread"))
+    else if (!isMemberId(senderId))
+      Left(new Exception("senderId is not member"))
+    else
+      Right(copy(messages = messages.filterNot(values), updatedAt = at))
+  }
+
   def getMessages(senderId: AccountId): Either[Exception, Messages] = {
     if (isRemoved)
       Left(new Exception("already removed thread"))
@@ -62,15 +89,6 @@ final case class Thread(
       Left(new Exception("senderId is not member"))
     else
       Right(messages)
-  }
-
-  def filterNotMessages(values: MessageIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
-    if (isRemoved)
-      Left(new Exception("already removed thread"))
-    else if (!isAdministratorId(senderId))
-      Left(new Exception("senderId is not administrator."))
-    else
-      Right(copy(messages = messages.filterNot(values, senderId)))
   }
 
   def destroy(senderId: AccountId, at: Instant): Either[Exception, Thread] = {
