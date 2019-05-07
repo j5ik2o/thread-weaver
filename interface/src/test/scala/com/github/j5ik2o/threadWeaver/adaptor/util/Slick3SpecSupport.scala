@@ -7,8 +7,6 @@ import slick.basic.DatabaseConfig
 import slick.jdbc.SetParameter.SetUnit
 import slick.jdbc.{ JdbcProfile, SQLActionBuilder }
 
-import scala.concurrent.Future
-
 trait Slick3SpecSupport extends BeforeAndAfter with BeforeAndAfterAll with ScalaFutures with JdbcSpecSupport {
   self: Suite with FlywayWithMySQLSpecSupport =>
 
@@ -21,12 +19,13 @@ trait Slick3SpecSupport extends BeforeAndAfter with BeforeAndAfterAll with Scala
   // protected def profile: JdbcProfile = _profile
 
   after {
+    val profile = dbConfig.profile
+    import profile.api._
     implicit val ec = dbConfig.db.executor.executionContext
-    val futures = tables.map { table =>
-      val q = SQLActionBuilder(List(s"TRUNCATE TABLE $table"), SetUnit).asUpdate
-      dbConfig.db.run(q)
+    val actions = tables.map { table =>
+      SQLActionBuilder(List(s"TRUNCATE TABLE $table"), SetUnit).asUpdate
     }
-    Future.sequence(futures).futureValue
+    dbConfig.db.run(DBIO.sequence(actions).transactionally)
   }
 
   override protected def beforeAll(): Unit = {

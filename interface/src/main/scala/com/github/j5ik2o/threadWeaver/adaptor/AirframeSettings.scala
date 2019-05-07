@@ -3,7 +3,7 @@ package com.github.j5ik2o.threadWeaver.adaptor
 import akka.actor.typed.{ ActorRef, ActorSystem }
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.stream.Materializer
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.CommandRequest
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{ CommandRequest, Message }
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.{
   ShardedThreadAggregatesProxy,
   ThreadAggregate,
@@ -43,10 +43,13 @@ object AirframeSettings {
         new SwaggerDocService(host, port, Set(classOf[ThreadController]))
       )
 
-  def designOfShardedAggregates(clusterSharding: ClusterSharding): Design =
+  def designOfShardedAggregates(clusterSharding: ClusterSharding, subscribers: Seq[ActorRef[Message]]): Design =
     newDesign
       .bind[ActorRef[CommandRequest]].toInstance {
-        ActorSystem(ShardedThreadAggregatesProxy.behavior(clusterSharding, 30 seconds), name = "threads-proxy")
+        ActorSystem(
+          ShardedThreadAggregatesProxy.behavior(clusterSharding, 30 seconds, subscribers),
+          name = "threads-proxy"
+        )
       }
 
   def designOfLocalAggregatesWithoutPersistence: Design =
@@ -70,6 +73,6 @@ object AirframeSettings {
       .add(designOfActorSystem(system, materializer))
       .add(designOfPresenters)
       .add(designOfControllers)
-      .add(designOfShardedAggregates(clusterSharding))
+      .add(designOfShardedAggregates(clusterSharding, Seq.empty))
 
 }
