@@ -1,8 +1,14 @@
 package com.github.j5ik2o.threadWeaver.adaptor.controller
 
 import akka.http.scaladsl.server._
-import com.github.j5ik2o.threadWeaver.adaptor.json.{ CreateThreadRequestJson, CreateThreadResponseJson }
-import io.swagger.v3.oas.annotations.Operation
+import com.github.j5ik2o.threadWeaver.adaptor.json.{
+  AddAdministratorIdsRequestJson,
+  AddAdministratorIdsResponseJson,
+  CreateThreadRequestJson,
+  CreateThreadResponseJson
+}
+import io.swagger.v3.oas.annotations.enums.ParameterIn
+import io.swagger.v3.oas.annotations.{ Operation, Parameter }
 import io.swagger.v3.oas.annotations.media.{ Content, Schema }
 import io.swagger.v3.oas.annotations.parameters.RequestBody
 import io.swagger.v3.oas.annotations.responses.ApiResponse
@@ -38,5 +44,39 @@ trait ThreadController {
     )
   )
   private[controller] def createThread(implicit context: Context): Route
+
+  @POST
+  @Path("/threads/{thread_id}/administrator-ids")
+  @Consumes(Array("application/json"))
+  @Operation(
+    summary = "Add administratorIds to thread",
+    description = "Add administratorIds request",
+    parameters = Array(
+      new Parameter(name = "thread_id",
+                    required = true,
+                    in = ParameterIn.PATH,
+                    description = "threadId",
+                    allowEmptyValue = false,
+                    schema = new Schema(
+                      `type` = "string"
+                    ))
+    ),
+    requestBody = new RequestBody(
+      content = Array(
+        new Content(
+          schema = new Schema(implementation = classOf[AddAdministratorIdsRequestJson])
+        )
+      )
+    ),
+    responses = Array(
+      new ApiResponse(
+        responseCode = "200",
+        description = "Add administratorIds response",
+        content = Array(new Content(schema = new Schema(implementation = classOf[AddAdministratorIdsResponseJson])))
+      ),
+      new ApiResponse(responseCode = "500", description = "Internal server error")
+    )
+  )
+  private[controller] def addAdministratorIds(implicit context: Context): Route
 
 }

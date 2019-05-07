@@ -28,7 +28,6 @@ class ShardedThreadReadModelUpdater(
         new ThreadReadModelUpdater(readJournal, profile, db).behavior,
         name = "threads-rmu"
       )
-      ctx.setReceiveTimeout(receiveTimeout, Idle)
       Behaviors.receiveMessagePartial {
         case Idle =>
           entityContext.shard ! ClusterSharding.Passivate(ctx.self)

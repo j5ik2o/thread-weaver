@@ -7,5 +7,6 @@ object AirframeSettings {
   def design: Design =
     newDesign
       .bind[CreateThreadUseCase].to[CreateThreadUseCaseImpl]
+      .bind[AddAdministratorIdsUseCase].to[AddAdministratorIdsUseCaseImpl]
 
 }

@@ -3,7 +3,7 @@ package com.github.j5ik2o.threadWeaver.adaptor.aggregates
 import java.time.Instant
 
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ ActorRef, Behavior }
+import akka.actor.typed.{ ActorRef, Behavior, PostStop }
 import akka.persistence.typed.scaladsl.{ Effect, EventSourcedBehavior }
 import akka.persistence.typed.{ PersistenceId, RecoveryCompleted }
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol._
@@ -38,6 +38,7 @@ object PersistentThreadAggregate {
                   replyTo.foreach(_ ! DestroyThreadSucceeded(ULID(), requestId, threadId, createAt))
                 }
             }
+
           case (
               State(Some(thread), _),
               c @ AddAdministratorIds(requestId, threadId, senderId, administratorIds, createAt, replyTo)
@@ -135,6 +136,8 @@ object PersistentThreadAggregate {
 
         }
       ).receiveSignal {
+        case (_, PostStop) =>
+          subscribers.foreach(_ ! Stopped(ULID(), id, Instant.now, ctx.self))
         case (_, RecoveryCompleted) =>
           ctx.log.info("recovery completed")
 
