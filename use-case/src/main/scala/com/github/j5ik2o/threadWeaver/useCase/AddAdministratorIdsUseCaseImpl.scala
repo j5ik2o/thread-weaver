@@ -18,9 +18,11 @@ import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
 
-class AddAdministratorIdsUseCaseImpl(threadAggregates: ActorRef[CommandRequest],
-                                     parallelism: Int = 1,
-                                     timeout: Timeout = 3 seconds)(
+class AddAdministratorIdsUseCaseImpl(
+    threadAggregates: ActorRef[CommandRequest],
+    parallelism: Int = 1,
+    timeout: Timeout = 3 seconds
+)(
     implicit system: ActorSystem[Nothing]
 ) extends AddAdministratorIdsUseCase {
   override def execute: Flow[UAddAdministratorIds, UAddAdministratorIdsResponse, NotUsed] =

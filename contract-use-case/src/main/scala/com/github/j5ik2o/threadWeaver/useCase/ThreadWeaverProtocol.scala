@@ -27,19 +27,21 @@ object ThreadWeaverProtocol {
   final case class CreateThreadFailed(id: ULID, requestId: ULID, threadId: ThreadId, message: String, createAt: Instant)
       extends CreateThreadResponse
 
-  final case class AddAdministratorIds(id: ULID,
-                                       threadId: ThreadId,
-                                       adderId: AccountId,
-                                       administratorIds: AdministratorIds,
-                                       createAt: Instant)
-      extends ThreadWeaverRequest
+  final case class AddAdministratorIds(
+      id: ULID,
+      threadId: ThreadId,
+      adderId: AccountId,
+      administratorIds: AdministratorIds,
+      createAt: Instant
+  ) extends ThreadWeaverRequest
   sealed trait AddAdministratorIdsResponse extends ThreadWeaverResponse
   final case class AddAdministratorIdsSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
       extends AddAdministratorIdsResponse
-  final case class AddAdministratorIdsFailed(id: ULID,
-                                             requestId: ULID,
-                                             threadId: ThreadId,
-                                             message: String,
-                                             createAt: Instant)
-      extends AddAdministratorIdsResponse
+  final case class AddAdministratorIdsFailed(
+      id: ULID,
+      requestId: ULID,
+      threadId: ThreadId,
+      message: String,
+      createAt: Instant
+  ) extends AddAdministratorIdsResponse
 }

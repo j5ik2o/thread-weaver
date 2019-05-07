@@ -7,6 +7,12 @@ final case class MemberIds(breachEncapsulationOfValues: Vector[AccountId]) {
 
   def contains(value: AccountId): Boolean =
     breachEncapsulationOfValues.contains(value)
+
+  def filterNot(other: MemberIds): MemberIds = {
+    val list = breachEncapsulationOfValues.filterNot(p => other.contains(p))
+    MemberIds(list: _*)
+  }
+
 }
 
 object MemberIds {

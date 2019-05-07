@@ -52,14 +52,16 @@ trait ThreadController {
     summary = "Add administratorIds to thread",
     description = "Add administratorIds request",
     parameters = Array(
-      new Parameter(name = "thread_id",
-                    required = true,
-                    in = ParameterIn.PATH,
-                    description = "threadId",
-                    allowEmptyValue = false,
-                    schema = new Schema(
-                      `type` = "string"
-                    ))
+      new Parameter(
+        name = "thread_id",
+        required = true,
+        in = ParameterIn.PATH,
+        description = "threadId",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "string"
+        )
+      )
     ),
     requestBody = new RequestBody(
       content = Array(

@@ -18,9 +18,11 @@ import com.github.j5ik2o.threadWeaver.useCase.ThreadWeaverProtocol.{
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
 
-private[useCase] class CreateThreadUseCaseImpl(threadAggregates: ActorRef[CommandRequest],
-                                               parallelism: Int = 1,
-                                               timeout: Timeout = 3 seconds)(
+private[useCase] class CreateThreadUseCaseImpl(
+    threadAggregates: ActorRef[CommandRequest],
+    parallelism: Int = 1,
+    timeout: Timeout = 3 seconds
+)(
     implicit system: ActorSystem[Nothing]
 ) extends CreateThreadUseCase {
 
