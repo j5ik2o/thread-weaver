@@ -9,10 +9,14 @@ final case class AdministratorIds(breachEncapsulationOfValues: NonEmptyList[Acco
   def contains(value: AccountId): Boolean =
     breachEncapsulationOfValues.toList.contains(value)
 
-  def filterNot(other: AdministratorIds): AdministratorIds = {
+  def filterNot(other: AdministratorIds): Either[Exception, AdministratorIds] = {
     val list = breachEncapsulationOfValues.filterNot(p => other.contains(p))
-    AdministratorIds(list.head, list.tail: _*)
+    if (list.isEmpty)
+      Left(new IllegalArgumentException("Administrators can not be empty."))
+    else
+      Right(AdministratorIds(list.head, list.tail: _*))
   }
+
 }
 
 object AdministratorIds {

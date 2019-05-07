@@ -81,7 +81,7 @@ class ThreadReadModelUpdaterOnDynamoDBSpec
   override implicit def patienceConfig: PatienceConfig =
     PatienceConfig(timeout = scaled(Span(60, Seconds)), interval = scaled(Span(1, Seconds)))
 
-  val tables = Seq("thread")
+  override val tables = Seq("thread_message", "thread_member_ids", "thread_administrator_ids", "thread")
 
   var readJournal: DynamoDBReadJournal = _
 

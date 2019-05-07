@@ -30,72 +30,74 @@ final case class Thread(
 
   def addAdministratorIds(value: AdministratorIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
     if (isRemoved)
-      Left(new Exception("already removed thread"))
+      Left(new IllegalStateException("already removed thread"))
     else if (!isAdministratorId(senderId))
-      Left(new Exception("senderId is not administrator"))
+      Left(new IllegalArgumentException("senderId is not administrator"))
     else
       Right(copy(administratorIds = administratorIds combine value, updatedAt = at))
   }
 
   def removeAdministratorIds(value: AdministratorIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
     if (isRemoved)
-      Left(new Exception("already removed thread"))
+      Left(new IllegalStateException("already removed thread"))
     else if (!isAdministratorId(senderId))
-      Left(new Exception("senderId is not administrator"))
+      Left(new IllegalArgumentException("senderId is not administrator"))
     else
-      Right(copy(administratorIds = administratorIds.filterNot(value), updatedAt = at))
+      administratorIds.filterNot(value).map { result =>
+        copy(administratorIds = result, updatedAt = at)
+      }
   }
 
   def addMemberIds(value: MemberIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
     if (isRemoved)
-      Left(new Exception("already removed thread"))
+      Left(new IllegalStateException("already removed thread"))
     else if (!isAdministratorId(senderId))
-      Left(new Exception("senderId is not administrator."))
+      Left(new IllegalArgumentException("senderId is not administrator."))
     else
       Right(copy(memberIds = memberIds combine value, updatedAt = at))
   }
 
   def removeMemberIds(value: MemberIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
     if (isRemoved)
-      Left(new Exception("already removed thread"))
+      Left(new IllegalStateException("already removed thread"))
     else if (!isAdministratorId(senderId))
-      Left(new Exception("senderId is not administrator."))
+      Left(new IllegalArgumentException("senderId is not administrator."))
     else
       Right(copy(memberIds = memberIds.filterNot(value), updatedAt = at))
   }
 
   def addMessages(values: Messages, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
     if (isRemoved)
-      Left(new Exception("already removed thread"))
+      Left(new IllegalStateException("already removed thread"))
     else if (!isMemberId(senderId))
-      Left(new Exception("senderId is not member"))
+      Left(new IllegalArgumentException("senderId is not member"))
     else
       Right(copy(messages = messages combine values, updatedAt = at))
   }
 
   def removeMessages(values: MessageIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
     if (isRemoved)
-      Left(new Exception("already removed thread"))
+      Left(new IllegalStateException("already removed thread"))
     else if (!isMemberId(senderId))
-      Left(new Exception("senderId is not member"))
+      Left(new IllegalArgumentException("senderId is not member"))
     else
       Right(copy(messages = messages.filterNot(values), updatedAt = at))
   }
 
   def getMessages(senderId: AccountId): Either[Exception, Messages] = {
     if (isRemoved)
-      Left(new Exception("already removed thread"))
+      Left(new IllegalStateException("already removed thread"))
     else if (!isMemberId(senderId))
-      Left(new Exception("senderId is not member"))
+      Left(new IllegalArgumentException("senderId is not member"))
     else
       Right(messages)
   }
 
   def destroy(senderId: AccountId, at: Instant): Either[Exception, Thread] = {
     if (isRemoved)
-      Left(new Exception("already removed thread"))
+      Left(new IllegalStateException("already removed thread"))
     else if (!isAdministratorId(senderId))
-      Left(new Exception("senderId is not administrator."))
+      Left(new IllegalArgumentException("senderId is not administrator."))
     else
       Right(copy(removedAt = Some(at)))
   }
