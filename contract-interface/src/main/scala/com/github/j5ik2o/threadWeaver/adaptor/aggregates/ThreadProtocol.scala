@@ -185,6 +185,30 @@ object ThreadProtocol {
       RemoveAdministratorIds(ULID(), threadId, senderId, administratorIds, createdAt)
   }
 
+  // --- 管理者の取得
+  final case class GetAdministratorIds(
+      id: ULID,
+      threadId: ThreadId,
+      senderId: AccountId,
+      createAt: Instant,
+      replyTo: ActorRef[GetAdministratorIdsResponse]
+  ) extends CommandRequest
+  trait GetAdministratorIdsResponse extends CommandResponse
+  final case class GetAdministratorIdsSucceeded(
+      id: ULID,
+      requestId: ULID,
+      threadId: ThreadId,
+      administratorIds: AdministratorIds,
+      createAt: Instant
+  ) extends GetAdministratorIdsResponse
+  final case class GetAdministratorIdsFailed(
+      id: ULID,
+      requestId: ULID,
+      threadId: ThreadId,
+      message: String,
+      createAt: Instant
+  ) extends GetAdministratorIdsResponse
+
   // --- メンバーの追加
   final case class AddMemberIds(
       id: ULID,
@@ -245,6 +269,25 @@ object ThreadProtocol {
       with ToCommandRequest {
     override def toCommandRequest: CommandRequest = RemoveMemberIds(ULID(), threadId, senderId, memberIds, createdAt)
   }
+
+  // --- メンバーの取得
+  final case class GetMemberIds(
+      id: ULID,
+      threadId: ThreadId,
+      senderId: AccountId,
+      createAt: Instant,
+      replyTo: ActorRef[GetMemberIdsResponse]
+  ) extends CommandRequest
+  trait GetMemberIdsResponse extends CommandResponse
+  final case class GetMemberIdsSucceeded(
+      id: ULID,
+      requestId: ULID,
+      threadId: ThreadId,
+      memberIds: MemberIds,
+      createAt: Instant
+  ) extends GetMemberIdsResponse
+  final case class GetMemberIdsFailed(id: ULID, requestId: ULID, threadId: ThreadId, message: String, createAt: Instant)
+      extends GetMemberIdsResponse
 
   // --- メッセージの追加
   final case class AddMessages(
@@ -307,6 +350,7 @@ object ThreadProtocol {
     override def toCommandRequest: CommandRequest = RemoveMessages(ULID(), threadId, senderId, messageIds, createdAt)
   }
 
+  // --- メッセージの取得
   final case class GetMessages(
       id: ULID,
       threadId: ThreadId,
