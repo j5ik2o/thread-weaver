@@ -3,11 +3,15 @@ package com.github.j5ik2o.threadWeaver.adaptor.directives
 import cats.implicits._
 import akka.http.scaladsl.server.Directive1
 import akka.http.scaladsl.server.Directives._
-import com.github.j5ik2o.threadWeaver.adaptor.json.{ AddAdministratorIdsRequestJson, CreateThreadRequestJson }
+import com.github.j5ik2o.threadWeaver.adaptor.json.{
+  AddAdministratorIdsRequestJson,
+  AddMemberIdsRequestJson,
+  CreateThreadRequestJson
+}
 import com.github.j5ik2o.threadWeaver.adaptor.validator.{ ValidateUtils, ValidationResult, Validator }
 import com.github.j5ik2o.threadWeaver.domain.model.threads.ThreadId
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
-import com.github.j5ik2o.threadWeaver.useCase.ThreadWeaverProtocol.{ AddAdministratorIds, CreateThread }
+import com.github.j5ik2o.threadWeaver.useCase.ThreadWeaverProtocol.{ AddAdministratorIds, AddMemberIds, CreateThread }
 
 trait ThreadValidateDirectives {
 
@@ -58,6 +62,20 @@ object ThreadValidateDirectives {
       ).mapN {
         case (adderId, administratorIds, createdAt) =>
           AddAdministratorIds(ULID(), value._1, adderId, administratorIds, createdAt)
+      }
+    }
+  }
+
+  implicit object AddMemberIdsRequestJsonValidator
+      extends Validator[(ThreadId, AddMemberIdsRequestJson), AddMemberIds] {
+    override def validate(value: (ThreadId, AddMemberIdsRequestJson)): ValidationResult[AddMemberIds] = {
+      (
+        validateAccountId(value._2.adderId),
+        validateMemberIds(value._2.memberIds),
+        validateInstant(value._2.createAt)
+      ).mapN {
+        case (adderId, memberIds, createdAt) =>
+          AddMemberIds(ULID(), value._1, adderId, memberIds, createdAt)
       }
     }
   }

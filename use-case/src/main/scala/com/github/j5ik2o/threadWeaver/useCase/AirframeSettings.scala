@@ -8,5 +8,6 @@ object AirframeSettings {
     newDesign
       .bind[CreateThreadUseCase].to[CreateThreadUseCaseImpl]
       .bind[AddAdministratorIdsUseCase].to[AddAdministratorIdsUseCaseImpl]
+      .bind[AddMemberIdsUseCase].to[AddMemberIdsUseCaseImpl]
 
 }

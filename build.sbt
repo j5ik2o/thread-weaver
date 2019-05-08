@@ -23,7 +23,8 @@ val `infrastructure` = (project in file("infrastructure"))
       "io.circe" %% "circe-generic" % circeVersion,
       "io.circe" %% "circe-parser" % circeVersion,
       "com.github.julien-truffaut" %% "monocle-core" % monocleVersion,
-      "com.github.julien-truffaut" %% "monocle-macro" % monocleVersion
+      "com.github.julien-truffaut" %% "monocle-macro" % monocleVersion,
+      "com.google.guava" % "guava" % "27.1-jre"
     )
   )
 
