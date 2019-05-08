@@ -37,6 +37,65 @@ class ThreadAggregateSpec extends ScalaTestWithActorTestKit with FreeSpecLike wi
       createThreadSucceeded.threadId shouldBe threadId
       createThreadSucceeded.createAt shouldBe now
     }
+    "add administrator" in {
+      val threadId          = ThreadId()
+      val threadRef         = newThreadRef(threadId)
+      val now               = Instant.now
+      val createThreadProbe = TestProbe[CreateThreadResponse]()
+      val administratorId   = AccountId()
+
+      threadRef ! CreateThread(
+        ULID(),
+        threadId,
+        administratorId,
+        None,
+        AdministratorIds(administratorId),
+        MemberIds.empty,
+        now,
+        Some(createThreadProbe.ref)
+      )
+
+      createThreadProbe.expectMessageType[CreateThreadResponse] match {
+        case f: CreateThreadFailed =>
+          fail(f.message)
+        case s: CreateThreadSucceeded =>
+          s.threadId shouldBe threadId
+          s.createAt shouldBe now
+      }
+
+      val administratorId2                 = AccountId()
+      val addAdministratorIdsResponseProbe = TestProbe[AddAdministratorIdsResponse]()
+
+      threadRef ! AddAdministratorIds(
+        ULID(),
+        threadId,
+        administratorId,
+        AdministratorIds(administratorId2),
+        now,
+        Some(addAdministratorIdsResponseProbe.ref)
+      )
+
+      addAdministratorIdsResponseProbe.expectMessageType[AddAdministratorIdsResponse] match {
+        case f: AddAdministratorIdsFailed =>
+          fail(f.message)
+        case s: AddAdministratorIdsSucceeded =>
+          s.threadId shouldBe threadId
+          s.createAt shouldBe now
+      }
+
+      val getAdministratorIdsResponseProbe = TestProbe[GetAdministratorIdsResponse]()
+
+      threadRef ! GetAdministratorIds(ULID(), threadId, administratorId, now, getAdministratorIdsResponseProbe.ref)
+
+      getAdministratorIdsResponseProbe.expectMessageType[GetAdministratorIdsResponse] match {
+        case f: GetAdministratorIdsFailed =>
+          fail(f.message)
+        case s: GetAdministratorIdsSucceeded =>
+          s.threadId shouldBe threadId
+          s.createAt shouldBe now
+      }
+
+    }
     "add members" in {
       val threadId          = ThreadId()
       val threadRef         = newThreadRef(threadId)
@@ -79,6 +138,18 @@ class ThreadAggregateSpec extends ScalaTestWithActorTestKit with FreeSpecLike wi
         case f: AddMemberIdsFailed =>
           fail(f.message)
         case s: AddMemberIdsSucceeded =>
+          s.threadId shouldBe threadId
+          s.createAt shouldBe now
+      }
+
+      val getMemberIdsResponseProbe = TestProbe[GetMemberIdsResponse]()
+
+      threadRef ! GetMemberIds(ULID(), threadId, administratorId, now, getMemberIdsResponseProbe.ref)
+
+      getMemberIdsResponseProbe.expectMessageType[GetMemberIdsResponse] match {
+        case f: GetMemberIdsFailed =>
+          fail(f.message)
+        case s: GetMemberIdsSucceeded =>
           s.threadId shouldBe threadId
           s.createAt shouldBe now
       }

@@ -24,41 +24,48 @@ object ThreadAggregate {
             replyTo.foreach(_ ! CreateThreadFailed(ULID(), requestId, threadId, "Already created", createAt))
             Behaviors.same
 
-          case GetMessages(requestId, threadId, senderId, createAt, replyTo) if threadId == id =>
+          case GetMessages(cmdId, threadId, senderId, createAt, replyTo) if threadId == id =>
             thread.getMessages(senderId) match {
               case Left(exception) =>
-                replyTo ! GetMessagesFailed(ULID(), requestId, threadId, exception.getMessage, createAt)
+                replyTo ! GetMessagesFailed(ULID(), cmdId, threadId, exception.getMessage, createAt)
               case Right(messages) =>
-                replyTo ! GetMessagesSucceeded(ULID(), requestId, threadId, messages, createAt)
+                replyTo ! GetMessagesSucceeded(ULID(), cmdId, threadId, messages, createAt)
             }
             Behaviors.same
 
           // for Administrators
-          case AddAdministratorIds(requestId, threadId, senderId, administratorIds, createAt, replyTo)
-              if threadId == id =>
+          case AddAdministratorIds(cmdId, threadId, senderId, administratorIds, createAt, replyTo) if threadId == id =>
             thread.addAdministratorIds(administratorIds, senderId, createAt) match {
               case Left(exception) =>
                 replyTo.foreach(
-                  _ ! AddAdministratorIdsFailed(ULID(), requestId, threadId, exception.getMessage, createAt)
+                  _ ! AddAdministratorIdsFailed(ULID(), cmdId, threadId, exception.getMessage, createAt)
                 )
                 Behaviors.same
               case Right(newThread) =>
-                replyTo.foreach(_ ! AddAdministratorIdsSucceeded(ULID(), requestId, threadId, createAt))
+                replyTo.foreach(_ ! AddAdministratorIdsSucceeded(ULID(), cmdId, threadId, createAt))
                 onCreated(newThread)
             }
-          case RemoveAdministratorIds(requestId, threadId, senderId, administratorIds, createAt, replyTo)
+          case RemoveAdministratorIds(cmdId, threadId, senderId, administratorIds, createAt, replyTo)
               if threadId == id =>
             thread.removeAdministratorIds(administratorIds, senderId, createAt) match {
               case Left(exception) =>
                 replyTo.foreach(
-                  _ ! RemoveAdministratorIdsFailed(ULID(), requestId, threadId, exception.getMessage, createAt)
+                  _ ! RemoveAdministratorIdsFailed(ULID(), cmdId, threadId, exception.getMessage, createAt)
                 )
                 Behaviors.same
               case Right(newThread) =>
-                replyTo.foreach(_ ! RemoveAdministratorIdsSucceeded(ULID(), requestId, threadId, createAt))
+                replyTo.foreach(_ ! RemoveAdministratorIdsSucceeded(ULID(), cmdId, threadId, createAt))
                 onCreated(newThread)
             }
-
+          case GetAdministratorIds(cmdId, threadId, senderId, createAt, replyTo) if threadId == id =>
+            thread.getAdministratorIds(senderId) match {
+              case Left(exception) =>
+                replyTo ! GetAdministratorIdsFailed(ULID(), cmdId, threadId, exception.getMessage, createAt)
+                Behaviors.same
+              case Right(administratorIds) =>
+                replyTo ! GetAdministratorIdsSucceeded(ULID(), cmdId, threadId, administratorIds, createAt)
+                Behaviors.same
+            }
           // for Members
           case AddMemberIds(requestId, threadId, senderId, memberIds, createAt, replyTo) if threadId == id =>
             thread.addMemberIds(memberIds, senderId, createAt) match {
@@ -81,6 +88,15 @@ object ThreadAggregate {
               case Right(newThread) =>
                 replyTo.foreach(_ ! RemoveMemberIdsSucceeded(ULID(), requestId, threadId, createAt))
                 onCreated(newThread)
+            }
+          case GetMemberIds(cmdId, threadId, senderId, createAt, replyTo) =>
+            thread.getMemberIds(senderId) match {
+              case Left(exception) =>
+                replyTo ! GetMemberIdsFailed(ULID(), cmdId, threadId, exception.getMessage, createAt)
+                Behaviors.same
+              case Right(memberIds) =>
+                replyTo ! GetMemberIdsSucceeded(ULID(), cmdId, threadId, memberIds, createAt)
+                Behaviors.same
             }
 
           // for Messages

@@ -9,8 +9,8 @@ final case class Thread(
     id: ThreadId,
     creatorId: AccountId,
     parentThreadId: Option[ThreadId],
-    administratorIds: AdministratorIds,
-    memberIds: MemberIds,
+    private val administratorIds: AdministratorIds,
+    private val memberIds: MemberIds,
     private val messages: Messages,
     createdAt: Instant,
     updatedAt: Instant,
@@ -48,6 +48,15 @@ final case class Thread(
       }
   }
 
+  def getAdministratorIds(senderId: AccountId): Either[Exception, AdministratorIds] = {
+    if (isRemoved)
+      Left(new IllegalStateException("already removed thread"))
+    else if (!isMemberId(senderId))
+      Left(new IllegalArgumentException("senderId is not administrator"))
+    else
+      Right(administratorIds)
+  }
+
   def addMemberIds(value: MemberIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
     if (isRemoved)
       Left(new IllegalStateException("already removed thread"))
@@ -64,6 +73,15 @@ final case class Thread(
       Left(new IllegalArgumentException("senderId is not administrator."))
     else
       Right(copy(memberIds = memberIds.filterNot(value), updatedAt = at))
+  }
+
+  def getMemberIds(senderId: AccountId): Either[Exception, MemberIds] = {
+    if (isRemoved)
+      Left(new IllegalStateException("already removed thread"))
+    else if (!isMemberId(senderId))
+      Left(new IllegalArgumentException("senderId is not administrator"))
+    else
+      Right(memberIds)
   }
 
   def addMessages(values: Messages, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
