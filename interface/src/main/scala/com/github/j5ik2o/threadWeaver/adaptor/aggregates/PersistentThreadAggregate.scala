@@ -18,6 +18,7 @@ object PersistentThreadAggregate {
         replyTo.foreach(_ ! CreateThreadSucceeded(ULID(), cmdId, threadId, createAt))
       }
 
+    // for Administrators
     case (
         State(Some(thread), _),
         c @ AddAdministratorIds(cmdId, threadId, senderId, administratorIds, createAt, replyTo)
@@ -34,7 +35,6 @@ object PersistentThreadAggregate {
             replyTo.foreach(_ ! AddAdministratorIdsSucceeded(ULID(), cmdId, threadId, createAt))
           }
       }
-
     case (
         State(Some(thread), _),
         c @ RemoveAdministratorIds(cmdId, threadId, senderId, administratorIds, createAt, replyTo)
@@ -51,7 +51,17 @@ object PersistentThreadAggregate {
             replyTo.foreach(_ ! RemoveAdministratorIdsSucceeded(ULID(), cmdId, threadId, createAt))
           }
       }
+    case (State(Some(thread), _), GetAdministratorIds(cmdId, threadId, senderId, createAt, replyTo)) =>
+      Effect.none.thenRun { _ =>
+        thread.getAdministratorIds(senderId) match {
+          case Left(exception) =>
+            replyTo ! GetAdministratorIdsFailed(ULID(), cmdId, threadId, exception.getMessage, createAt)
+          case Right(administratorIds) =>
+            replyTo ! GetAdministratorIdsSucceeded(ULID(), cmdId, threadId, administratorIds, createAt)
+        }
+      }
 
+    // for Members
     case (
         State(Some(thread), _),
         c @ AddMemberIds(cmdId, threadId, senderId, memberIds, createAt, replyTo)
@@ -67,7 +77,6 @@ object PersistentThreadAggregate {
           Effect.persist(c.toEvent).thenRun { _ =>
             replyTo.foreach(_ ! AddMemberIdsSucceeded(ULID(), cmdId, threadId, createAt))
           }
-
       }
     case (
         State(Some(thread), _),
@@ -84,9 +93,18 @@ object PersistentThreadAggregate {
           Effect.persist(c.toEvent).thenRun { _ =>
             replyTo.foreach(_ ! RemoveMemberIdsSucceeded(ULID(), cmdId, threadId, createAt))
           }
-
+      }
+    case (State(Some(thread), _), GetMemberIds(cmdId, threadId, senderId, createAt, replyTo)) =>
+      Effect.none.thenRun { _ =>
+        thread.getMemberIds(senderId) match {
+          case Left(exception) =>
+            replyTo ! GetMemberIdsFailed(ULID(), cmdId, threadId, exception.getMessage, createAt)
+          case Right(memberIds) =>
+            replyTo ! GetMemberIdsSucceeded(ULID(), cmdId, threadId, memberIds, createAt)
+        }
       }
 
+    // for Messages
     case (State(Some(thread), _), c @ AddMessages(cmdId, threadId, senderId, messages, createAt, replyTo)) =>
       thread.addMessages(messages, senderId, createAt) match {
         case Left(exception) =>
@@ -109,6 +127,15 @@ object PersistentThreadAggregate {
             replyTo.foreach(_ ! RemoveMessagesSucceeded(ULID(), cmdId, threadId, createAt))
           }
       }
+    case (State(Some(thread), _), GetMessages(cmdId, threadId, senderId, createAt, replyTo)) =>
+      Effect.none.thenRun { _ =>
+        thread.getMessages(senderId) match {
+          case Left(exception) =>
+            replyTo ! GetMessagesFailed(ULID(), cmdId, threadId, exception.getMessage, createAt)
+          case Right(messages) =>
+            replyTo ! GetMessagesSucceeded(ULID(), cmdId, threadId, messages, createAt)
+        }
+      }
 
     case (State(Some(thread), _), c @ DestroyThread(cmdId, threadId, senderId, createAt, replyTo)) =>
       thread.destroy(senderId, createAt) match {
@@ -122,16 +149,6 @@ object PersistentThreadAggregate {
           Effect.persist(c.toEvent).thenRun { _ =>
             replyTo.foreach(_ ! DestroyThreadSucceeded(ULID(), cmdId, threadId, createAt))
           }
-      }
-
-    case (State(Some(thread), _), GetMessages(cmdId, threadId, senderId, createAt, replyTo)) =>
-      Effect.none.thenRun { _ =>
-        thread.getMessages(senderId) match {
-          case Left(exception) =>
-            replyTo ! GetMessagesFailed(ULID(), cmdId, threadId, exception.getMessage, createAt)
-          case Right(messages) =>
-            replyTo ! GetMessagesSucceeded(ULID(), cmdId, threadId, messages, createAt)
-        }
       }
 
     case _ =>

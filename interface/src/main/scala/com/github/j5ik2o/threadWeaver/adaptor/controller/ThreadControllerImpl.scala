@@ -7,6 +7,7 @@ import com.github.j5ik2o.threadWeaver.adaptor.directives.{ MetricsDirectives, Th
 import com.github.j5ik2o.threadWeaver.adaptor.json.{
   AddAdministratorIdsRequestJson,
   AddMemberIdsRequestJson,
+  AddMessagesRequestJson,
   CreateThreadRequestJson
 }
 import com.github.j5ik2o.threadWeaver.adaptor.presenter.{
@@ -15,7 +16,12 @@ import com.github.j5ik2o.threadWeaver.adaptor.presenter.{
   CreateThreadPresenter
 }
 import com.github.j5ik2o.threadWeaver.adaptor.rejections.RejectionHandlers
-import com.github.j5ik2o.threadWeaver.useCase.{ AddAdministratorIdsUseCase, AddMemberIdsUseCase, CreateThreadUseCase }
+import com.github.j5ik2o.threadWeaver.useCase.{
+  AddAdministratorIdsUseCase,
+  AddMemberIdsUseCase,
+  AddMessagesUseCase,
+  CreateThreadUseCase
+}
 import kamon.context.Context
 import wvlet.airframe._
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
@@ -32,6 +38,8 @@ trait ThreadControllerImpl extends ThreadController with ThreadValidateDirective
 
   private val addMemberIdsUseCase   = bind[AddMemberIdsUseCase]
   private val addMemberIdsPresenter = bind[AddMemberIdsPresenter]
+
+  private val addMessagesUseCase = bind[AddMessagesUseCase]
 
   override def toRoutes(implicit context: Context): Route = handleRejections(RejectionHandlers.default) {
     pathPrefix("v1") {
@@ -87,21 +95,23 @@ trait ThreadControllerImpl extends ThreadController with ThreadValidateDirective
       }
     }
 
-  override private[controller] def addMemberIds(implicit context: Context) = traceName(context)("add-member-ids") {
-    path("threads" / Segment / "member-ids") { threadIdString =>
-      post {
-        extractMaterializer { implicit mat =>
-          validateThreadId(threadIdString) { threadId =>
-            entity(as[AddMemberIdsRequestJson]) { json =>
-              validateRequestJson((threadId, json)).apply { commandRequest =>
-                val responseFuture = Source
-                  .single(
-                    commandRequest
-                  ).via(
-                    addMemberIdsUseCase.execute
-                  ).via(addMemberIdsPresenter.response).runWith(Sink.head)
-                onSuccess(responseFuture) { response =>
-                  complete(response)
+  override private[controller] def addMemberIds(implicit context: Context): Route =
+    traceName(context)("add-member-ids") {
+      path("threads" / Segment / "member-ids") { threadIdString =>
+        post {
+          extractMaterializer { implicit mat =>
+            validateThreadId(threadIdString) { threadId =>
+              entity(as[AddMemberIdsRequestJson]) { json =>
+                validateRequestJson((threadId, json)).apply { commandRequest =>
+                  val responseFuture = Source
+                    .single(
+                      commandRequest
+                    ).via(
+                      addMemberIdsUseCase.execute
+                    ).via(addMemberIdsPresenter.response).runWith(Sink.head)
+                  onSuccess(responseFuture) { response =>
+                    complete(response)
+                  }
                 }
               }
             }
@@ -109,5 +119,29 @@ trait ThreadControllerImpl extends ThreadController with ThreadValidateDirective
         }
       }
     }
-  }
+
+  override private[controller] def addMessages(implicit context: Context) =
+    traceName(context)("add-messages") {
+      path("threads" / Segment / "messages") { threadIdString =>
+        post {
+          extractMaterializer { implicit mat =>
+            validateThreadId(threadIdString) { threadId =>
+              entity(as[AddMessagesRequestJson]) { json =>
+                validateRequestJson((threadId, json)).apply { commandRequest =>
+                  val responseFuture = Source
+                    .single(
+                      commandRequest
+                    ).via(
+                      addMessagesUseCase.execute
+                    ).via(addMemberIdsPresenter.response).runWith(Sink.head)
+                  onSuccess(responseFuture) { response =>
+                    complete(response)
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
 }

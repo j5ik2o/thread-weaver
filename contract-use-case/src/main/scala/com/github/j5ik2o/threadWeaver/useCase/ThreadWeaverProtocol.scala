@@ -11,6 +11,7 @@ object ThreadWeaverProtocol {
   sealed trait ThreadWeaverRequest
   sealed trait ThreadWeaverResponse
 
+  // --- 作成
   final case class CreateThread(
       id: ULID,
       threadId: ThreadId,
@@ -27,6 +28,7 @@ object ThreadWeaverProtocol {
   final case class CreateThreadFailed(id: ULID, requestId: ULID, threadId: ThreadId, message: String, createAt: Instant)
       extends CreateThreadResponse
 
+  // --- 管理者の追加
   final case class AddAdministratorIds(
       id: ULID,
       threadId: ThreadId,
@@ -45,6 +47,7 @@ object ThreadWeaverProtocol {
       createAt: Instant
   ) extends AddAdministratorIdsResponse
 
+  // --- メンバーの追加
   final case class AddMemberIds(
       id: ULID,
       threadId: ThreadId,
@@ -63,4 +66,15 @@ object ThreadWeaverProtocol {
       createAt: Instant
   ) extends AddMemberIdsResponse
 
+  final case class AddMessages(id: ULID,
+                               threadId: ThreadId,
+                               senderId: AccountId,
+                               messages: Seq[String],
+                               createdAt: Instant)
+      extends ThreadWeaverRequest
+  sealed trait AddMessagesResponse extends ThreadWeaverResponse
+  final case class AddMessagesSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
+      extends AddMessagesResponse
+  final case class AddMessagesFailed(id: ULID, requestId: ULID, threadId: ThreadId, message: String, createAt: Instant)
+      extends AddMessagesResponse
 }

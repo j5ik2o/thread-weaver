@@ -112,4 +112,40 @@ trait ThreadController {
   )
   private[controller] def addMemberIds(implicit context: Context): Route
 
+  @POST
+  @Path("/threads/{thread_id}/messages")
+  @Consumes(Array("application/json"))
+  @Operation(
+    summary = "Add messages to thread",
+    description = "Add messages request",
+    parameters = Array(
+      new Parameter(
+        name = "thread_id",
+        required = true,
+        in = ParameterIn.PATH,
+        description = "threadId",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "string"
+        )
+      )
+    ),
+    requestBody = new RequestBody(
+      content = Array(
+        new Content(
+          schema = new Schema(implementation = classOf[AddMessagesRequestJson])
+        )
+      )
+    ),
+    responses = Array(
+      new ApiResponse(
+        responseCode = "200",
+        description = "Add messages response",
+        content = Array(new Content(schema = new Schema(implementation = classOf[AddMessagesResponseJson])))
+      ),
+      new ApiResponse(responseCode = "500", description = "Internal server error")
+    )
+  )
+  private[controller] def addMessages(implicit context: Context): Route
+
 }
