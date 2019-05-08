@@ -44,4 +44,23 @@ object ThreadWeaverProtocol {
       message: String,
       createAt: Instant
   ) extends AddAdministratorIdsResponse
+
+  final case class AddMemberIds(
+      id: ULID,
+      threadId: ThreadId,
+      adderId: AccountId,
+      memberIds: MemberIds,
+      createAt: Instant
+  ) extends ThreadWeaverRequest
+  sealed trait AddMemberIdsResponse extends ThreadWeaverResponse
+  final case class AddMemberIdsSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
+      extends AddMemberIdsResponse
+  final case class AddMemberIdsFailed(
+      id: ULID,
+      requestId: ULID,
+      threadId: ThreadId,
+      message: String,
+      createAt: Instant
+  ) extends AddMemberIdsResponse
+
 }

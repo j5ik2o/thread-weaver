@@ -10,12 +10,7 @@ import com.github.j5ik2o.threadWeaver.adaptor.aggregates.{
   ThreadAggregates
 }
 import com.github.j5ik2o.threadWeaver.adaptor.controller.{ ThreadController, ThreadControllerImpl }
-import com.github.j5ik2o.threadWeaver.adaptor.presenter.{
-  AddAdministratorIdsPresenter,
-  AddAdministratorIdsPresenterImpl,
-  CreateThreadPresenter,
-  CreateThreadPresenterImpl
-}
+import com.github.j5ik2o.threadWeaver.adaptor.presenter._
 import com.github.j5ik2o.threadWeaver.adaptor.swagger.SwaggerDocService
 import wvlet.airframe._
 
@@ -36,6 +31,7 @@ object AirframeSettings {
     newDesign
       .bind[CreateThreadPresenter].to[CreateThreadPresenterImpl]
       .bind[AddAdministratorIdsPresenter].to[AddAdministratorIdsPresenterImpl]
+      .bind[AddMemberIdsPresenter].to[AddMemberIdsPresenterImpl]
 
   def designOfSwagger(host: String, port: Int): Design =
     newDesign
