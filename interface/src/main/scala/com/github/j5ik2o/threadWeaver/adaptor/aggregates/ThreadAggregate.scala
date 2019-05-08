@@ -24,15 +24,6 @@ object ThreadAggregate {
             replyTo.foreach(_ ! CreateThreadFailed(ULID(), requestId, threadId, "Already created", createAt))
             Behaviors.same
 
-          case GetMessages(cmdId, threadId, senderId, createAt, replyTo) if threadId == id =>
-            thread.getMessages(senderId) match {
-              case Left(exception) =>
-                replyTo ! GetMessagesFailed(ULID(), cmdId, threadId, exception.getMessage, createAt)
-              case Right(messages) =>
-                replyTo ! GetMessagesSucceeded(ULID(), cmdId, threadId, messages, createAt)
-            }
-            Behaviors.same
-
           // for Administrators
           case AddAdministratorIds(cmdId, threadId, senderId, administratorIds, createAt, replyTo) if threadId == id =>
             thread.addAdministratorIds(administratorIds, senderId, createAt) match {
@@ -66,6 +57,7 @@ object ThreadAggregate {
                 replyTo ! GetAdministratorIdsSucceeded(ULID(), cmdId, threadId, administratorIds, createAt)
                 Behaviors.same
             }
+
           // for Members
           case AddMemberIds(requestId, threadId, senderId, memberIds, createAt, replyTo) if threadId == id =>
             thread.addMemberIds(memberIds, senderId, createAt) match {
@@ -118,6 +110,14 @@ object ThreadAggregate {
                 replyTo.foreach(_ ! RemoveMessagesSucceeded(ULID(), requestId, threadId, createAt))
                 onCreated(newThread)
             }
+          case GetMessages(cmdId, threadId, senderId, createAt, replyTo) if threadId == id =>
+            thread.getMessages(senderId) match {
+              case Left(exception) =>
+                replyTo ! GetMessagesFailed(ULID(), cmdId, threadId, exception.getMessage, createAt)
+              case Right(messages) =>
+                replyTo ! GetMessagesSucceeded(ULID(), cmdId, threadId, messages, createAt)
+            }
+            Behaviors.same
 
           case DestroyThread(requestId, threadId, senderId, createAt, replyTo) if threadId == id =>
             thread.destroy(senderId, createAt) match {

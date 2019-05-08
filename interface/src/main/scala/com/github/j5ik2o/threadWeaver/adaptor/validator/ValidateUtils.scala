@@ -3,9 +3,14 @@ package com.github.j5ik2o.threadWeaver.adaptor.validator
 import java.time.Instant
 
 import cats.implicits._
-import com.github.j5ik2o.threadWeaver.adaptor.error.{ AdministratorIdsError, InstantFormatError, ULIDFormatError }
+import com.github.j5ik2o.threadWeaver.adaptor.error.{
+  AdministratorIdsError,
+  InstantFormatError,
+  TextMessageFormatError,
+  ULIDFormatError
+}
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
-import com.github.j5ik2o.threadWeaver.domain.model.threads.{ AdministratorIds, MemberIds, ThreadId }
+import com.github.j5ik2o.threadWeaver.domain.model.threads._
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 
 import scala.util.control.NonFatal
@@ -43,6 +48,21 @@ object ValidateUtils {
 
   def validateMemberIds(values: Seq[String]): ValidationResult[MemberIds] = {
     values.map(validateAccountId).toList.sequence.map(v => MemberIds(v: _*))
+  }
+
+  def validateText(value: String): ValidationResult[Text] = {
+    Text.parseFrom(value).leftMap(e => TextMessageFormatError(e.getMessage)) match {
+      case Left(e)  => e.invalidNel
+      case Right(r) => r.validNel
+    }
+  }
+
+  def validateTextMessage(values: Seq[String]): ValidationResult[List[TextMessage]] = {
+    val now = Instant.now
+    values
+      .map(validateText).toList.sequence.map(
+        l => l.map(v => TextMessage(MessageId(), None, ToAccountIds.empty, v, now, now))
+      )
   }
 
   def validateInstant(value: Long): ValidationResult[Instant] = {

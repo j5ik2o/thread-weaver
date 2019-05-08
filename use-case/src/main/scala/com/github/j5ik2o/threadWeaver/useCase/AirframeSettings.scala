@@ -9,5 +9,6 @@ object AirframeSettings {
       .bind[CreateThreadUseCase].to[CreateThreadUseCaseImpl]
       .bind[AddAdministratorIdsUseCase].to[AddAdministratorIdsUseCaseImpl]
       .bind[AddMemberIdsUseCase].to[AddMemberIdsUseCaseImpl]
+      .bind[AddMessagesUseCase].to[AddMessagesUseCaseImpl]
 
 }
