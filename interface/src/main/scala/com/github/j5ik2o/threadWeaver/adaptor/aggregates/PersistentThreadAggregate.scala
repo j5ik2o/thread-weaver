@@ -161,7 +161,7 @@ object PersistentThreadAggregate {
       s.applyState(
         Thread(
           e.threadId,
-          e.senderId,
+          e.creatorId,
           e.parentThreadId,
           e.administratorIds,
           e.memberIds,
@@ -172,25 +172,25 @@ object PersistentThreadAggregate {
       )
 
     // for Administrators
-    case (s @ State(Some(thread), _), AdministratorIdsAdded(_, _, senderId, administratorIds, createdAt)) =>
-      s.applyState(thread.addAdministratorIds(administratorIds, senderId, createdAt).right.get)
-    case (s @ State(Some(thread), _), AdministratorIdsRemoved(_, _, senderId, administratorIds, createdAt)) =>
-      s.applyState(thread.removeAdministratorIds(administratorIds, senderId, createdAt).right.get)
+    case (s @ State(Some(thread), _), AdministratorIdsAdded(_, _, adderId, administratorIds, createdAt)) =>
+      s.applyState(thread.addAdministratorIds(administratorIds, adderId, createdAt).right.get)
+    case (s @ State(Some(thread), _), AdministratorIdsRemoved(_, _, removerId, administratorIds, createdAt)) =>
+      s.applyState(thread.removeAdministratorIds(administratorIds, removerId, createdAt).right.get)
 
     // for Members
-    case (s @ State(Some(thread), _), MemberIdsAdded(_, _, senderId, memberIds, createdAt)) =>
-      s.applyState(thread.addMemberIds(memberIds, senderId, createdAt).right.get)
-    case (s @ State(Some(thread), _), MemberIdsRemoved(_, _, senderId, memberIds, createdAt)) =>
-      s.applyState(thread.removeMemberIds(memberIds, senderId, createdAt).right.get)
+    case (s @ State(Some(thread), _), MemberIdsAdded(_, _, adderId, memberIds, createdAt)) =>
+      s.applyState(thread.addMemberIds(memberIds, adderId, createdAt).right.get)
+    case (s @ State(Some(thread), _), MemberIdsRemoved(_, _, removerId, memberIds, createdAt)) =>
+      s.applyState(thread.removeMemberIds(memberIds, removerId, createdAt).right.get)
 
     // for Messages
-    case (s @ State(Some(thread), _), MessagesAdded(_, _, senderId, messages, createdAt)) =>
-      s.applyState(thread.addMessages(messages, senderId, createdAt).right.get)
-    case (s @ State(Some(thread), _), MessagesRemoved(_, _, senderId, messages, createdAt)) =>
-      s.applyState(thread.removeMessages(messages, senderId, createdAt).right.get)
+    case (s @ State(Some(thread), _), MessagesAdded(_, _, adderId, messages, createdAt)) =>
+      s.applyState(thread.addMessages(messages, adderId, createdAt).right.get)
+    case (s @ State(Some(thread), _), MessagesRemoved(_, _, removerId, messages, createdAt)) =>
+      s.applyState(thread.removeMessages(messages, removerId, createdAt).right.get)
 
-    case (s @ State(Some(thread), _), e: ThreadDestroyed) =>
-      s.applyState(thread.destroy(e.senderId, e.createdAt).right.get)
+    case (s @ State(Some(thread), _), ThreadDestroyed(_, _, destroyerId, createdAt)) =>
+      s.applyState(thread.destroy(destroyerId, createdAt).right.get)
 
     case (state, _) =>
       state

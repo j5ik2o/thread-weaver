@@ -66,6 +66,7 @@ object Settings {
     resolvers ++= Seq(
       "Sonatype OSS Snapshot Repository" at "https://oss.sonatype.org/content/repositories/snapshots/",
       "Sonatype OSS Release Repository" at "https://oss.sonatype.org/content/repositories/releases/",
+      Resolver.bintrayRepo("segence", "maven-oss-releases"),
       Resolver.bintrayRepo("everpeace", "maven"),
       Resolver.bintrayRepo("tanukkii007", "maven"),
       Resolver.bintrayRepo("kamon-io", "snapshots")

@@ -36,7 +36,7 @@ class AddMessagesUseCaseImpl(
           AddMessages(
             ULID(),
             request.threadId,
-            request.senderId,
+            request.adderId,
             Messages(
               request.messages
                 .map { message =>
