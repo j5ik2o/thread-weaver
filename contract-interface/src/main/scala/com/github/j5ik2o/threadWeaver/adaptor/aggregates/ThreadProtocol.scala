@@ -3,11 +3,16 @@ package com.github.j5ik2o.threadWeaver.adaptor.aggregates
 import java.time.Instant
 
 import akka.actor.typed.ActorRef
+import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdaterProtocol
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
 import com.github.j5ik2o.threadWeaver.domain.model.threads._
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 
 object ThreadProtocol {
+
+  type ThreadReadModelUpdaterRef = ActorRef[ThreadReadModelUpdaterProtocol.CommandRequest]
+  type ThreadActorRefOfMessage   = ActorRef[ThreadProtocol.Message]
+  type ThreadActorRefOfCommand   = ActorRef[ThreadProtocol.CommandRequest]
 
   sealed trait Message
   sealed trait Event extends Message {

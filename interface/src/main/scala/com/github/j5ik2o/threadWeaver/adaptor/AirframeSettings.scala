@@ -1,18 +1,21 @@
 package com.github.j5ik2o.threadWeaver.adaptor
 
+import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.{ ActorRef, ActorSystem }
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.stream.Materializer
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.CommandRequest
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{
+  ThreadActorRefOfCommand,
+  ThreadActorRefOfMessage,
+  ThreadReadModelUpdaterRef
+}
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates._
 import com.github.j5ik2o.threadWeaver.adaptor.controller.{ ThreadController, ThreadControllerImpl }
 import com.github.j5ik2o.threadWeaver.adaptor.presenter._
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdater.ReadJournalType
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.{
   ShardedThreadReadModelUpdaterProxy,
-  ThreadReadModelUpdater,
-  ThreadReadModelUpdaterProtocol
+  ThreadReadModelUpdater
 }
 import com.github.j5ik2o.threadWeaver.adaptor.router.AggregateToRMU
 import com.github.j5ik2o.threadWeaver.adaptor.swagger.SwaggerDocService
@@ -58,9 +61,7 @@ object AirframeSettings {
   private[adaptor] def designOfShardedReadModelUpdater(actorSystem: ActorSystem[Nothing],
                                                        clusterSharding: ClusterSharding): Design = {
     newDesign
-      .bind[ActorRef[ThreadReadModelUpdaterProtocol.CommandRequest]].toProvider[ReadJournalType,
-                                                                                JdbcProfile,
-                                                                                JdbcProfile#Backend#Database] {
+      .bind[ThreadReadModelUpdaterRef].toProvider[ReadJournalType, JdbcProfile, JdbcProfile#Backend#Database] {
         (readJournal, profile, db) =>
           actorSystem.toUntyped.spawn(
             new ShardedThreadReadModelUpdaterProxy(readJournal, profile, db).behavior(clusterSharding, 30 seconds),
@@ -71,9 +72,7 @@ object AirframeSettings {
 
   private[adaptor] def designOfLocalReadModelUpdater(actorSystem: ActorSystem[Nothing]): Design =
     newDesign
-      .bind[ActorRef[ThreadReadModelUpdaterProtocol.CommandRequest]].toProvider[ReadJournalType,
-                                                                                JdbcProfile,
-                                                                                JdbcProfile#Backend#Database] {
+      .bind[ThreadReadModelUpdaterRef].toProvider[ReadJournalType, JdbcProfile, JdbcProfile#Backend#Database] {
         (readJournal, profile, db) =>
           actorSystem.toUntyped.spawn(
             new ThreadReadModelUpdater(readJournal, profile, db).behavior(),
@@ -84,7 +83,7 @@ object AirframeSettings {
   private[adaptor] def designOfShardedAggregates(actorSystem: ActorSystem[Nothing],
                                                  clusterSharding: ClusterSharding): Design =
     newDesign
-      .bind[ActorRef[ThreadProtocol.CommandRequest]].toProvider[ActorRef[ThreadProtocol.Message]] { subscriber =>
+      .bind[ThreadActorRefOfCommand].toProvider[ThreadActorRefOfMessage] { subscriber =>
         actorSystem.toUntyped.spawn(
           ShardedThreadAggregatesProxy.behavior(clusterSharding, 30 seconds, Seq(subscriber)),
           name = "sharded-threads-proxy"
@@ -93,7 +92,7 @@ object AirframeSettings {
 
   private[adaptor] def designOfLocalAggregatesWithPersistence(actorSystem: ActorSystem[Nothing]): Design =
     newDesign
-      .bind[ActorRef[CommandRequest]].toProvider[ActorRef[ThreadProtocol.Message]] { subscriber =>
+      .bind[ThreadActorRefOfCommand].toProvider[ThreadActorRefOfMessage] { subscriber =>
         actorSystem.toUntyped.spawn(
           ThreadAggregates.behavior(Seq(subscriber), ThreadAggregate.name)(PersistentThreadAggregate.behavior),
           name = "local-threads-aggregates-with-persistence"
@@ -102,24 +101,23 @@ object AirframeSettings {
 
   private[adaptor] def designOfLocalAggregatesWithoutPersistence(actorSystem: ActorSystem[Nothing]): Design =
     newDesign
-      .bind[ActorRef[CommandRequest]].toProvider[ActorRef[ThreadProtocol.Message]] { subscriber =>
+      .bind[ThreadActorRefOfCommand].toProvider[ThreadActorRefOfMessage] { subscriber =>
         actorSystem.toUntyped.spawn(
           ThreadAggregates.behavior(Seq(subscriber), ThreadAggregate.name)(ThreadAggregate.behavior),
-          name = "local-threads-aggregates"
+          name = "local-threads-aggregates-without-persistence"
         )
       }
 
   def designOfRouter(actorSystem: ActorSystem[Nothing]): Design =
     newDesign
-      .bind[ActorRef[ThreadProtocol.Message]].toProvider[ActorRef[ThreadReadModelUpdaterProtocol.CommandRequest]] {
-        ref =>
-          actorSystem.toUntyped.spawn(
-            AggregateToRMU.behavior(ref),
-            name = "router"
-          )
+      .bind[ThreadActorRefOfMessage].toProvider[ThreadReadModelUpdaterRef] { ref =>
+        actorSystem.toUntyped.spawn(
+          AggregateToRMU.behavior(ref),
+          name = "router"
+        )
       }
 
-  def design(
+  private[adaptor] def design(
       host: String,
       port: Int,
       system: ActorSystem[Nothing],
