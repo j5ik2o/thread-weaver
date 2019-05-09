@@ -57,12 +57,32 @@ object ValidateUtils {
     }
   }
 
-  def validateTextMessage(values: Seq[String]): ValidationResult[List[TextMessage]] = {
-    val now = Instant.now
-    values
-      .map(validateText).toList.sequence.map(
-        l => l.map(v => TextMessage(MessageId(), None, ToAccountIds.empty, v, now, now))
-      )
+  def validateMessageId(value: String): ValidationResult[MessageId] = {
+    validateULID(value).map(MessageId)
+  }
+
+  def validateMessageIdOpt(value: Option[String]): ValidationResult[Option[MessageId]] = {
+    value match {
+      case Some(v) => validateMessageId(v).map(v => Some(v))
+      case None    => None.validNel
+    }
+  }
+
+  def validateToAccountIds(values: Seq[String]): ValidationResult[ToAccountIds] = {
+    values.map(validateAccountId).toList.sequence.map(v => ToAccountIds(v: _*))
+  }
+
+  def validateTextMessage(
+      replyMessageIdValue: Option[String],
+      toAccountIdsValues: Seq[String],
+      textValue: String
+  ): ValidationResult[TextMessage] = {
+    (validateMessageIdOpt(replyMessageIdValue), validateToAccountIds(toAccountIdsValues), validateText(textValue))
+      .mapN {
+        case (replyMessageIdOpt, toAccountIds, text) =>
+          val now = Instant.now
+          TextMessage(MessageId(), replyMessageIdOpt, toAccountIds, text, now, now)
+      }
   }
 
   def validateInstant(value: Long): ValidationResult[Instant] = {

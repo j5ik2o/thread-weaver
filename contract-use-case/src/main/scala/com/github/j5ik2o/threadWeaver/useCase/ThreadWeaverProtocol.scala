@@ -3,7 +3,7 @@ package com.github.j5ik2o.threadWeaver.useCase
 import java.time.Instant
 
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
-import com.github.j5ik2o.threadWeaver.domain.model.threads.{ AdministratorIds, MemberIds, ThreadId }
+import com.github.j5ik2o.threadWeaver.domain.model.threads.{ AdministratorIds, MemberIds, TextMessage, ThreadId }
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 
 object ThreadWeaverProtocol {
@@ -66,12 +66,13 @@ object ThreadWeaverProtocol {
       createAt: Instant
   ) extends AddMemberIdsResponse
 
-  final case class AddMessages(id: ULID,
-                               threadId: ThreadId,
-                               senderId: AccountId,
-                               messages: Seq[String],
-                               createdAt: Instant)
-      extends ThreadWeaverRequest
+  final case class AddMessages(
+      id: ULID,
+      threadId: ThreadId,
+      senderId: AccountId,
+      messages: Seq[TextMessage],
+      createdAt: Instant
+  ) extends ThreadWeaverRequest
   sealed trait AddMessagesResponse extends ThreadWeaverResponse
   final case class AddMessagesSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
       extends AddMessagesResponse
