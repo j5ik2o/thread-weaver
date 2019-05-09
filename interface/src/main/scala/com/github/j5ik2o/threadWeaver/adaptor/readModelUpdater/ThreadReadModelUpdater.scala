@@ -141,11 +141,11 @@ class ThreadReadModelUpdater(
             ).transactionally
 
         // for Messages
-        case (sequenceNr, MessagesAdded(_, _, senderId, messages, createdAt)) =>
+        case (sequenceNr, MessagesAdded(_, _, messages, createdAt)) =>
           DBIO
             .seq(
               updateSequenceNrInThreadAction(threadId, sequenceNr, createdAt) ::
-              insertMessagesAction(threadId, senderId, messages, createdAt): _*
+              insertMessagesAction(threadId, messages, createdAt): _*
             ).transactionally
         case (sequenceNr, MessagesRemoved(_, _, _, messageIds, createdAt)) =>
           DBIO
@@ -244,7 +244,6 @@ class ThreadReadModelUpdater(
 
   private def insertMessagesAction(
       threadId: ThreadId,
-      senderId: AccountId,
       messages: Messages,
       createdAt: Instant
   ): List[FixedSqlAction[Int, NoStream, Effect.Write]] = {
@@ -253,7 +252,7 @@ class ThreadReadModelUpdater(
         id = message.id.value.asString,
         deleted = false,
         threadId = threadId.value.asString,
-        senderId = senderId.value.asString,
+        senderId = message.senderId.value.asString,
         `type` = message.`type`,
         body = message.body.toString,
         createdAt = createdAt,

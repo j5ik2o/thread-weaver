@@ -10,5 +10,6 @@ object AirframeSettings {
       .bind[AddAdministratorIdsUseCase].to[AddAdministratorIdsUseCaseImpl]
       .bind[AddMemberIdsUseCase].to[AddMemberIdsUseCaseImpl]
       .bind[AddMessagesUseCase].to[AddMessagesUseCaseImpl]
+      .bind[RemoveMessagesUseCase].to[RemoveMessagesUseCaseImpl]
 
 }

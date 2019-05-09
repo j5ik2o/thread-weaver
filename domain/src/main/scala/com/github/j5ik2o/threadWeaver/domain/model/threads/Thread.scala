@@ -84,22 +84,26 @@ final case class Thread(
       Right(memberIds)
   }
 
-  def addMessages(values: Messages, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
+  def addMessages(values: Messages, at: Instant): Either[Exception, Thread] = {
     if (isRemoved)
       Left(new IllegalStateException("already removed thread"))
-    else if (!isMemberId(senderId))
+    else if (!values.forall(v => isMemberId(v.senderId)))
       Left(new IllegalArgumentException("senderId is not member"))
     else
       Right(copy(messages = messages combine values, updatedAt = at))
   }
 
-  def removeMessages(values: MessageIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
+  def removeMessages(values: MessageIds, removerId: AccountId, at: Instant): Either[Exception, Thread] = {
     if (isRemoved)
       Left(new IllegalStateException("already removed thread"))
-    else if (!isMemberId(senderId))
-      Left(new IllegalArgumentException("senderId is not member"))
-    else
-      Right(copy(messages = messages.filterNot(values), updatedAt = at))
+    else if (!isMemberId(removerId))
+      Left(new IllegalArgumentException("removerId is not member"))
+    else {
+      if (!messages.filter(values).forall(_.senderId == removerId))
+        Left(new IllegalArgumentException("removerId is not senderId"))
+      else
+        Right(copy(messages = messages.filterNot(values), updatedAt = at))
+    }
   }
 
   def getMessages(senderId: AccountId): Either[Exception, Messages] = {

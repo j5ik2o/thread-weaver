@@ -19,7 +19,7 @@ import com.github.j5ik2o.threadWeaver.useCase.ThreadWeaverProtocol.{
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
 
-class AddMessagesUseCaseImpl(
+private[useCase] class AddMessagesUseCaseImpl(
     threadAggregates: ActorRef[CommandRequest],
     parallelism: Int = 1,
     timeout: Timeout = 3 seconds
@@ -36,7 +36,6 @@ class AddMessagesUseCaseImpl(
           AddMessages(
             ULID(),
             request.threadId,
-            request.adderId,
             Messages(
               request.messages
                 .map { message =>
@@ -45,6 +44,7 @@ class AddMessagesUseCaseImpl(
                     message.replyMessageId,
                     message.toAccountIds,
                     message.body,
+                    message.senderId,
                     request.createdAt,
                     request.createdAt
                   )
@@ -55,7 +55,7 @@ class AddMessagesUseCaseImpl(
           )
         }.map {
           case v: AddMessagesSucceeded =>
-            UAddMessagesSucceeded(v.id, v.requestId, v.threadId, v.createAt)
+            UAddMessagesSucceeded(v.id, v.requestId, v.threadId, v.messageIds, v.createAt)
           case v: AddMessagesFailed =>
             UAddMessagesFailed(v.id, v.requestId, v.threadId, v.message, v.createAt)
         }
