@@ -13,7 +13,7 @@ import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 object PersistentThreadAggregate {
 
   private val commandHandler: (State, CommandRequest) => Effect[Event, State] = {
-    case (State(None, _), c @ CreateThread(cmdId, threadId, _, _, _, _, createAt, replyTo)) =>
+    case (State(None, _), c @ CreateThread(cmdId, threadId, _, _, _, _, _, _, createAt, replyTo)) =>
       Effect.persist(c.toEvent).thenRun { _ =>
         replyTo.foreach(_ ! CreateThreadSucceeded(ULID(), cmdId, threadId, createAt))
       }
@@ -165,6 +165,8 @@ object PersistentThreadAggregate {
           e.threadId,
           e.creatorId,
           e.parentThreadId,
+          e.title,
+          e.remarks,
           e.administratorIds,
           e.memberIds,
           Messages.empty,

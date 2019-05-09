@@ -9,7 +9,7 @@ import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.cluster.typed.{ Cluster, Join }
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{ CreateThread, CreateThreadResponse }
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
-import com.github.j5ik2o.threadWeaver.domain.model.threads.{ AdministratorIds, MemberIds, ThreadId }
+import com.github.j5ik2o.threadWeaver.domain.model.threads.{ AdministratorIds, MemberIds, ThreadId, ThreadTitle }
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 import com.typesafe.config.ConfigFactory
 import org.scalatest.FreeSpecLike
@@ -44,10 +44,13 @@ class ShardedThreadAggregatesSpec
       val threadId        = ThreadId()
       val administratorId = AccountId()
       val threadRef       = clusterSharding.entityRefFor(ShardedThreadAggregates.TypeKey, threadId.value.toString)
+      val title           = ThreadTitle("test")
       threadRef ! CreateThread(
         ULID(),
         threadId,
         administratorId,
+        None,
+        title,
         None,
         AdministratorIds(administratorId),
         MemberIds.empty,

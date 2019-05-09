@@ -52,11 +52,13 @@ class PersistentThreadAggregateOnLevelDBSpec
       val now               = Instant.now
       val createThreadProbe = TestProbe[CreateThreadResponse]()
       val administratorId   = AccountId()
-
+      val title             = ThreadTitle("test")
       threadRef ! CreateThread(
         ULID(),
         threadId,
         administratorId,
+        None,
+        title,
         None,
         AdministratorIds(administratorId),
         MemberIds.empty,

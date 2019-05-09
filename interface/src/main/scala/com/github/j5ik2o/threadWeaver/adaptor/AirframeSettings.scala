@@ -58,8 +58,10 @@ object AirframeSettings {
     newDesign.bind[ReadJournalType].toInstance(readJournal)
   }
 
-  private[adaptor] def designOfShardedReadModelUpdater(actorSystem: ActorSystem[Nothing],
-                                                       clusterSharding: ClusterSharding): Design = {
+  private[adaptor] def designOfShardedReadModelUpdater(
+      actorSystem: ActorSystem[Nothing],
+      clusterSharding: ClusterSharding
+  ): Design = {
     newDesign
       .bind[ThreadReadModelUpdaterRef].toProvider[ReadJournalType, JdbcProfile, JdbcProfile#Backend#Database] {
         (readJournal, profile, db) =>
@@ -80,8 +82,10 @@ object AirframeSettings {
           )
       }
 
-  private[adaptor] def designOfShardedAggregates(actorSystem: ActorSystem[Nothing],
-                                                 clusterSharding: ClusterSharding): Design =
+  private[adaptor] def designOfShardedAggregates(
+      actorSystem: ActorSystem[Nothing],
+      clusterSharding: ClusterSharding
+  ): Design =
     newDesign
       .bind[ThreadActorRefOfCommand].toProvider[ThreadActorRefOfMessage] { subscriber =>
         actorSystem.toUntyped.spawn(

@@ -10,9 +10,9 @@ private[adaptor] class AddMemberIdsPresenterImpl extends AddMemberIdsPresenter {
   override def response: Flow[AddMemberIdsResponse, AddMemberIdsResponseJson, NotUsed] = {
     Flow[AddMemberIdsResponse].map {
       case f: AddMemberIdsFailed =>
-        AddMemberIdsResponseJson(id = None, error_messages = Seq(f.message))
+        AddMemberIdsResponseJson(threadId = None, error_messages = Seq(f.message))
       case s: AddMemberIdsSucceeded =>
-        AddMemberIdsResponseJson(id = Some(s.threadId.value.asString), error_messages = Seq.empty)
+        AddMemberIdsResponseJson(threadId = Some(s.threadId.value.asString), error_messages = Seq.empty)
     }
   }
 

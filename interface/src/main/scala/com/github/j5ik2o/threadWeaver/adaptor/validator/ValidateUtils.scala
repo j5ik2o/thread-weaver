@@ -3,12 +3,7 @@ package com.github.j5ik2o.threadWeaver.adaptor.validator
 import java.time.Instant
 
 import cats.implicits._
-import com.github.j5ik2o.threadWeaver.adaptor.error.{
-  AdministratorIdsError,
-  InstantFormatError,
-  TextMessageFormatError,
-  ULIDFormatError
-}
+import com.github.j5ik2o.threadWeaver.adaptor.error._
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
 import com.github.j5ik2o.threadWeaver.domain.model.threads._
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
@@ -33,6 +28,19 @@ object ValidateUtils {
 
   def validateThreadId(value: String): ValidationResult[ThreadId] =
     validateULID(value).map(ThreadId)
+
+  def validateThreadTitle(value: String): ValidationResult[ThreadTitle] =
+    if (value.length > 255) ThreadTitleFormatError("title is too long").invalidNel
+    else ThreadTitle(value).validNel
+
+  def validateThreadRemarks(value: Option[String]): ValidationResult[Option[ThreadRemarks]] =
+    value match {
+      case None =>
+        None.validNel
+      case Some(v) =>
+        if (v.length > 255) ThreadRemarksFormatError("title is too long").invalidNel
+        else Some(ThreadRemarks(v)).validNel
+    }
 
   def validateAccountId(value: String): ValidationResult[AccountId] =
     validateULID(value).map(AccountId)
@@ -88,10 +96,10 @@ object ValidateUtils {
       validateText(textValue),
       validateAccountId(senderId)
     ).mapN {
-        case (replyMessageIdOpt, toAccountIds, text, senderId) =>
-          val now = Instant.now
-          TextMessage(MessageId(), replyMessageIdOpt, toAccountIds, text, senderId, now, now)
-      }
+      case (replyMessageIdOpt, toAccountIds, text, senderId) =>
+        val now = Instant.now
+        TextMessage(MessageId(), replyMessageIdOpt, toAccountIds, text, senderId, now, now)
+    }
   }
 
   def validateInstant(value: Long): ValidationResult[Instant] = {

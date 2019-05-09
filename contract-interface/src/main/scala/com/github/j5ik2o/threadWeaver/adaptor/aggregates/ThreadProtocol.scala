@@ -67,6 +67,8 @@ object ThreadProtocol {
       threadId: ThreadId,
       creatorId: AccountId,
       parentThreadId: Option[ThreadId],
+      title: ThreadTitle,
+      remarks: Option[ThreadRemarks],
       administratorIds: AdministratorIds,
       memberIds: MemberIds,
       createAt: Instant,
@@ -75,7 +77,7 @@ object ThreadProtocol {
       with ToEvent {
     override def senderId: AccountId = creatorId
     override def toEvent: Event =
-      ThreadCreated(ULID(), threadId, creatorId, parentThreadId, administratorIds, memberIds, createAt)
+      ThreadCreated(ULID(), threadId, creatorId, parentThreadId, title, remarks, administratorIds, memberIds, createAt)
   }
   sealed trait CreateThreadResponse extends CommandResponse
   final case class CreateThreadSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
@@ -87,13 +89,15 @@ object ThreadProtocol {
       threadId: ThreadId,
       creatorId: AccountId,
       parentThreadId: Option[ThreadId],
+      title: ThreadTitle,
+      remarks: Option[ThreadRemarks],
       administratorIds: AdministratorIds,
       memberIds: MemberIds,
       createdAt: Instant
   ) extends Event
       with ToCommandRequest {
     override def toCommandRequest: CommandRequest =
-      CreateThread(ULID(), threadId, creatorId, parentThreadId, administratorIds, memberIds, createdAt)
+      CreateThread(ULID(), threadId, creatorId, parentThreadId, title, remarks, administratorIds, memberIds, createdAt)
   }
 
   // --- スレッドの破棄

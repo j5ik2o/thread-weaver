@@ -18,7 +18,7 @@ import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{
   CreateThreadSucceeded
 }
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
-import com.github.j5ik2o.threadWeaver.domain.model.threads.{ AdministratorIds, MemberIds, ThreadId }
+import com.github.j5ik2o.threadWeaver.domain.model.threads.{ AdministratorIds, MemberIds, ThreadId, ThreadTitle }
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 
 import scala.concurrent.duration._
@@ -64,12 +64,15 @@ class ShardedThreadAggregateOnLevelDbSpec
       runOn(node1) {
         val accountId = AccountId()
         val threadId  = ThreadId()
+        val title     = ThreadTitle("test")
         val threadRef =
           ClusterSharding(typedSystem).entityRefFor(ShardedThreadAggregates.TypeKey, threadId.value.asString)
         val createThreadResponseProbe = TestProbe[CreateThreadResponse]
         threadRef ! CreateThread(ULID(),
                                  threadId,
                                  accountId,
+                                 None,
+                                 title,
                                  None,
                                  AdministratorIds(accountId),
                                  MemberIds.empty,

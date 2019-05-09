@@ -10,9 +10,9 @@ private[adaptor] class AddAdministratorIdsPresenterImpl extends AddAdministrator
   override def response: Flow[AddAdministratorIdsResponse, AddAdministratorIdsResponseJson, NotUsed] = {
     Flow[AddAdministratorIdsResponse].map {
       case f: AddAdministratorIdsFailed =>
-        AddAdministratorIdsResponseJson(id = None, error_messages = Seq(f.message))
+        AddAdministratorIdsResponseJson(threadId = None, error_messages = Seq(f.message))
       case s: AddAdministratorIdsSucceeded =>
-        AddAdministratorIdsResponseJson(id = Some(s.threadId.value.asString), error_messages = Seq.empty)
+        AddAdministratorIdsResponseJson(threadId = Some(s.threadId.value.asString), error_messages = Seq.empty)
     }
   }
 

@@ -20,7 +20,7 @@ object ThreadAggregate {
 
       def onCreated(thread: Thread): Behaviors.Receive[CommandRequest] =
         Behaviors.receiveMessage[CommandRequest] {
-          case CreateThread(requestId, threadId, _, _, _, _, createAt, replyTo) if threadId == id =>
+          case CreateThread(requestId, threadId, _, _, _, _, _, _, createAt, replyTo) if threadId == id =>
             replyTo.foreach(_ ! CreateThreadFailed(ULID(), requestId, threadId, "Already created", createAt))
             Behaviors.same
 
@@ -136,6 +136,8 @@ object ThreadAggregate {
             threadId,
             creatorId,
             parentThreadId,
+            title,
+            remarks,
             administratorIds,
             memberIds,
             createAt,
@@ -147,6 +149,8 @@ object ThreadAggregate {
               threadId,
               creatorId,
               parentThreadId,
+              title,
+              remarks,
               administratorIds,
               memberIds,
               Messages.empty,

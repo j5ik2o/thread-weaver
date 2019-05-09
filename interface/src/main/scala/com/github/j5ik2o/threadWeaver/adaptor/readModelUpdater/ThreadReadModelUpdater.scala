@@ -58,7 +58,7 @@ object ThreadReadModelUpdater {
 class ThreadReadModelUpdater(
     val readJournal: ReadJournalType,
     val profile: JdbcProfile,
-    val db: JdbcProfile#Backend#Database,
+    val db: JdbcProfile#Backend#Database
 ) extends ThreadComponent
     with ThreadMessageComponent
     with ThreadAdministratorIdsComponent
@@ -72,8 +72,10 @@ class ThreadReadModelUpdater(
         case s: Start =>
           ctx.child(s.threadId.value.asString) match {
             case None =>
-              ctx.spawn(projectionBehavior(sqlBatchSize, backoffSettings, s.threadId),
-                        name = s"RMU-${s.threadId.value.asString}") ! s
+              ctx.spawn(
+                projectionBehavior(sqlBatchSize, backoffSettings, s.threadId),
+                name = s"RMU-${s.threadId.value.asString}"
+              ) ! s
             case _ =>
               ctx.log.warning("RMU already has started: threadId = {}", s.threadId.value.asString)
           }
@@ -94,10 +96,13 @@ class ThreadReadModelUpdater(
       .map { ee =>
         (ee.sequenceNr, ee.event.asInstanceOf[Event])
       }.map {
-        case (sequenceNr, ThreadCreated(_, _, senderId, parentThreadId, administratorIds, memberIds, createdAt)) =>
+        case (
+            sequenceNr,
+            ThreadCreated(_, _, senderId, parentThreadId, title, remarks, administratorIds, memberIds, createdAt)
+            ) =>
           DBIO
             .seq(
-              insertThreadAction(threadId, sequenceNr, senderId, parentThreadId, createdAt) ::
+              insertThreadAction(threadId, sequenceNr, senderId, parentThreadId, title, remarks, createdAt) ::
               insertAdministratorIdsAction(threadId, senderId, administratorIds, createdAt) :::
               insertMemberIdsAction(threadId, senderId, memberIds, createdAt): _*
             ).transactionally
@@ -167,9 +172,11 @@ class ThreadReadModelUpdater(
   }
 
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
-  private def projectionBehavior(sqlBatchSize: Long,
-                                 backoffSettings: Option[BackoffSettings],
-                                 threadId: ThreadId): Behavior[Message] =
+  private def projectionBehavior(
+      sqlBatchSize: Long,
+      backoffSettings: Option[BackoffSettings],
+      threadId: ThreadId
+  ): Behavior[Message] =
     Behaviors.setup[Message] { ctx =>
       implicit val system                = ctx.system
       implicit val ec                    = ctx.executionContext
@@ -327,6 +334,8 @@ class ThreadReadModelUpdater(
       sequenceNr: Long,
       senderId: AccountId,
       parentThreadId: Option[ThreadId],
+      title: ThreadTitle,
+      remarks: Option[ThreadRemarks],
       createdAt: Instant
   ): FixedSqlAction[Int, NoStream, Effect.Write] = {
     ThreadDao += ThreadRecord(
@@ -335,6 +344,8 @@ class ThreadReadModelUpdater(
       sequenceNr = sequenceNr,
       creatorId = senderId.value.asString,
       parentId = parentThreadId.map(_.value.asString),
+      title = title.value,
+      remarks = remarks.map(_.value),
       createdAt = createdAt,
       updatedAt = createdAt,
       removedAt = None

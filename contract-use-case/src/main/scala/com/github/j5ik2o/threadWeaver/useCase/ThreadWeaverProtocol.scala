@@ -17,6 +17,8 @@ object ThreadWeaverProtocol {
       threadId: ThreadId,
       creatorId: AccountId,
       parentThreadId: Option[ThreadId],
+      title: ThreadTitle,
+      remarks: Option[ThreadRemarks],
       administratorIds: AdministratorIds,
       memberIds: MemberIds,
       createAt: Instant

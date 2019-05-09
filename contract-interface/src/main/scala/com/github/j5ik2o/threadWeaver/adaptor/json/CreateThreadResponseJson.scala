@@ -1,4 +1,4 @@
 package com.github.j5ik2o.threadWeaver.adaptor.json
 
-final case class CreateThreadResponseJson(id: Option[String], error_messages: Seq[String] = Seq.empty)
+final case class CreateThreadResponseJson(threadId: Option[String], error_messages: Seq[String] = Seq.empty)
     extends ResponseJson
