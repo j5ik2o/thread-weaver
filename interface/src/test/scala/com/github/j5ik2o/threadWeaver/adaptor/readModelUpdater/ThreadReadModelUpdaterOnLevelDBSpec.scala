@@ -3,6 +3,7 @@ package com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater
 import java.time.Instant
 
 import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
+import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
 import akka.persistence.query.PersistenceQuery
@@ -55,6 +56,8 @@ class ThreadReadModelUpdaterOnLevelDBSpec
     with FlywayWithMySQLSpecSupport
     with Slick3SpecSupport {
 
+  override def typedSystem: ActorSystem[Nothing] = system
+
   override implicit def patienceConfig: PatienceConfig =
     PatienceConfig(timeout = scaled(Span(60, Seconds)), interval = scaled(Span(1, Seconds)))
 
@@ -82,7 +85,7 @@ class ThreadReadModelUpdaterOnLevelDBSpec
         override val profile = dbConfig.profile
         import profile.api._
 
-        val trmuRef = spawn(new ThreadReadModelUpdater(readJournal, dbConfig.profile, dbConfig.db).behavior)
+        val trmuRef = spawn(new ThreadReadModelUpdater(readJournal, dbConfig.profile, dbConfig.db).behavior())
 
         def assert = eventually {
           val resultMessages =
@@ -144,11 +147,10 @@ class ThreadReadModelUpdaterOnLevelDBSpec
       }
 
       val addMessagesResponseProbe = TestProbe[AddMessagesResponse]()
-      val messages                 = Messages(TextMessage(MessageId(), None, ToAccountIds.empty, Text("ABC"), now, now))
+      val messages                 = Messages(TextMessage(MessageId(), None, ToAccountIds.empty, Text("ABC"), memberId, now, now))
       threadRef ! AddMessages(
         ULID(),
         threadId,
-        memberId,
         messages,
         now,
         Some(addMessagesResponseProbe.ref)

@@ -6,6 +6,9 @@ final case class MessageIds(breachEncapsulationOfValues: Vector[MessageId]) {
 
   def contains(value: MessageId): Boolean =
     breachEncapsulationOfValues.contains(value)
+
+  def valuesAsString: Vector[String] = breachEncapsulationOfValues.map(_.value.asString)
+
 }
 
 object MessageIds {

@@ -48,7 +48,7 @@ val `contract-use-case` = (project in file("contract-use-case"))
 val `contract-interface` = (project in file("contract-interface"))
   .settings(baseSettings)
   .settings(
-    name := "reaction-contract-interface",
+    name := "thread-weaver-contract-interface",
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
       "javax.ws.rs" % "javax.ws.rs-api" % "2.0.1",
@@ -275,7 +275,7 @@ lazy val `gatling-test` = (project in file("tools/gatling-test"))
   .enablePlugins(_root_.io.gatling.sbt.GatlingPlugin)
   .settings(gatlingCommonSettings)
   .settings(
-    name := "reaction-gatling-test",
+    name := "thread-weaver-gatling-test",
     libraryDependencies ++= Seq(
       "io.gatling.highcharts" % "gatling-charts-highcharts" % gatlingVersion,
       "io.gatling" % "gatling-test-framework" % gatlingVersion,

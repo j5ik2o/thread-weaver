@@ -41,7 +41,7 @@ trait ThreadController {
   private[controller] def createThread(implicit context: Context): Route
 
   @POST
-  @Path("/threads/{thread_id}/administrator-ids")
+  @Path("/threads/{thread_id}/administrator-ids/add")
   @Consumes(Array("application/json"))
   @Operation(
     summary = "Add administratorIds to thread",
@@ -77,7 +77,7 @@ trait ThreadController {
   private[controller] def addAdministratorIds(implicit context: Context): Route
 
   @POST
-  @Path("/threads/{thread_id}/member-ids")
+  @Path("/threads/{thread_id}/member-ids/add")
   @Consumes(Array("application/json"))
   @Operation(
     summary = "Add memberIds to thread",
@@ -111,5 +111,106 @@ trait ThreadController {
     )
   )
   private[controller] def addMemberIds(implicit context: Context): Route
+
+  @POST
+  @Path("/threads/{thread_id}/messages/add")
+  @Consumes(Array("application/json"))
+  @Operation(
+    summary = "Add messages to thread",
+    description = "Add messages request",
+    parameters = Array(
+      new Parameter(
+        name = "thread_id",
+        required = true,
+        in = ParameterIn.PATH,
+        description = "threadId",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "string"
+        )
+      )
+    ),
+    requestBody = new RequestBody(
+      content = Array(
+        new Content(
+          schema = new Schema(implementation = classOf[AddMessagesRequestJson])
+        )
+      )
+    ),
+    responses = Array(
+      new ApiResponse(
+        responseCode = "200",
+        description = "Add messages response",
+        content = Array(new Content(schema = new Schema(implementation = classOf[AddMessagesResponseJson])))
+      ),
+      new ApiResponse(responseCode = "500", description = "Internal server error")
+    )
+  )
+  private[controller] def addMessages(implicit context: Context): Route
+
+  @POST
+  @Path("/threads/{thread_id}/messages/remove")
+  @Consumes(Array("application/json"))
+  @Operation(
+    summary = "Remove messages to thread",
+    description = "Remove messages request",
+    parameters = Array(
+      new Parameter(
+        name = "thread_id",
+        required = true,
+        in = ParameterIn.PATH,
+        description = "threadId",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "string"
+        )
+      )
+    ),
+    requestBody = new RequestBody(
+      content = Array(
+        new Content(
+          schema = new Schema(implementation = classOf[RemoveMessagesRequestJson])
+        )
+      )
+    ),
+    responses = Array(
+      new ApiResponse(
+        responseCode = "200",
+        description = "remove messages response",
+        content = Array(new Content(schema = new Schema(implementation = classOf[RemoveMessagesResponseJson])))
+      ),
+      new ApiResponse(responseCode = "500", description = "Internal server error")
+    )
+  )
+  private[controller] def removeMessages(implicit context: Context): Route
+
+  @GET
+  @Path("/threads/{thread_id}/messages")
+  @Consumes(Array("application/json"))
+  @Operation(
+    summary = "Get messages from thread",
+    description = "Get messages request",
+    parameters = Array(
+      new Parameter(
+        name = "thread_id",
+        required = true,
+        in = ParameterIn.PATH,
+        description = "threadId",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "string"
+        )
+      )
+    ),
+    responses = Array(
+      new ApiResponse(
+        responseCode = "200",
+        description = "Get messages response",
+        content = Array(new Content(schema = new Schema(implementation = classOf[GetThreadMessagesResponseJson])))
+      ),
+      new ApiResponse(responseCode = "500", description = "Internal server error")
+    )
+  )
+  private[controller] def getMessages(implicit context: Context): Route
 
 }

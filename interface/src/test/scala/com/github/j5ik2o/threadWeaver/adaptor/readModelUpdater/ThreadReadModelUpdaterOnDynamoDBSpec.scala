@@ -103,7 +103,7 @@ class ThreadReadModelUpdaterOnDynamoDBSpec
         override val profile = dbConfig.profile
         import profile.api._
 
-        val trmuRef = spawn(new ThreadReadModelUpdater(readJournal, dbConfig.profile, dbConfig.db).behavior)
+        val trmuRef = spawn(new ThreadReadModelUpdater(readJournal, dbConfig.profile, dbConfig.db).behavior())
 
         def assert = eventually {
           val resultMessages =
@@ -165,11 +165,10 @@ class ThreadReadModelUpdaterOnDynamoDBSpec
       }
 
       val addMessagesResponseProbe = TestProbe[AddMessagesResponse]()
-      val messages                 = Messages(TextMessage(MessageId(), None, ToAccountIds.empty, Text("ABC"), now, now))
+      val messages                 = Messages(TextMessage(MessageId(), None, ToAccountIds.empty, Text("ABC"), memberId, now, now))
       threadRef ! AddMessages(
         ULID(),
         threadId,
-        memberId,
         messages,
         now,
         Some(addMessagesResponseProbe.ref)

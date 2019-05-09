@@ -3,6 +3,7 @@ package com.github.j5ik2o.threadWeaver.adaptor.aggregates
 import java.time.Instant
 
 import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
+import akka.actor.typed.ActorSystem
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
 import com.github.j5ik2o.threadWeaver.domain.model.threads._
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
@@ -31,6 +32,8 @@ class PersistentThreadAggregateOnLevelDBSpec
     with FreeSpecLike
     with ActorSpecSupport
     with PersistenceCleanup {
+
+  override def typedSystem: ActorSystem[Nothing] = system
 
   override protected def beforeAll(): Unit = {
     deleteStorageLocations()
@@ -90,11 +93,10 @@ class PersistentThreadAggregateOnLevelDBSpec
       }
 
       val addMessagesResponseProbe = TestProbe[AddMessagesResponse]()
-      val messages                 = Messages(TextMessage(MessageId(), None, ToAccountIds.empty, Text("ABC"), now, now))
+      val messages                 = Messages(TextMessage(MessageId(), None, ToAccountIds.empty, Text("ABC"), memberId, now, now))
       threadRef ! AddMessages(
         ULID(),
         threadId,
-        memberId,
         messages,
         now,
         Some(addMessagesResponseProbe.ref)
@@ -136,4 +138,5 @@ class PersistentThreadAggregateOnLevelDBSpec
       }
     }
   }
+
 }

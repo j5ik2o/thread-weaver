@@ -5,7 +5,7 @@ import akka.stream.scaladsl.Flow
 import com.github.j5ik2o.threadWeaver.adaptor.json.AddMemberIdsResponseJson
 import com.github.j5ik2o.threadWeaver.useCase.ThreadWeaverProtocol._
 
-class AddMemberIdsPresenterImpl extends AddMemberIdsPresenter {
+private[adaptor] class AddMemberIdsPresenterImpl extends AddMemberIdsPresenter {
 
   override def response: Flow[AddMemberIdsResponse, AddMemberIdsResponseJson, NotUsed] = {
     Flow[AddMemberIdsResponse].map {
