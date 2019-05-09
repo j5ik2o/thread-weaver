@@ -4,6 +4,8 @@ CREATE TABLE `thread` (
   `sequence_nr`   BIGINT                      NOT NULL,
   `creator_id`    VARCHAR(32)                 NOT NULL,
   `parent_id`     VARCHAR(32),
+  `title`         VARCHAR(255)                NOT NULL,
+  `remarks`       VARCHAR(255),
   `created_at`    DATETIME(6)                 NOT NULL,
   `updated_at`    DATETIME(6)                 NOT NULL,
   `removed_at`    DATETIME(6),

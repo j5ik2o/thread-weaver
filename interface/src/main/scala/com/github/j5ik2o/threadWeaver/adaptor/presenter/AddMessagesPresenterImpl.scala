@@ -10,12 +10,12 @@ private[adaptor] class AddMessagesPresenterImpl extends AddMessagesPresenter {
   override def response: Flow[AddMessagesResponse, AddMessagesResponseJson, NotUsed] = Flow[AddMessagesResponse].map {
     case f: AddMessagesFailed =>
       AddMessagesResponseJson(
-        ids = Seq.empty,
+        messageIds = Seq.empty,
         error_messages = Seq(f.message)
       )
     case s: AddMessagesSucceeded =>
       AddMessagesResponseJson(
-        ids = s.messageIds.valuesAsString,
+        messageIds = s.messageIds.valuesAsString,
         error_messages = Seq.empty
       )
   }

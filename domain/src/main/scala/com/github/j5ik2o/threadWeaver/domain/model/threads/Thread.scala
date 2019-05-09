@@ -13,6 +13,8 @@ final case class Thread(
     id: ThreadId,
     creatorId: AccountId,
     parentThreadId: Option[ThreadId],
+    title: ThreadTitle,
+    remarks: Option[ThreadRemarks],
     private val administratorIds: AdministratorIds,
     private val memberIds: MemberIds,
     private val messages: Messages,

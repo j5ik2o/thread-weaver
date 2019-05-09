@@ -38,12 +38,24 @@ object ThreadValidateDirectives {
       (
         validateAccountId(value.creatorId),
         validateThreadIdOpt(value.parentThreadId),
+        validateThreadTitle(value.title),
+        validateThreadRemarks(value.remarks),
         validateAdministratorIds(value.administratorIds),
         validateMemberIds(value.memberIds),
         validateInstant(value.createAt)
       ).mapN {
-        case (creatorId, parentThreadId, administratorIds, memberIds, createdAt) =>
-          CreateThread(ULID(), ThreadId(), creatorId, parentThreadId, administratorIds, memberIds, createdAt)
+        case (creatorId, parentThreadId, title, remarks, administratorIds, memberIds, createdAt) =>
+          CreateThread(
+            ULID(),
+            ThreadId(),
+            creatorId,
+            parentThreadId,
+            title,
+            remarks,
+            administratorIds,
+            memberIds,
+            createdAt
+          )
       }
     }
   }

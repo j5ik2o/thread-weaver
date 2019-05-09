@@ -38,6 +38,8 @@ private[useCase] class CreateThreadUseCaseImpl(
             request.threadId,
             request.creatorId,
             None,
+            request.title,
+            request.remarks,
             request.administratorIds,
             request.memberIds,
             request.createAt,
