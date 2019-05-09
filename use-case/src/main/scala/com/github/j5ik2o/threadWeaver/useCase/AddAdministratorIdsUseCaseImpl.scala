@@ -1,25 +1,25 @@
 package com.github.j5ik2o.threadWeaver.useCase
 
-import akka.actor.typed.scaladsl.AskPattern._
 import akka.NotUsed
-import akka.actor.typed.{ ActorRef, ActorSystem }
-import akka.stream.scaladsl.Flow
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol._
-import ThreadWeaverProtocol.{
-  AddAdministratorIds => UAddAdministratorIds,
-  AddAdministratorIdsResponse => UAddAdministratorIdsResponse,
-  AddAdministratorIdsSucceeded => UAddAdministratorIdsSucceeded,
-  AddAdministratorIdsFailed => UAddAdministratorIdsFailed
-}
 import akka.actor.Scheduler
+import akka.actor.typed.ActorSystem
+import akka.actor.typed.scaladsl.AskPattern._
+import akka.stream.scaladsl.Flow
 import akka.util.Timeout
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol._
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
+import com.github.j5ik2o.threadWeaver.useCase.ThreadWeaverProtocol.{
+  AddAdministratorIds => UAddAdministratorIds,
+  AddAdministratorIdsFailed => UAddAdministratorIdsFailed,
+  AddAdministratorIdsResponse => UAddAdministratorIdsResponse,
+  AddAdministratorIdsSucceeded => UAddAdministratorIdsSucceeded
+}
 
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
 
 private[useCase] class AddAdministratorIdsUseCaseImpl(
-    threadAggregates: ActorRef[CommandRequest],
+    threadAggregates: ThreadActorRefOfCommand,
     parallelism: Int = 1,
     timeout: Timeout = 3 seconds
 )(
