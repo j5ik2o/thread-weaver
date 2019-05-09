@@ -59,8 +59,6 @@ class ThreadReadModelUpdater(
     val readJournal: ReadJournalType,
     val profile: JdbcProfile,
     val db: JdbcProfile#Backend#Database,
-    sqlBatchSize: Long = 10,
-    backoffSettings: Option[BackoffSettings] = None
 ) extends ThreadComponent
     with ThreadMessageComponent
     with ThreadAdministratorIdsComponent
@@ -68,23 +66,20 @@ class ThreadReadModelUpdater(
 
   import profile.api._
 
-  private val minBackoff   = backoffSettings.fold(3 seconds)(_.minBackoff)
-  private val maxBackoff   = backoffSettings.fold(30 seconds)(_.maxBackoff)
-  private val randomFactor = backoffSettings.fold(0.2d)(_.randomFactor)
-  private val maxRestarts  = backoffSettings.fold(20)(_.maxRestarts)
-
-  def behavior: Behavior[CommandRequest] = Behaviors.setup[CommandRequest] { ctx =>
-    Behaviors.receiveMessagePartial[CommandRequest] {
-      case s: Start =>
-        ctx.child(s.threadId.value.asString) match {
-          case None =>
-            ctx.spawn(projectionBehavior(s.threadId), name = s"RMU-${s.threadId.value.asString}") ! s
-          case _ =>
-            ctx.log.warning("RMU already has started: threadId = {}", s.threadId.value.asString)
-        }
-        Behaviors.same
+  def behavior(sqlBatchSize: Long = 10, backoffSettings: Option[BackoffSettings] = None): Behavior[CommandRequest] =
+    Behaviors.setup[CommandRequest] { ctx =>
+      Behaviors.receiveMessagePartial[CommandRequest] {
+        case s: Start =>
+          ctx.child(s.threadId.value.asString) match {
+            case None =>
+              ctx.spawn(projectionBehavior(sqlBatchSize, backoffSettings, s.threadId),
+                        name = s"RMU-${s.threadId.value.asString}") ! s
+            case _ =>
+              ctx.log.warning("RMU already has started: threadId = {}", s.threadId.value.asString)
+          }
+          Behaviors.same
+      }
     }
-  }
 
   private val logLevels = Attributes.logLevels(
     onElement = Attributes.LogLevels.Info,
@@ -158,25 +153,31 @@ class ThreadReadModelUpdater(
           DBIO.successful(())
       }
 
-  private def projectionSource(threadId: ThreadId)(implicit ec: ExecutionContext) = {
+  private def projectionSource(sqlBatchSize: Long, threadId: ThreadId)(implicit ec: ExecutionContext) = {
     Source
       .fromFuture(
         db.run(getSequenceNrAction(threadId)).map(_.getOrElse(0L))
-      ).flatMapConcat { lastSequenceNr =>
+      ).log("lastSequenceNr").flatMapConcat { lastSequenceNr =>
         readJournal
           .eventsByPersistenceId(threadId.value.asString, lastSequenceNr + 1, Long.MaxValue)
-      }.via(sqlActionFlow(threadId))
+      }.log("ee").via(sqlActionFlow(threadId))
       .batch(sqlBatchSize, ArrayBuffer(_))(_ :+ _).mapAsync(1) { sqlActions =>
         db.run(DBIO.sequence(sqlActions.result.toVector))
       }.withAttributes(logLevels)
   }
 
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
-  private def projectionBehavior(threadId: ThreadId): Behavior[Message] =
+  private def projectionBehavior(sqlBatchSize: Long,
+                                 backoffSettings: Option[BackoffSettings],
+                                 threadId: ThreadId): Behavior[Message] =
     Behaviors.setup[Message] { ctx =>
       implicit val system                = ctx.system
       implicit val ec                    = ctx.executionContext
       implicit val mat                   = ActorMaterializer()
+      val minBackoff                     = backoffSettings.fold(3 seconds)(_.minBackoff)
+      val maxBackoff                     = backoffSettings.fold(30 seconds)(_.maxBackoff)
+      val randomFactor                   = backoffSettings.fold(0.2d)(_.randomFactor)
+      val maxRestarts                    = backoffSettings.fold(20)(_.maxRestarts)
       var killSwitch: Option[KillSwitch] = None
 
       Behaviors
@@ -185,7 +186,7 @@ class ThreadReadModelUpdater(
             killSwitch = Some {
               RestartSource
                 .withBackoff(minBackoff, maxBackoff, randomFactor, maxRestarts) { () =>
-                  projectionSource(tid)
+                  projectionSource(sqlBatchSize, tid)
                 }.viaMat(
                   KillSwitches.single
                 )(

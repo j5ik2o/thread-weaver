@@ -6,14 +6,19 @@ import akka.stream.scaladsl.{ Sink, Source }
 import com.github.j5ik2o.threadWeaver.adaptor.directives.{ MetricsDirectives, ThreadValidateDirectives }
 import com.github.j5ik2o.threadWeaver.adaptor.json._
 import com.github.j5ik2o.threadWeaver.adaptor.presenter._
+import com.github.j5ik2o.threadWeaver.adaptor.readModel.ThreadDas
 import com.github.j5ik2o.threadWeaver.adaptor.rejections.RejectionHandlers
 import com.github.j5ik2o.threadWeaver.useCase._
-import kamon.context.Context
-import wvlet.airframe._
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.generic.auto._
+import kamon.context.Context
+import wvlet.airframe._
 
-trait ThreadControllerImpl extends ThreadController with ThreadValidateDirectives with MetricsDirectives {
+trait ThreadControllerImpl
+    extends ThreadController
+    with ThreadValidateDirectives
+    with MetricsDirectives
+    with ThreadDas {
   import com.github.j5ik2o.threadWeaver.adaptor.directives.ThreadValidateDirectives._
 
   private val createThreadUseCase   = bind[CreateThreadUseCase]
@@ -159,4 +164,33 @@ trait ThreadControllerImpl extends ThreadController with ThreadValidateDirective
         }
       }
     }
+
+  override private[controller] def getMessages(implicit context: Context): Route = traceName(context)("get-messages") {
+    path("threads" / Segment / "messages") { threadIdString =>
+      get {
+        extractExecutionContext { implicit ec =>
+          extractMaterializer { implicit mat =>
+            validateThreadId(threadIdString) { threadId =>
+              onSuccess(
+                getMessagesByThreadIdSource(threadId)
+                  .map { messageRecord =>
+                    ThreadMessageJson(
+                      messageRecord.id,
+                      messageRecord.threadId,
+                      messageRecord.senderId,
+                      messageRecord.`type`,
+                      messageRecord.body,
+                      messageRecord.createdAt.toEpochMilli,
+                      messageRecord.updatedAt.toEpochMilli
+                    )
+                  }.runWith(Sink.seq[ThreadMessageJson]).map(_.toSeq)
+              ) { response =>
+                complete(GetThreadMessagesResponseJson(response))
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 }

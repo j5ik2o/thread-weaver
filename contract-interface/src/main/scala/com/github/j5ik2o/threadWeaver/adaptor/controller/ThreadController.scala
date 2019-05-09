@@ -184,4 +184,33 @@ trait ThreadController {
   )
   private[controller] def removeMessages(implicit context: Context): Route
 
+  @GET
+  @Path("/threads/{thread_id}/messages")
+  @Consumes(Array("application/json"))
+  @Operation(
+    summary = "Get messages from thread",
+    description = "Get messages request",
+    parameters = Array(
+      new Parameter(
+        name = "thread_id",
+        required = true,
+        in = ParameterIn.PATH,
+        description = "threadId",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "string"
+        )
+      )
+    ),
+    responses = Array(
+      new ApiResponse(
+        responseCode = "200",
+        description = "Get messages response",
+        content = Array(new Content(schema = new Schema(implementation = classOf[GetThreadMessagesResponseJson])))
+      ),
+      new ApiResponse(responseCode = "500", description = "Internal server error")
+    )
+  )
+  private[controller] def getMessages(implicit context: Context): Route
+
 }

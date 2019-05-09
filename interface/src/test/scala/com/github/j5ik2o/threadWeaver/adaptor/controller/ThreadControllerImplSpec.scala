@@ -2,17 +2,56 @@ package com.github.j5ik2o.threadWeaver.adaptor.controller
 
 import java.time.Instant
 
+import akka.actor.typed.ActorSystem
+import akka.actor.typed.scaladsl.adapter._
 import akka.http.scaladsl.model._
+import com.github.j5ik2o.threadWeaver.adaptor.AirframeSettings
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.PersistenceCleanup
 import com.github.j5ik2o.threadWeaver.adaptor.json._
+import com.github.j5ik2o.threadWeaver.adaptor.util.{ FlywayWithMySQLSpecSupport, Slick3SpecSupport }
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 import io.circe.generic.auto._
 import org.scalatest.FreeSpec
+import wvlet.airframe.Design
 
-class ThreadControllerImplSpec extends FreeSpec with RouteSpec {
+class ThreadControllerImplSpec
+    extends FreeSpec
+    with FlywayWithMySQLSpecSupport
+    with Slick3SpecSupport
+    with RouteSpec
+    with PersistenceCleanup {
+
+  override def typedSystem: ActorSystem[Nothing] = system.toTyped
+
+  override def testConfigSource: String =
+    """
+      |akka {
+      |  persistence {
+      |    journal {
+      |      plugin = akka.persistence.journal.leveldb
+      |      leveldb {
+      |        dir = "target/persistence/journal"
+      |        native = on
+      |      }
+      |      auto-start-journals = ["akka.persistence.journal.leveldb"]
+      |    }
+      |    snapshot-store {
+      |      plugin = akka.persistence.snapshot-store.local
+      |      local.dir = "target/persistence/snapshots"
+      |      auto-start-snapshot-stores = ["akka.persistence.snapshot-store.local"]
+      |    }
+      |  }
+      |}
+    """.stripMargin
+
+  override val tables: Seq[String] = Seq.empty
 
   var controller: ThreadController = _
 
+  override def design: Design = super.design.add(AirframeSettings.designOfSlick(dbConfig.profile, dbConfig.db))
+
   override def beforeAll(): Unit = {
+    deleteStorageLocations()
     super.beforeAll()
     controller = session.build[ThreadController]
   }
@@ -106,7 +145,6 @@ class ThreadControllerImplSpec extends FreeSpec with RouteSpec {
             RemoveMessagesRequestJson(accountId, messageIds, Instant.now.toEpochMilli).toHttpEntity
           Post(s"/threads/$threadId/messages/remove", removeMessagesRequestJson) ~> controller.removeMessages ~> check {
             response.status shouldEqual StatusCodes.OK
-
           }
         }
       }

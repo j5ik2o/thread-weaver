@@ -5,6 +5,10 @@ import java.time.Instant
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
 import cats.implicits._
 
+object Thread {
+  val MessagesLimit = 5000
+}
+
 final case class Thread(
     id: ThreadId,
     creatorId: AccountId,
@@ -50,57 +54,59 @@ final case class Thread(
 
   def getAdministratorIds(senderId: AccountId): Either[Exception, AdministratorIds] = {
     if (isRemoved)
-      Left(new IllegalStateException("already removed thread"))
+      Left(new IllegalStateException("already removed the thread"))
     else if (!isMemberId(senderId))
-      Left(new IllegalArgumentException("senderId is not administrator"))
+      Left(new IllegalArgumentException("The senderId is not the administrator"))
     else
       Right(administratorIds)
   }
 
   def addMemberIds(value: MemberIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
     if (isRemoved)
-      Left(new IllegalStateException("already removed thread"))
+      Left(new IllegalStateException("already removed the thread"))
     else if (!isAdministratorId(senderId))
-      Left(new IllegalArgumentException("senderId is not administrator."))
+      Left(new IllegalArgumentException("the senderId is not the administrator"))
     else
       Right(copy(memberIds = memberIds combine value, updatedAt = at))
   }
 
   def removeMemberIds(value: MemberIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
     if (isRemoved)
-      Left(new IllegalStateException("already removed thread"))
+      Left(new IllegalStateException("already removed the thread"))
     else if (!isAdministratorId(senderId))
-      Left(new IllegalArgumentException("senderId is not administrator."))
+      Left(new IllegalArgumentException("the senderId is not the administrator"))
     else
       Right(copy(memberIds = memberIds.filterNot(value), updatedAt = at))
   }
 
   def getMemberIds(senderId: AccountId): Either[Exception, MemberIds] = {
     if (isRemoved)
-      Left(new IllegalStateException("already removed thread"))
+      Left(new IllegalStateException("already removed the thread"))
     else if (!isMemberId(senderId))
-      Left(new IllegalArgumentException("senderId is not administrator"))
+      Left(new IllegalArgumentException("the senderId is not the administrator"))
     else
       Right(memberIds)
   }
 
   def addMessages(values: Messages, at: Instant): Either[Exception, Thread] = {
     if (isRemoved)
-      Left(new IllegalStateException("already removed thread"))
+      Left(new IllegalStateException("already removed the thread"))
     else if (!values.forall(v => isMemberId(v.senderId)))
-      Left(new IllegalArgumentException("senderId is not member"))
+      Left(new IllegalArgumentException("The senderId is not the member"))
+    else if (messages.size + values.size > Thread.MessagesLimit)
+      Left(new IllegalArgumentException("The limit of messages size is over"))
     else
       Right(copy(messages = messages combine values, updatedAt = at))
   }
 
   def removeMessages(values: MessageIds, removerId: AccountId, at: Instant): Either[Exception, Thread] = {
     if (isRemoved)
-      Left(new IllegalStateException("already removed thread"))
+      Left(new IllegalStateException("already removed the thread"))
     else if (!isMemberId(removerId))
-      Left(new IllegalArgumentException("removerId is not member"))
+      Left(new IllegalArgumentException("The removerId is not the member"))
     else {
       if (!messages.filter(values).forall(_.senderId == removerId))
-        Left(new IllegalArgumentException("removerId is not senderId"))
+        Left(new IllegalArgumentException("The removerId is not the senderId"))
       else
         Right(copy(messages = messages.filterNot(values), updatedAt = at))
     }
@@ -108,18 +114,18 @@ final case class Thread(
 
   def getMessages(senderId: AccountId): Either[Exception, Messages] = {
     if (isRemoved)
-      Left(new IllegalStateException("already removed thread"))
+      Left(new IllegalStateException("already removed the thread"))
     else if (!isMemberId(senderId))
-      Left(new IllegalArgumentException("senderId is not member"))
+      Left(new IllegalArgumentException("The senderId is not the member"))
     else
       Right(messages)
   }
 
   def destroy(senderId: AccountId, at: Instant): Either[Exception, Thread] = {
     if (isRemoved)
-      Left(new IllegalStateException("already removed thread"))
+      Left(new IllegalStateException("already removed the thread"))
     else if (!isAdministratorId(senderId))
-      Left(new IllegalArgumentException("senderId is not administrator."))
+      Left(new IllegalArgumentException("The senderId is not the administrator"))
     else
       Right(copy(removedAt = Some(at)))
   }
