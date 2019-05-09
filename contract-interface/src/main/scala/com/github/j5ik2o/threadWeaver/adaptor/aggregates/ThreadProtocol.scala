@@ -60,7 +60,7 @@ object ThreadProtocol {
   final case class CreateThread(
       id: ULID,
       threadId: ThreadId,
-      senderId: AccountId,
+      creatorId: AccountId,
       parentThreadId: Option[ThreadId],
       administratorIds: AdministratorIds,
       memberIds: MemberIds,
@@ -68,8 +68,9 @@ object ThreadProtocol {
       replyTo: Option[ActorRef[CreateThreadResponse]] = None
   ) extends CommandRequest
       with ToEvent {
+    override def senderId: AccountId = creatorId
     override def toEvent: Event =
-      ThreadCreated(ULID(), threadId, senderId, parentThreadId, administratorIds, memberIds, createAt)
+      ThreadCreated(ULID(), threadId, creatorId, parentThreadId, administratorIds, memberIds, createAt)
   }
   sealed trait CreateThreadResponse extends CommandResponse
   final case class CreateThreadSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
@@ -79,7 +80,7 @@ object ThreadProtocol {
   final case class ThreadCreated(
       id: ULID,
       threadId: ThreadId,
-      senderId: AccountId,
+      creatorId: AccountId,
       parentThreadId: Option[ThreadId],
       administratorIds: AdministratorIds,
       memberIds: MemberIds,
@@ -87,19 +88,20 @@ object ThreadProtocol {
   ) extends Event
       with ToCommandRequest {
     override def toCommandRequest: CommandRequest =
-      CreateThread(ULID(), threadId, senderId, parentThreadId, administratorIds, memberIds, createdAt)
+      CreateThread(ULID(), threadId, creatorId, parentThreadId, administratorIds, memberIds, createdAt)
   }
 
   // --- スレッドの破棄
   final case class DestroyThread(
       id: ULID,
       threadId: ThreadId,
-      senderId: AccountId,
+      destroyerId: AccountId,
       createAt: Instant,
       replyTo: Option[ActorRef[DestroyThreadResponse]] = None
   ) extends CommandRequest
       with ToEvent {
-    override def toEvent: Event = ThreadDestroyed(ULID(), threadId, senderId, createAt)
+    override def senderId: AccountId = destroyerId
+    override def toEvent: Event      = ThreadDestroyed(ULID(), threadId, destroyerId, createAt)
   }
   sealed trait DestroyThreadResponse extends CommandResponse
   final case class DestroyThreadSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
@@ -111,23 +113,24 @@ object ThreadProtocol {
       message: String,
       createAt: Instant
   ) extends DestroyThreadResponse
-  final case class ThreadDestroyed(id: ULID, threadId: ThreadId, senderId: AccountId, createdAt: Instant)
+  final case class ThreadDestroyed(id: ULID, threadId: ThreadId, destroyerId: AccountId, createdAt: Instant)
       extends Event
       with ToCommandRequest {
-    override def toCommandRequest: CommandRequest = DestroyThread(ULID(), threadId, senderId, createdAt)
+    override def toCommandRequest: CommandRequest = DestroyThread(ULID(), threadId, destroyerId, createdAt)
   }
 
   // --- 管理者の追加
   final case class AddAdministratorIds(
       id: ULID,
       threadId: ThreadId,
-      senderId: AccountId,
+      adderId: AccountId,
       administratorIds: AdministratorIds,
       createAt: Instant,
       replyTo: Option[ActorRef[AddAdministratorIdsResponse]] = None
   ) extends CommandRequest
       with ToEvent {
-    override def toEvent: Event = AdministratorIdsAdded(ULID(), threadId, senderId, administratorIds, createAt)
+    override def senderId: AccountId = adderId
+    override def toEvent: Event      = AdministratorIdsAdded(ULID(), threadId, adderId, administratorIds, createAt)
   }
   sealed trait AddAdministratorIdsResponse extends CommandResponse
   final case class AddAdministratorIdsSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
@@ -142,26 +145,28 @@ object ThreadProtocol {
   final case class AdministratorIdsAdded(
       id: ULID,
       threadId: ThreadId,
-      senderId: AccountId,
+      adderId: AccountId,
       administratorIds: AdministratorIds,
       createdAt: Instant
   ) extends Event
       with ToCommandRequest {
     override def toCommandRequest: CommandRequest =
-      AddAdministratorIds(ULID(), threadId, senderId, administratorIds, createdAt)
+      AddAdministratorIds(ULID(), threadId, adderId, administratorIds, createdAt)
   }
 
   // --- 管理者の削除
   final case class RemoveAdministratorIds(
       id: ULID,
       threadId: ThreadId,
-      senderId: AccountId,
+      removerId: AccountId,
       administratorIds: AdministratorIds,
       createAt: Instant,
       replyTo: Option[ActorRef[RemoveAdministratorIdsResponse]] = None
   ) extends CommandRequest
       with ToEvent {
-    override def toEvent: Event = AdministratorIdsRemoved(ULID(), threadId, senderId, administratorIds, createAt)
+    override def senderId: AccountId = removerId
+    override def toEvent: Event      = AdministratorIdsRemoved(ULID(), threadId, removerId, administratorIds, createAt)
+
   }
   sealed trait RemoveAdministratorIdsResponse extends CommandResponse
   final case class RemoveAdministratorIdsSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
@@ -213,13 +218,14 @@ object ThreadProtocol {
   final case class AddMemberIds(
       id: ULID,
       threadId: ThreadId,
-      senderId: AccountId,
+      adderId: AccountId,
       memberIds: MemberIds,
       createAt: Instant,
       replyTo: Option[ActorRef[AddMemberIdsResponse]] = None
   ) extends CommandRequest
       with ToEvent {
-    override def toEvent: Event = MemberIdsAdded(ULID(), threadId, senderId, memberIds, createAt)
+    override def senderId: AccountId = adderId
+    override def toEvent: Event      = MemberIdsAdded(ULID(), threadId, adderId, memberIds, createAt)
   }
   sealed trait AddMemberIdsResponse extends CommandResponse
   final case class AddMemberIdsSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
@@ -229,25 +235,26 @@ object ThreadProtocol {
   final case class MemberIdsAdded(
       id: ULID,
       threadId: ThreadId,
-      senderId: AccountId,
+      adderId: AccountId,
       memberIds: MemberIds,
       createdAt: Instant
   ) extends Event
       with ToCommandRequest {
-    override def toCommandRequest: CommandRequest = AddMemberIds(ULID(), threadId, senderId, memberIds, createdAt)
+    override def toCommandRequest: CommandRequest = AddMemberIds(ULID(), threadId, adderId, memberIds, createdAt)
   }
 
   // --- メンバーの削除
   final case class RemoveMemberIds(
       id: ULID,
       threadId: ThreadId,
-      senderId: AccountId,
+      removerId: AccountId,
       memberIds: MemberIds,
       createAt: Instant,
       replyTo: Option[ActorRef[RemoveMemberIdsResponse]] = None
   ) extends CommandRequest
       with ToEvent {
-    override def toEvent: Event = MemberIdsRemoved(ULID(), threadId, senderId, memberIds, createAt)
+    override def senderId: AccountId = removerId
+    override def toEvent: Event      = MemberIdsRemoved(ULID(), threadId, senderId, memberIds, createAt)
   }
   sealed trait RemoveMemberIdsResponse extends CommandResponse
   final case class RemoveMemberIdsSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
@@ -262,12 +269,12 @@ object ThreadProtocol {
   final case class MemberIdsRemoved(
       id: ULID,
       threadId: ThreadId,
-      senderId: AccountId,
+      removerId: AccountId,
       memberIds: MemberIds,
       createdAt: Instant
   ) extends Event
       with ToCommandRequest {
-    override def toCommandRequest: CommandRequest = RemoveMemberIds(ULID(), threadId, senderId, memberIds, createdAt)
+    override def toCommandRequest: CommandRequest = RemoveMemberIds(ULID(), threadId, removerId, memberIds, createdAt)
   }
 
   // --- メンバーの取得
@@ -293,13 +300,14 @@ object ThreadProtocol {
   final case class AddMessages(
       id: ULID,
       threadId: ThreadId,
-      senderId: AccountId,
+      adderId: AccountId,
       messages: Messages,
       createAt: Instant,
       replyTo: Option[ActorRef[AddMessagesResponse]] = None
   ) extends CommandRequest
       with ToEvent {
-    override def toEvent: Event = MessagesAdded(ULID(), threadId, senderId, messages, createAt)
+    override def senderId: AccountId = adderId
+    override def toEvent: Event      = MessagesAdded(ULID(), threadId, adderId, messages, createAt)
   }
   sealed trait AddMessagesResponse extends CommandResponse
   final case class AddMessagesSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
@@ -309,25 +317,26 @@ object ThreadProtocol {
   final case class MessagesAdded(
       id: ULID,
       threadId: ThreadId,
-      senderId: AccountId,
+      adderId: AccountId,
       messages: Messages,
       createdAt: Instant
   ) extends Event
       with ToCommandRequest {
-    override def toCommandRequest: CommandRequest = AddMessages(ULID(), threadId, senderId, messages, createdAt)
+    override def toCommandRequest: CommandRequest = AddMessages(ULID(), threadId, adderId, messages, createdAt)
   }
 
   // --- メッセージの削除
   final case class RemoveMessages(
       id: ULID,
       threadId: ThreadId,
-      senderId: AccountId,
+      removerId: AccountId,
       messageIds: MessageIds,
       createAt: Instant,
       replyTo: Option[ActorRef[RemoveMessagesResponse]] = None
   ) extends CommandRequest
       with ToEvent {
-    override def toEvent: Event = MessagesRemoved(ULID(), threadId, senderId, messageIds, createAt)
+    override def senderId: AccountId = removerId
+    override def toEvent: Event      = MessagesRemoved(ULID(), threadId, removerId, messageIds, createAt)
   }
   sealed trait RemoveMessagesResponse extends CommandResponse
   final case class RemoveMessagesSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
@@ -342,12 +351,12 @@ object ThreadProtocol {
   final case class MessagesRemoved(
       id: ULID,
       threadId: ThreadId,
-      senderId: AccountId,
+      removerId: AccountId,
       messageIds: MessageIds,
       createdAt: Instant
   ) extends Event
       with ToCommandRequest {
-    override def toCommandRequest: CommandRequest = RemoveMessages(ULID(), threadId, senderId, messageIds, createdAt)
+    override def toCommandRequest: CommandRequest = RemoveMessages(ULID(), threadId, removerId, messageIds, createdAt)
   }
 
   // --- メッセージの取得
