@@ -117,7 +117,7 @@ object AirframeSettings {
         )
       }
 
-  private[adaptor] def design(
+  def design(
       host: String,
       port: Int,
       system: ActorSystem[Nothing],
