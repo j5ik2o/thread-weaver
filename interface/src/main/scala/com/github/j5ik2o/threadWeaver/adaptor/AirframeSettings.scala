@@ -32,6 +32,7 @@ object AirframeSettings {
       .bind[CreateThreadPresenter].to[CreateThreadPresenterImpl]
       .bind[AddAdministratorIdsPresenter].to[AddAdministratorIdsPresenterImpl]
       .bind[AddMemberIdsPresenter].to[AddMemberIdsPresenterImpl]
+      .bind[AddMessagesPresenter].to[AddMessagesPresenterImpl]
 
   def designOfSwagger(host: String, port: Int): Design =
     newDesign

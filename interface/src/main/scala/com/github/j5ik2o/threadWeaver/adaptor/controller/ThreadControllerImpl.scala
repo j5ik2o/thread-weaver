@@ -13,6 +13,7 @@ import com.github.j5ik2o.threadWeaver.adaptor.json.{
 import com.github.j5ik2o.threadWeaver.adaptor.presenter.{
   AddAdministratorIdsPresenter,
   AddMemberIdsPresenter,
+  AddMessagesPresenter,
   CreateThreadPresenter
 }
 import com.github.j5ik2o.threadWeaver.adaptor.rejections.RejectionHandlers
@@ -39,7 +40,8 @@ trait ThreadControllerImpl extends ThreadController with ThreadValidateDirective
   private val addMemberIdsUseCase   = bind[AddMemberIdsUseCase]
   private val addMemberIdsPresenter = bind[AddMemberIdsPresenter]
 
-  private val addMessagesUseCase = bind[AddMessagesUseCase]
+  private val addMessagesUseCase   = bind[AddMessagesUseCase]
+  private val addMessagesPresenter = bind[AddMessagesPresenter]
 
   override def toRoutes(implicit context: Context): Route = handleRejections(RejectionHandlers.default) {
     pathPrefix("v1") {
@@ -120,7 +122,7 @@ trait ThreadControllerImpl extends ThreadController with ThreadValidateDirective
       }
     }
 
-  override private[controller] def addMessages(implicit context: Context) =
+  override private[controller] def addMessages(implicit context: Context): Route =
     traceName(context)("add-messages") {
       path("threads" / Segment / "messages") { threadIdString =>
         post {
@@ -133,7 +135,7 @@ trait ThreadControllerImpl extends ThreadController with ThreadValidateDirective
                       commandRequest
                     ).via(
                       addMessagesUseCase.execute
-                    ).via(addMemberIdsPresenter.response).runWith(Sink.head)
+                    ).via(addMessagesPresenter.response).runWith(Sink.head)
                   onSuccess(responseFuture) { response =>
                     complete(response)
                   }

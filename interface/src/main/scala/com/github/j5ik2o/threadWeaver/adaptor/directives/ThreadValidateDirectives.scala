@@ -90,11 +90,14 @@ object ThreadValidateDirectives {
     override def validate(value: (ThreadId, AddMessagesRequestJson)): ValidationResult[AddMessages] = {
       (
         validateAccountId(value._2.senderId),
-        validateMemberIds(value._2.text),
+        value._2.messages
+          .map { v =>
+            validateTextMessage(v.replyMessageId, v.toAccountIds, v.text)
+          }.toList.sequence,
         validateInstant(value._2.createAt)
       ).mapN {
-        case (adderId, memberIds, createdAt) =>
-          AddMessages(ULID(), value._1, adderId, memberIds, createdAt)
+        case (adderId, textMessages, createdAt) =>
+          AddMessages(ULID(), value._1, adderId, textMessages, createdAt)
       }
     }
   }

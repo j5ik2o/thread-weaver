@@ -39,9 +39,16 @@ class AddMessagesUseCaseImpl(
             request.senderId,
             Messages(
               request.messages
-                .map(
-                  v => TextMessage(MessageId(), None, ToAccountIds.empty, Text(v), request.createdAt, request.createdAt)
-                ): _*
+                .map { message =>
+                  TextMessage(
+                    MessageId(),
+                    message.replyMessageId,
+                    message.toAccountIds,
+                    message.body,
+                    request.createdAt,
+                    request.createdAt
+                  )
+                }: _*
             ),
             request.createdAt,
             Some(ref)
