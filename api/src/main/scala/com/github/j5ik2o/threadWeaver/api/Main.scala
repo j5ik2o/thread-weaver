@@ -11,10 +11,12 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
 import akka.management.cluster.bootstrap.ClusterBootstrap
 import akka.management.scaladsl.AkkaManagement
+import akka.persistence.query.PersistenceQuery
 import akka.stream.ActorMaterializer
 import cats.syntax.validated._
 import com.github.everpeace.healthchecks._
 import com.github.everpeace.healthchecks.k8s._
+import com.github.j5ik2o.akka.persistence.dynamodb.query.scaladsl.DynamoDBReadJournal
 import com.github.j5ik2o.threadWeaver.adaptor.AirframeSettings
 import com.github.j5ik2o.threadWeaver.adaptor.routes.Routes
 import com.github.j5ik2o.threadWeaver.api.config.EnvironmentURLStreamHandlerFactory
@@ -25,6 +27,8 @@ import kamon.jmx.collector.KamonJmxMetricCollector
 import kamon.system.SystemMetrics
 import org.slf4j.LoggerFactory
 import org.slf4j.bridge.SLF4JBridgeHandler
+import slick.basic.DatabaseConfig
+import slick.jdbc.JdbcProfile
 
 import scala.concurrent.Future
 
@@ -83,18 +87,25 @@ object Main extends App {
     classOf[ClusterDomainEvent]
   )
 
+  val readJournal = PersistenceQuery(system).readJournalFor[DynamoDBReadJournal](DynamoDBReadJournal.Identifier)
+  val dbConfig    = DatabaseConfig.forConfig[JdbcProfile]("slick", config)
+  val profile     = dbConfig.profile
+  val db          = dbConfig.db
+
   val clusterSharding = ClusterSharding(system.toTyped)
 
   val host = config.getString("thread-weaver.api.host")
   val port = config.getInt("thread-weaver.api.port")
 
   val akkaHealthCheck = HealthCheck.akka(host, port)
-  val design          = AirframeSettings.design(host, port, system.toTyped, clusterSharding, materializer)
-  val session         = design.newSession
+
+  val design =
+    AirframeSettings.design(host, port, system.toTyped, clusterSharding, materializer, readJournal, profile, db)
+  val session = design.newSession
   session.start
 
   val routes = session
-      .build[Routes].root ~ readinessProbe(akkaHealthCheck).toRoute ~ livenessProbe(akkaHealthCheck).toRoute
+    .build[Routes].root ~ readinessProbe(akkaHealthCheck).toRoute ~ livenessProbe(akkaHealthCheck).toRoute
 
   val bindingFuture = Http().bindAndHandle(routes, host, port).map { serverBinding =>
     system.log.info(s"Server online at ${serverBinding.localAddress}")

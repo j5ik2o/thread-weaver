@@ -3,9 +3,14 @@ package com.github.j5ik2o.threadWeaver.adaptor.validator
 import java.time.Instant
 
 import cats.implicits._
-import com.github.j5ik2o.threadWeaver.adaptor.error.{ AdministratorIdsError, InstantFormatError, ULIDFormatError }
+import com.github.j5ik2o.threadWeaver.adaptor.error.{
+  AdministratorIdsError,
+  InstantFormatError,
+  TextMessageFormatError,
+  ULIDFormatError
+}
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
-import com.github.j5ik2o.threadWeaver.domain.model.threads.{ AdministratorIds, MemberIds, ThreadId }
+import com.github.j5ik2o.threadWeaver.domain.model.threads._
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 
 import scala.util.control.NonFatal
@@ -43,6 +48,50 @@ object ValidateUtils {
 
   def validateMemberIds(values: Seq[String]): ValidationResult[MemberIds] = {
     values.map(validateAccountId).toList.sequence.map(v => MemberIds(v: _*))
+  }
+
+  def validateText(value: String): ValidationResult[Text] = {
+    Text.parseFrom(value).leftMap(e => TextMessageFormatError(e.getMessage)) match {
+      case Left(e)  => e.invalidNel
+      case Right(r) => r.validNel
+    }
+  }
+
+  def validateMessageId(value: String): ValidationResult[MessageId] = {
+    validateULID(value).map(MessageId)
+  }
+
+  def validateMessageIds(values: Seq[String]): ValidationResult[MessageIds] = {
+    values.map(validateMessageId).toList.sequence.map(v => MessageIds(v: _*))
+  }
+
+  def validateMessageIdOpt(value: Option[String]): ValidationResult[Option[MessageId]] = {
+    value match {
+      case Some(v) => validateMessageId(v).map(v => Some(v))
+      case None    => None.validNel
+    }
+  }
+
+  def validateToAccountIds(values: Seq[String]): ValidationResult[ToAccountIds] = {
+    values.map(validateAccountId).toList.sequence.map(v => ToAccountIds(v: _*))
+  }
+
+  def validateTextMessage(
+      replyMessageIdValue: Option[String],
+      toAccountIdsValues: Seq[String],
+      textValue: String,
+      senderId: String
+  ): ValidationResult[TextMessage] = {
+    (
+      validateMessageIdOpt(replyMessageIdValue),
+      validateToAccountIds(toAccountIdsValues),
+      validateText(textValue),
+      validateAccountId(senderId)
+    ).mapN {
+        case (replyMessageIdOpt, toAccountIds, text, senderId) =>
+          val now = Instant.now
+          TextMessage(MessageId(), replyMessageIdOpt, toAccountIds, text, senderId, now, now)
+      }
   }
 
   def validateInstant(value: Long): ValidationResult[Instant] = {

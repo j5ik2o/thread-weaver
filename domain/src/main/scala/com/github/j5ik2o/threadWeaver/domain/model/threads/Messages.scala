@@ -4,11 +4,23 @@ import cats.Monoid
 
 final case class Messages(breachEncapsulationOfValues: Vector[Message[_]]) {
 
+  def size = breachEncapsulationOfValues.size
+
+  def filter(messageIds: MessageIds): Messages =
+    copy(
+      breachEncapsulationOfValues = breachEncapsulationOfValues.filter(v => messageIds.contains(v.id))
+    )
+
+  def forall(condition: Message[_] => Boolean): Boolean =
+    breachEncapsulationOfValues.forall(condition)
+
   def filterNot(messageIds: MessageIds): Messages = {
     copy(
       breachEncapsulationOfValues = breachEncapsulationOfValues.filterNot(v => messageIds.contains(v.id))
     )
   }
+
+  def toMessageIds: MessageIds = MessageIds(breachEncapsulationOfValues.map(_.id): _*)
 
 }
 

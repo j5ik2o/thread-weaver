@@ -197,11 +197,10 @@ class ThreadAggregateSpec extends ScalaTestWithActorTestKit with FreeSpecLike wi
       }
 
       val addMessagesResponseProbe = TestProbe[AddMessagesResponse]()
-      val messages                 = Messages(TextMessage(MessageId(), None, ToAccountIds.empty, Text("ABC"), now, now))
+      val messages                 = Messages(TextMessage(MessageId(), None, ToAccountIds.empty, Text("ABC"), memberId, now, now))
       threadRef ! AddMessages(
         ULID(),
         threadId,
-        memberId,
         messages,
         now,
         Some(addMessagesResponseProbe.ref)
