@@ -3,21 +3,11 @@ package com.github.j5ik2o.threadWeaver.adaptor.directives
 import cats.implicits._
 import akka.http.scaladsl.server.Directive1
 import akka.http.scaladsl.server.Directives._
-import com.github.j5ik2o.threadWeaver.adaptor.json.{
-  AddAdministratorIdsRequestJson,
-  AddMemberIdsRequestJson,
-  AddMessagesRequestJson,
-  CreateThreadRequestJson
-}
+import com.github.j5ik2o.threadWeaver.adaptor.json._
 import com.github.j5ik2o.threadWeaver.adaptor.validator.{ ValidateUtils, ValidationResult, Validator }
 import com.github.j5ik2o.threadWeaver.domain.model.threads.ThreadId
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
-import com.github.j5ik2o.threadWeaver.useCase.ThreadWeaverProtocol.{
-  AddAdministratorIds,
-  AddMemberIds,
-  AddMessages,
-  CreateThread
-}
+import com.github.j5ik2o.threadWeaver.useCase.ThreadWeaverProtocol._
 
 trait ThreadValidateDirectives {
 
@@ -89,15 +79,28 @@ object ThreadValidateDirectives {
   implicit object AddMessagesRequestJsonValidator extends Validator[(ThreadId, AddMessagesRequestJson), AddMessages] {
     override def validate(value: (ThreadId, AddMessagesRequestJson)): ValidationResult[AddMessages] = {
       (
-        validateAccountId(value._2.senderId),
         value._2.messages
           .map { v =>
-            validateTextMessage(v.replyMessageId, v.toAccountIds, v.text)
+            validateTextMessage(v.replyMessageId, v.toAccountIds, v.text, value._2.senderId)
           }.toList.sequence,
         validateInstant(value._2.createAt)
       ).mapN {
-        case (adderId, textMessages, createdAt) =>
-          AddMessages(ULID(), value._1, adderId, textMessages, createdAt)
+        case (textMessages, createdAt) =>
+          AddMessages(ULID(), value._1, textMessages, createdAt)
+      }
+    }
+  }
+
+  implicit object RemoveMessagesRequestJsonValidator
+      extends Validator[(ThreadId, RemoveMessagesRequestJson), RemoveMessages] {
+    override def validate(value: (ThreadId, RemoveMessagesRequestJson)): ValidationResult[RemoveMessages] = {
+      (
+        validateAccountId(value._2.senderId),
+        validateMessageIds(value._2.messageIds),
+        validateInstant(value._2.createAt)
+      ).mapN {
+        case (adderId, messageIds, createdAt) =>
+          RemoveMessages(ULID(), value._1, adderId, messageIds, createdAt)
       }
     }
   }

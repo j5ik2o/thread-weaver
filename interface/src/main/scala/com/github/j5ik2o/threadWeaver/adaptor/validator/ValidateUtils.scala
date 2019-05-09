@@ -61,6 +61,10 @@ object ValidateUtils {
     validateULID(value).map(MessageId)
   }
 
+  def validateMessageIds(values: Seq[String]): ValidationResult[MessageIds] = {
+    values.map(validateMessageId).toList.sequence.map(v => MessageIds(v: _*))
+  }
+
   def validateMessageIdOpt(value: Option[String]): ValidationResult[Option[MessageId]] = {
     value match {
       case Some(v) => validateMessageId(v).map(v => Some(v))
@@ -75,13 +79,18 @@ object ValidateUtils {
   def validateTextMessage(
       replyMessageIdValue: Option[String],
       toAccountIdsValues: Seq[String],
-      textValue: String
+      textValue: String,
+      senderId: String
   ): ValidationResult[TextMessage] = {
-    (validateMessageIdOpt(replyMessageIdValue), validateToAccountIds(toAccountIdsValues), validateText(textValue))
-      .mapN {
-        case (replyMessageIdOpt, toAccountIds, text) =>
+    (
+      validateMessageIdOpt(replyMessageIdValue),
+      validateToAccountIds(toAccountIdsValues),
+      validateText(textValue),
+      validateAccountId(senderId)
+    ).mapN {
+        case (replyMessageIdOpt, toAccountIds, text, senderId) =>
           val now = Instant.now
-          TextMessage(MessageId(), replyMessageIdOpt, toAccountIds, text, now, now)
+          TextMessage(MessageId(), replyMessageIdOpt, toAccountIds, text, senderId, now, now)
       }
   }
 

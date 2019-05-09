@@ -105,15 +105,17 @@ object PersistentThreadAggregate {
       }
 
     // for Messages
-    case (State(Some(thread), _), c @ AddMessages(cmdId, threadId, senderId, messages, createAt, replyTo)) =>
-      thread.addMessages(messages, senderId, createAt) match {
+    case (State(Some(thread), _), c @ AddMessages(cmdId, threadId, messages, createAt, replyTo)) =>
+      thread.addMessages(messages, createAt) match {
         case Left(exception) =>
           Effect.none.thenRun { _ =>
             replyTo.foreach(_ ! AddMessagesFailed(ULID(), cmdId, threadId, exception.getMessage, createAt))
           }
         case Right(_) =>
           Effect.persist(c.toEvent).thenRun { _ =>
-            replyTo.foreach(_ ! AddMessagesSucceeded(ULID(), cmdId, threadId, createAt))
+            replyTo.foreach(
+              _ ! AddMessagesSucceeded(ULID(), cmdId, threadId, messages.toMessageIds, createAt)
+            )
           }
       }
     case (State(Some(thread), _), c @ RemoveMessages(cmdId, threadId, senderId, messages, createAt, replyTo)) =>
@@ -184,8 +186,8 @@ object PersistentThreadAggregate {
       s.applyState(thread.removeMemberIds(memberIds, removerId, createdAt).right.get)
 
     // for Messages
-    case (s @ State(Some(thread), _), MessagesAdded(_, _, adderId, messages, createdAt)) =>
-      s.applyState(thread.addMessages(messages, adderId, createdAt).right.get)
+    case (s @ State(Some(thread), _), MessagesAdded(_, _, messages, createdAt)) =>
+      s.applyState(thread.addMessages(messages, createdAt).right.get)
     case (s @ State(Some(thread), _), MessagesRemoved(_, _, removerId, messages, createdAt)) =>
       s.applyState(thread.removeMessages(messages, removerId, createdAt).right.get)
 

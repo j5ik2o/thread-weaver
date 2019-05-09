@@ -33,6 +33,7 @@ object AirframeSettings {
       .bind[AddAdministratorIdsPresenter].to[AddAdministratorIdsPresenterImpl]
       .bind[AddMemberIdsPresenter].to[AddMemberIdsPresenterImpl]
       .bind[AddMessagesPresenter].to[AddMessagesPresenterImpl]
+      .bind[RemoveMessagesPresenter].to[RemoveMessagesPresenterImpl]
 
   def designOfSwagger(host: String, port: Int): Design =
     newDesign

@@ -3,7 +3,7 @@ package com.github.j5ik2o.threadWeaver.useCase
 import java.time.Instant
 
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
-import com.github.j5ik2o.threadWeaver.domain.model.threads.{ AdministratorIds, MemberIds, TextMessage, ThreadId }
+import com.github.j5ik2o.threadWeaver.domain.model.threads._
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 
 object ThreadWeaverProtocol {
@@ -106,13 +106,17 @@ object ThreadWeaverProtocol {
   final case class AddMessages(
       id: ULID,
       threadId: ThreadId,
-      adderId: AccountId,
       messages: Seq[TextMessage],
       createdAt: Instant
   ) extends ThreadWeaverRequest
   sealed trait AddMessagesResponse extends ThreadWeaverResponse
-  final case class AddMessagesSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
-      extends AddMessagesResponse
+  final case class AddMessagesSucceeded(
+      id: ULID,
+      requestId: ULID,
+      threadId: ThreadId,
+      messageIds: MessageIds,
+      createAt: Instant
+  ) extends AddMessagesResponse
   final case class AddMessagesFailed(id: ULID, requestId: ULID, threadId: ThreadId, message: String, createAt: Instant)
       extends AddMessagesResponse
   // --- メッセージの削除
@@ -120,7 +124,7 @@ object ThreadWeaverProtocol {
       id: ULID,
       threadId: ThreadId,
       removerId: AccountId,
-      messages: Seq[TextMessage],
+      messageIds: MessageIds,
       createdAt: Instant
   ) extends ThreadWeaverRequest
   sealed trait RemoveMessagesResponse extends ThreadWeaverResponse

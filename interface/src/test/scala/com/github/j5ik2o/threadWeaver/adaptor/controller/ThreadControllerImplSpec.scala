@@ -40,7 +40,7 @@ class ThreadControllerImplSpec extends FreeSpec with RouteSpec {
         val accountId = ULID().asString
         val addAdministratorIds =
           AddAdministratorIdsRequestJson(administratorId, Seq(accountId), Instant.now.toEpochMilli).toHttpEntity
-        Post(s"/threads/$threadId/administrator-ids", addAdministratorIds) ~> controller.addAdministratorIds ~> check {
+        Post(s"/threads/$threadId/administrator-ids/add", addAdministratorIds) ~> controller.addAdministratorIds ~> check {
           response.status shouldEqual StatusCodes.OK
           val responseJson = responseAs[AddAdministratorIdsResponseJson]
           responseJson.isSuccessful shouldBe true
@@ -59,7 +59,7 @@ class ThreadControllerImplSpec extends FreeSpec with RouteSpec {
         val accountId = ULID().asString
         val addMemberIds =
           AddMemberIdsRequestJson(administratorId, Seq(accountId), Instant.now.toEpochMilli).toHttpEntity
-        Post(s"/threads/$threadId/member-ids", addMemberIds) ~> controller.addMemberIds ~> check {
+        Post(s"/threads/$threadId/member-ids/add", addMemberIds) ~> controller.addMemberIds ~> check {
           response.status shouldEqual StatusCodes.OK
           val responseJson = responseAs[AddMemberIdsResponseJson]
           responseJson.isSuccessful shouldBe true
@@ -78,10 +78,36 @@ class ThreadControllerImplSpec extends FreeSpec with RouteSpec {
         val threadId = responseJson.id.get
         val addMessages =
           AddMessagesRequestJson(accountId, Seq(TextMessage(None, Seq.empty, "ABC")), Instant.now.toEpochMilli).toHttpEntity
-        Post(s"/threads/$threadId/messages", addMessages) ~> controller.addMessages ~> check {
+        Post(s"/threads/$threadId/messages/add", addMessages) ~> controller.addMessages ~> check {
           response.status shouldEqual StatusCodes.OK
           val responseJson = responseAs[AddMessagesResponseJson]
           responseJson.isSuccessful shouldBe true
+        }
+      }
+    }
+    "remove messages" in {
+      val administratorId = ULID().asString
+      val accountId       = ULID().asString
+      val createThread =
+        CreateThreadRequestJson(administratorId, None, Seq(administratorId), Seq(accountId), Instant.now.toEpochMilli).toHttpEntity
+      Post("/threads", createThread) ~> controller.createThread ~> check {
+        response.status shouldEqual StatusCodes.OK
+        val responseJson = responseAs[CreateThreadResponseJson]
+        responseJson.isSuccessful shouldBe true
+        val threadId = responseJson.id.get
+        val addMessages =
+          AddMessagesRequestJson(accountId, Seq(TextMessage(None, Seq.empty, "ABC")), Instant.now.toEpochMilli).toHttpEntity
+        Post(s"/threads/$threadId/messages/add", addMessages) ~> controller.addMessages ~> check {
+          response.status shouldEqual StatusCodes.OK
+          val responseJson = responseAs[AddMessagesResponseJson]
+          responseJson.isSuccessful shouldBe true
+          val messageIds = responseJson.ids
+          val removeMessagesRequestJson =
+            RemoveMessagesRequestJson(accountId, messageIds, Instant.now.toEpochMilli).toHttpEntity
+          Post(s"/threads/$threadId/messages/remove", removeMessagesRequestJson) ~> controller.removeMessages ~> check {
+            response.status shouldEqual StatusCodes.OK
+
+          }
         }
       }
     }

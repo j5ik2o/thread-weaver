@@ -300,29 +300,32 @@ object ThreadProtocol {
   final case class AddMessages(
       id: ULID,
       threadId: ThreadId,
-      adderId: AccountId,
       messages: Messages,
       createAt: Instant,
       replyTo: Option[ActorRef[AddMessagesResponse]] = None
   ) extends CommandRequest
       with ToEvent {
-    override def senderId: AccountId = adderId
-    override def toEvent: Event      = MessagesAdded(ULID(), threadId, adderId, messages, createAt)
+    override def senderId: AccountId = messages.breachEncapsulationOfValues.head.senderId
+    override def toEvent: Event      = MessagesAdded(ULID(), threadId, messages, createAt)
   }
   sealed trait AddMessagesResponse extends CommandResponse
-  final case class AddMessagesSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
-      extends AddMessagesResponse
+  final case class AddMessagesSucceeded(
+      id: ULID,
+      requestId: ULID,
+      threadId: ThreadId,
+      messageIds: MessageIds,
+      createAt: Instant
+  ) extends AddMessagesResponse
   final case class AddMessagesFailed(id: ULID, requestId: ULID, threadId: ThreadId, message: String, createAt: Instant)
       extends AddMessagesResponse
   final case class MessagesAdded(
       id: ULID,
       threadId: ThreadId,
-      adderId: AccountId,
       messages: Messages,
       createdAt: Instant
   ) extends Event
       with ToCommandRequest {
-    override def toCommandRequest: CommandRequest = AddMessages(ULID(), threadId, adderId, messages, createdAt)
+    override def toCommandRequest: CommandRequest = AddMessages(ULID(), threadId, messages, createdAt)
   }
 
   // --- メッセージの削除
