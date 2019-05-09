@@ -45,7 +45,7 @@ trait ThreadControllerImpl extends ThreadController with ThreadValidateDirective
 
   override def toRoutes(implicit context: Context): Route = handleRejections(RejectionHandlers.default) {
     pathPrefix("v1") {
-      createThread
+      createThread ~ addAdministratorIds ~ addMemberIds ~ addMessages
     }
   }
 
