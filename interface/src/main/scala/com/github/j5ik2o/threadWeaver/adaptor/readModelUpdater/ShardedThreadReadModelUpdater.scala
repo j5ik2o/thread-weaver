@@ -4,7 +4,10 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ ActorRef, Behavior }
 import akka.cluster.sharding.typed.ShardingEnvelope
 import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, Entity, EntityContext, EntityTypeKey }
-import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdater.ReadJournalType
+import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdater.{
+  BackoffSettings,
+  ReadJournalType
+}
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdaterProtocol.{
   CommandRequest,
   Idle,
@@ -22,23 +25,29 @@ class ShardedThreadReadModelUpdater(
 
   val TypeKey: EntityTypeKey[CommandRequest] = EntityTypeKey[CommandRequest]("threads-rmu")
 
-  private def behavior(receiveTimeout: FiniteDuration): EntityContext => Behavior[CommandRequest] = { entityContext =>
-    Behaviors.setup[CommandRequest] { ctx =>
-      val childRef = ctx.spawn(
-        new ThreadReadModelUpdater(readJournal, profile, db).behavior,
-        name = "threads-rmu"
-      )
-      Behaviors.receiveMessagePartial {
-        case Idle =>
-          entityContext.shard ! ClusterSharding.Passivate(ctx.self)
-          Behaviors.same
-        case Stop =>
-          Behaviors.stopped
-        case msg =>
-          childRef ! msg
-          Behaviors.same
+  private def behavior(receiveTimeout: FiniteDuration,
+                       sqlBatchSize: Long = 10,
+                       backoffSettings: Option[BackoffSettings] = None): EntityContext => Behavior[CommandRequest] = {
+    entityContext =>
+      Behaviors.setup[CommandRequest] { ctx =>
+        val childRef = ctx.spawn(
+          new ThreadReadModelUpdater(readJournal, profile, db).behavior(sqlBatchSize, backoffSettings),
+          name = "threads-rmu"
+        )
+        Behaviors.receiveMessagePartial {
+          case Idle =>
+            entityContext.shard ! ClusterSharding.Passivate(ctx.self)
+            Behaviors.same
+          case Stop =>
+            Behaviors.stopped
+          case Stop(_, _, _) =>
+            ctx.self ! Idle
+            Behaviors.same
+          case msg =>
+            childRef ! msg
+            Behaviors.same
+        }
       }
-    }
   }
 
   def initEntityActor(
