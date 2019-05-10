@@ -114,6 +114,13 @@ class ThreadControllerImplSpec
           response.status shouldEqual StatusCodes.OK
           val responseJson = responseAs[AddAdministratorIdsResponseJson]
           responseJson.isSuccessful shouldBe true
+          eventually {
+            Get(s"/threads/$threadId/administrator-ids") ~> controller.getAdministratorIds ~> check {
+              response.status shouldEqual StatusCodes.OK
+              val responseJson = responseAs[GetThreadAdministratorIdsResponseJson]
+              responseJson.isSuccessful shouldBe true
+            }
+          }
         }
       }
     }
@@ -141,6 +148,13 @@ class ThreadControllerImplSpec
           response.status shouldEqual StatusCodes.OK
           val responseJson = responseAs[AddMemberIdsResponseJson]
           responseJson.isSuccessful shouldBe true
+          eventually {
+            Get(s"/threads/$threadId/member-ids") ~> controller.getMemberIds ~> check {
+              response.status shouldEqual StatusCodes.OK
+              val responseJson = responseAs[GetThreadMemberIdsResponseJson]
+              responseJson.isSuccessful shouldBe true
+            }
+          }
         }
       }
     }

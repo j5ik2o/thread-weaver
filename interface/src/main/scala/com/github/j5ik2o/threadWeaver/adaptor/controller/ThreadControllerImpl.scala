@@ -230,6 +230,56 @@ trait ThreadControllerImpl
     }
   }
 
+  override private[controller] def getAdministratorIds(implicit context: Context): Route =
+    traceName(context)("get-administrator-ids") {
+      path("threads" / Segment / "administrator-ids") { threadIdString =>
+        get {
+          extractExecutionContext { implicit ec =>
+            extractMaterializer { implicit mat =>
+              validateThreadId(threadIdString) { threadId =>
+                parameters(('offset.as[Long].?, 'limit.as[Long].?)) {
+                  case (offset, limit) =>
+                    onSuccess(
+                      getAdministratorsByThreadIdSource(threadId, offset, limit)
+                        .map { record =>
+                          record.accountId
+                        }.runWith(Sink.seq[String]).map(_.toSeq)
+                    ) { response =>
+                      complete(GetThreadAdministratorIdsResponseJson(response))
+                    }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+  override private[controller] def getMemberIds(implicit context: Context) =
+    traceName(context)("get-member-ids") {
+      path("threads" / Segment / "member-ids") { threadIdString =>
+        get {
+          extractExecutionContext { implicit ec =>
+            extractMaterializer { implicit mat =>
+              validateThreadId(threadIdString) { threadId =>
+                parameters(('offset.as[Long].?, 'limit.as[Long].?)) {
+                  case (offset, limit) =>
+                    onSuccess(
+                      getMembersByThreadIdSource(threadId, offset, limit)
+                        .map { record =>
+                          record.accountId
+                        }.runWith(Sink.seq[String]).map(_.toSeq)
+                    ) { response =>
+                      complete(GetThreadMemberIdsResponseJson(response))
+                    }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
   override private[controller] def getMessages(implicit context: Context): Route = traceName(context)("get-messages") {
     path("threads" / Segment / "messages") { threadIdString =>
       get {

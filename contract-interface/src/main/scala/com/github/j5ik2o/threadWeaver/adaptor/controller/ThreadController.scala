@@ -256,6 +256,109 @@ trait ThreadController {
   private[controller] def getThreads(implicit context: Context): Route
 
   @GET
+  @Path("/threads/{thread_id}/administrator-ids")
+  @Consumes(Array("application/json"))
+  @Operation(
+    summary = "Get administrator-ids from thread",
+    description = "Get administrator-ids request",
+    parameters = Array(
+      new Parameter(
+        name = "thread_id",
+        required = true,
+        in = ParameterIn.PATH,
+        description = "threadId",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "string"
+        )
+      ),
+      new Parameter(
+        name = "offset",
+        required = false,
+        in = ParameterIn.QUERY,
+        description = "offset",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "number",
+          format = "int64"
+        )
+      ),
+      new Parameter(
+        name = "limit",
+        required = false,
+        in = ParameterIn.QUERY,
+        description = "limit",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "number",
+          format = "int64"
+        )
+      )
+    ),
+    responses = Array(
+      new ApiResponse(
+        responseCode = "200",
+        description = "Get administrator-ids response",
+        content =
+          Array(new Content(schema = new Schema(implementation = classOf[GetThreadAdministratorIdsResponseJson])))
+      ),
+      new ApiResponse(responseCode = "500", description = "Internal server error")
+    )
+  )
+  private[controller] def getAdministratorIds(implicit context: Context): Route
+
+  @GET
+  @Path("/threads/{thread_id}/member-ids")
+  @Consumes(Array("application/json"))
+  @Operation(
+    summary = "Get member-ids from thread",
+    description = "Get member-ids request",
+    parameters = Array(
+      new Parameter(
+        name = "thread_id",
+        required = true,
+        in = ParameterIn.PATH,
+        description = "threadId",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "string"
+        )
+      ),
+      new Parameter(
+        name = "offset",
+        required = false,
+        in = ParameterIn.QUERY,
+        description = "offset",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "number",
+          format = "int64"
+        )
+      ),
+      new Parameter(
+        name = "limit",
+        required = false,
+        in = ParameterIn.QUERY,
+        description = "limit",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "number",
+          format = "int64"
+        )
+      )
+    ),
+    responses = Array(
+      new ApiResponse(
+        responseCode = "200",
+        description = "Get member-ids response",
+        content = Array(new Content(schema = new Schema(implementation = classOf[GetThreadMemberIdsResponseJson])))
+      ),
+      new ApiResponse(responseCode = "500", description = "Internal server error")
+    )
+  )
+  private[controller] def getMemberIds(implicit context: Context): Route
+
+  @GET
   @Path("/threads/{thread_id}/messages")
   @Consumes(Array("application/json"))
   @Operation(
