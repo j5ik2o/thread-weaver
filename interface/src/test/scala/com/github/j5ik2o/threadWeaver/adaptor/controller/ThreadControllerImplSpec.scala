@@ -8,14 +8,21 @@ import akka.http.scaladsl.model._
 import com.github.j5ik2o.threadWeaver.adaptor.AirframeSettings
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.PersistenceCleanup
 import com.github.j5ik2o.threadWeaver.adaptor.json._
-import com.github.j5ik2o.threadWeaver.adaptor.util.{ FlywayWithMySQLSpecSupport, Slick3SpecSupport }
+import com.github.j5ik2o.threadWeaver.adaptor.util.{
+  FlywayWithMySQLSpecSupport,
+  ScalaFuturesSpecSupport,
+  Slick3SpecSupport
+}
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 import io.circe.generic.auto._
 import org.scalatest.FreeSpec
+import org.scalatest.concurrent.Eventually
 import wvlet.airframe.Design
 
 class ThreadControllerImplSpec
     extends FreeSpec
+    with Eventually
+    with ScalaFuturesSpecSupport
     with FlywayWithMySQLSpecSupport
     with Slick3SpecSupport
     with RouteSpec
@@ -69,10 +76,18 @@ class ThreadControllerImplSpec
           Seq.empty,
           Instant.now.toEpochMilli
         ).toHttpEntity
-      Post("/threads", entity) ~> controller.createThread ~> check {
+      Post("/threads/new", entity) ~> controller.createThread ~> check {
         response.status shouldEqual StatusCodes.OK
         val responseJson = responseAs[CreateThreadResponseJson]
         responseJson.isSuccessful shouldBe true
+        val threadId = responseJson.threadId.get
+        eventually {
+          Get(s"/threads/$threadId") ~> controller.getThread ~> check {
+            response.status shouldEqual StatusCodes.OK
+            val responseJson = responseAs[GetThreadResponseJson]
+            responseJson.isSuccessful shouldBe true
+          }
+        }
       }
     }
     "add administratorIds" in {
@@ -87,7 +102,7 @@ class ThreadControllerImplSpec
           Seq.empty,
           Instant.now.toEpochMilli
         ).toHttpEntity
-      Post("/threads", createThread) ~> controller.createThread ~> check {
+      Post("/threads/new", createThread) ~> controller.createThread ~> check {
         response.status shouldEqual StatusCodes.OK
         val responseJson = responseAs[CreateThreadResponseJson]
         responseJson.isSuccessful shouldBe true
@@ -114,7 +129,7 @@ class ThreadControllerImplSpec
           Seq.empty,
           Instant.now.toEpochMilli
         ).toHttpEntity
-      Post("/threads", createThread) ~> controller.createThread ~> check {
+      Post("/threads/new", createThread) ~> controller.createThread ~> check {
         response.status shouldEqual StatusCodes.OK
         val responseJson = responseAs[CreateThreadResponseJson]
         responseJson.isSuccessful shouldBe true
@@ -142,7 +157,7 @@ class ThreadControllerImplSpec
           Seq(accountId),
           Instant.now.toEpochMilli
         ).toHttpEntity
-      Post("/threads", createThread) ~> controller.createThread ~> check {
+      Post("/threads/new", createThread) ~> controller.createThread ~> check {
         response.status shouldEqual StatusCodes.OK
         val responseJson = responseAs[CreateThreadResponseJson]
         responseJson.isSuccessful shouldBe true
@@ -153,6 +168,13 @@ class ThreadControllerImplSpec
           response.status shouldEqual StatusCodes.OK
           val responseJson = responseAs[AddMessagesResponseJson]
           responseJson.isSuccessful shouldBe true
+          eventually {
+            Get(s"/threads/$threadId/messages") ~> controller.getMessages ~> check {
+              response.status shouldEqual StatusCodes.OK
+              val responseJson = responseAs[GetThreadMessagesResponseJson]
+              responseJson.isSuccessful shouldBe true
+            }
+          }
         }
       }
     }
@@ -169,7 +191,7 @@ class ThreadControllerImplSpec
           Seq(accountId),
           Instant.now.toEpochMilli
         ).toHttpEntity
-      Post("/threads", createThread) ~> controller.createThread ~> check {
+      Post("/threads/new", createThread) ~> controller.createThread ~> check {
         response.status shouldEqual StatusCodes.OK
         val responseJson = responseAs[CreateThreadResponseJson]
         responseJson.isSuccessful shouldBe true

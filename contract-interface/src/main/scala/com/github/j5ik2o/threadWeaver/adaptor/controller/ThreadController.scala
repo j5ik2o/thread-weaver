@@ -17,7 +17,7 @@ trait ThreadController {
   def toRoutes(implicit context: Context): Route
 
   @POST
-  @Path("/threads")
+  @Path("/threads/new")
   @Consumes(Array("application/json"))
   @Operation(
     summary = "Create thread",
@@ -185,6 +185,77 @@ trait ThreadController {
   private[controller] def removeMessages(implicit context: Context): Route
 
   @GET
+  @Path("/threads/{thread_id}")
+  @Consumes(Array("application/json"))
+  @Operation(
+    summary = "Get messages from thread",
+    description = "Get messages request",
+    parameters = Array(
+      new Parameter(
+        name = "thread_id",
+        required = true,
+        in = ParameterIn.PATH,
+        description = "threadId",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "string"
+        )
+      )
+    ),
+    responses = Array(
+      new ApiResponse(
+        responseCode = "200",
+        description = "Get thread response",
+        content = Array(new Content(schema = new Schema(implementation = classOf[GetThreadResponseJson])))
+      ),
+      new ApiResponse(responseCode = "404", description = "Not found entity"),
+      new ApiResponse(responseCode = "500", description = "Internal server error")
+    )
+  )
+  private[controller] def getThread(implicit context: Context): Route
+
+  @GET
+  @Path("/threads")
+  @Consumes(Array("application/json"))
+  @Operation(
+    summary = "Get messages from thread",
+    description = "Get messages request",
+    parameters = Array(
+      new Parameter(
+        name = "offset",
+        required = false,
+        in = ParameterIn.QUERY,
+        description = "offset",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "number",
+          format = "int64"
+        )
+      ),
+      new Parameter(
+        name = "limit",
+        required = false,
+        in = ParameterIn.QUERY,
+        description = "limit",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "number",
+          format = "int64"
+        )
+      )
+    ),
+    responses = Array(
+      new ApiResponse(
+        responseCode = "200",
+        description = "Get threads response",
+        content = Array(new Content(schema = new Schema(implementation = classOf[GetThreadsResponseJson])))
+      ),
+      new ApiResponse(responseCode = "500", description = "Internal server error")
+    )
+  )
+  private[controller] def getThreads(implicit context: Context): Route
+
+  @GET
   @Path("/threads/{thread_id}/messages")
   @Consumes(Array("application/json"))
   @Operation(
@@ -199,6 +270,28 @@ trait ThreadController {
         allowEmptyValue = false,
         schema = new Schema(
           `type` = "string"
+        )
+      ),
+      new Parameter(
+        name = "offset",
+        required = false,
+        in = ParameterIn.QUERY,
+        description = "offset",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "number",
+          format = "int64"
+        )
+      ),
+      new Parameter(
+        name = "limit",
+        required = false,
+        in = ParameterIn.QUERY,
+        description = "limit",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "number",
+          format = "int64"
         )
       )
     ),

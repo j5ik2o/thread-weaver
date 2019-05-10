@@ -5,6 +5,7 @@ import akka.http.scaladsl.server.Directive1
 import akka.http.scaladsl.server.Directives._
 import com.github.j5ik2o.threadWeaver.adaptor.json._
 import com.github.j5ik2o.threadWeaver.adaptor.validator.{ ValidateUtils, ValidationResult, Validator }
+import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
 import com.github.j5ik2o.threadWeaver.domain.model.threads.ThreadId
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 import com.github.j5ik2o.threadWeaver.useCase.ThreadWeaverProtocol._
@@ -14,6 +15,14 @@ trait ThreadValidateDirectives {
   protected def validateThreadId(value: String): Directive1[ThreadId] = {
     ValidateUtils
       .validateThreadId(value)
+      .fold({ errors =>
+        reject(ValidationsRejection(errors))
+      }, provide)
+  }
+
+  protected def validateAccountId(value: String): Directive1[AccountId] = {
+    ValidateUtils
+      .validateAccountId(value)
       .fold({ errors =>
         reject(ValidationsRejection(errors))
       }, provide)

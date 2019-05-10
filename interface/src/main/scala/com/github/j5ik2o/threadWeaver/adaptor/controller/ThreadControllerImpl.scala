@@ -7,7 +7,7 @@ import com.github.j5ik2o.threadWeaver.adaptor.directives.{ MetricsDirectives, Th
 import com.github.j5ik2o.threadWeaver.adaptor.json._
 import com.github.j5ik2o.threadWeaver.adaptor.presenter._
 import com.github.j5ik2o.threadWeaver.adaptor.readModel.ThreadDas
-import com.github.j5ik2o.threadWeaver.adaptor.rejections.RejectionHandlers
+import com.github.j5ik2o.threadWeaver.adaptor.rejections.{ NotFoundRejection, RejectionHandlers }
 import com.github.j5ik2o.threadWeaver.useCase._
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.generic.auto._
@@ -38,13 +38,13 @@ trait ThreadControllerImpl
 
   override def toRoutes(implicit context: Context): Route = handleRejections(RejectionHandlers.default) {
     pathPrefix("v1") {
-      createThread ~ addAdministratorIds ~ addMemberIds ~ addMessages
+      createThread ~ addAdministratorIds ~ addMemberIds ~ addMessages ~ getThreads ~ getMessages
     }
   }
 
   override private[controller] def createThread(implicit context: Context): Route =
     traceName(context)("create-thread") {
-      path("threads") {
+      path("threads" / "new") {
         post {
           extractMaterializer { implicit mat =>
             entity(as[CreateThreadRequestJson]) { json =>
@@ -165,27 +165,95 @@ trait ThreadControllerImpl
       }
     }
 
+  override private[controller] def getThread(implicit context: Context) = traceName(context)("get-thread") {
+    path("threads" / Segment) { threadIdString =>
+      get {
+        extractExecutionContext { implicit ec =>
+          extractMaterializer { implicit mat =>
+            validateThreadId(threadIdString) { threadId =>
+              onSuccess(
+                getThreadByIdSource(threadId)
+                  .map { threadRecord =>
+                    ThreadJson(
+                      threadRecord.id,
+                      threadRecord.creatorId,
+                      threadRecord.parentId,
+                      threadRecord.title,
+                      threadRecord.remarks,
+                      threadRecord.createdAt.toEpochMilli,
+                      threadRecord.updatedAt.toEpochMilli
+                    )
+                  }.runWith(Sink.headOption[ThreadJson]).map(identity)
+              ) {
+                case None =>
+                  reject(new NotFoundRejection("thread is not found", None))
+                case Some(response) =>
+                  complete(GetThreadResponseJson(response))
+              }
+
+            }
+          }
+        }
+      }
+    }
+  }
+
+  override private[controller] def getThreads(implicit context: Context): Route = traceName(context)("get-threads") {
+    path("threads") {
+      get {
+        extractExecutionContext { implicit ec =>
+          extractMaterializer { implicit mat =>
+            parameters(('account_id.as[String], 'offset.as[Long].?, 'limit.as[Long].?)) {
+              case (accountIdString, offset, limit) =>
+                validateAccountId(accountIdString) { accountId =>
+                  onSuccess(
+                    getThreadsByAccountIdSource(accountId, offset, limit)
+                      .map { threadRecord =>
+                        ThreadJson(
+                          threadRecord.id,
+                          threadRecord.creatorId,
+                          threadRecord.parentId,
+                          threadRecord.title,
+                          threadRecord.remarks,
+                          threadRecord.createdAt.toEpochMilli,
+                          threadRecord.updatedAt.toEpochMilli
+                        )
+                      }.runWith(Sink.seq[ThreadJson]).map(_.toSeq)
+                  ) { response =>
+                    complete(GetThreadsResponseJson(response))
+                  }
+                }
+            }
+          }
+        }
+      }
+    }
+  }
+
   override private[controller] def getMessages(implicit context: Context): Route = traceName(context)("get-messages") {
     path("threads" / Segment / "messages") { threadIdString =>
       get {
         extractExecutionContext { implicit ec =>
           extractMaterializer { implicit mat =>
             validateThreadId(threadIdString) { threadId =>
-              onSuccess(
-                getMessagesByThreadIdSource(threadId)
-                  .map { messageRecord =>
-                    ThreadMessageJson(
-                      messageRecord.id,
-                      messageRecord.threadId,
-                      messageRecord.senderId,
-                      messageRecord.`type`,
-                      messageRecord.body,
-                      messageRecord.createdAt.toEpochMilli,
-                      messageRecord.updatedAt.toEpochMilli
-                    )
-                  }.runWith(Sink.seq[ThreadMessageJson]).map(_.toSeq)
-              ) { response =>
-                complete(GetThreadMessagesResponseJson(response))
+              parameters(('offset.as[Long].?, 'limit.as[Long].?)) {
+                case (offset, limit) =>
+                  onSuccess(
+                    getMessagesByThreadIdSource(threadId, offset, limit)
+                      .map { messageRecord =>
+                        ThreadMessageJson(
+                          messageRecord.id,
+                          messageRecord.threadId,
+                          messageRecord.senderId,
+                          messageRecord.`type`,
+                          messageRecord.body,
+                          messageRecord.createdAt.toEpochMilli,
+                          messageRecord.updatedAt.toEpochMilli
+                        )
+                      }.runWith(Sink.seq[ThreadMessageJson]).map(_.toSeq)
+                  ) { response =>
+                    complete(GetThreadMessagesResponseJson(response))
+                  }
               }
             }
           }
