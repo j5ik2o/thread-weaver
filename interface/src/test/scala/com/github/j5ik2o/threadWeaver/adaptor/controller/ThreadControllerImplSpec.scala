@@ -5,7 +5,7 @@ import java.time.Instant
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.adapter._
 import akka.http.scaladsl.model._
-import com.github.j5ik2o.threadWeaver.adaptor.AirframeSettings
+import com.github.j5ik2o.threadWeaver.adaptor.DISettings
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.PersistenceCleanup
 import com.github.j5ik2o.threadWeaver.adaptor.json._
 import com.github.j5ik2o.threadWeaver.adaptor.util.{
@@ -55,7 +55,7 @@ class ThreadControllerImplSpec
 
   var controller: ThreadController = _
 
-  override def design: Design = super.design.add(AirframeSettings.designOfSlick(dbConfig.profile, dbConfig.db))
+  override def design: Design = super.design.add(DISettings.designOfSlick(dbConfig.profile, dbConfig.db))
 
   override def beforeAll(): Unit = {
     deleteStorageLocations()

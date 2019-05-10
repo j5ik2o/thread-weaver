@@ -7,7 +7,7 @@ import akka.persistence.query.PersistenceQuery
 import akka.persistence.query.journal.leveldb.scaladsl.LeveldbReadJournal
 import akka.testkit.TestKit
 import akka.util.ByteString
-import com.github.j5ik2o.threadWeaver.adaptor.AirframeSettings
+import com.github.j5ik2o.threadWeaver.adaptor.{ DISettings, DITestSettings }
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import io.circe.Encoder
 import io.circe.syntax._
@@ -36,17 +36,17 @@ trait RouteSpec extends ScalatestRouteTest with Matchers with BeforeAndAfterAll 
 
   def design: Design =
     com.github.j5ik2o.threadWeaver.useCase.AirframeSettings.design
-      .add(AirframeSettings.designOfActorSystem(system.toTyped, materializer))
+      .add(DISettings.designOfActorSystem(system.toTyped, materializer))
       .add(
-        AirframeSettings.designOfReadJournal(
+        DISettings.designOfReadJournal(
           PersistenceQuery(system).readJournalFor[LeveldbReadJournal](LeveldbReadJournal.Identifier)
         )
       )
-      .add(AirframeSettings.designOfPresenters)
-      .add(AirframeSettings.designOfControllers)
-      .add(AirframeSettings.designOfLocalAggregatesWithPersistence(system.toTyped))
-      .add(AirframeSettings.designOfLocalReadModelUpdater(system.toTyped))
-      .add(AirframeSettings.designOfRouter(system.toTyped))
+      .add(DISettings.designOfPresenters)
+      .add(DISettings.designOfControllers)
+      .add(DITestSettings.designOfLocalAggregatesWithPersistence(system.toTyped))
+      .add(DITestSettings.designOfLocalReadModelUpdater(system.toTyped))
+      .add(DISettings.designOfRouter(system.toTyped))
 
   override def beforeAll(): Unit = {
     super.beforeAll()
