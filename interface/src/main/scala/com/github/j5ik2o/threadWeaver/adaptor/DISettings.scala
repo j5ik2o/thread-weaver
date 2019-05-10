@@ -12,11 +12,8 @@ import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates._
 import com.github.j5ik2o.threadWeaver.adaptor.controller.{ ThreadController, ThreadControllerImpl }
 import com.github.j5ik2o.threadWeaver.adaptor.presenter._
+import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ShardedThreadReadModelUpdaterProxy
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdater.ReadJournalType
-import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.{
-  ShardedThreadReadModelUpdaterProxy,
-  ThreadReadModelUpdater
-}
 import com.github.j5ik2o.threadWeaver.adaptor.router.AggregateToRMU
 import com.github.j5ik2o.threadWeaver.adaptor.swagger.SwaggerDocService
 import slick.jdbc.JdbcProfile
@@ -24,7 +21,7 @@ import wvlet.airframe._
 
 import scala.concurrent.duration._
 
-object AirframeSettings {
+trait DISettings {
 
   private[adaptor] def designOfActorSystem(system: ActorSystem[Nothing], materializer: Materializer): Design =
     newDesign
@@ -72,16 +69,6 @@ object AirframeSettings {
       }
   }
 
-  private[adaptor] def designOfLocalReadModelUpdater(actorSystem: ActorSystem[Nothing]): Design =
-    newDesign
-      .bind[ThreadReadModelUpdaterRef].toProvider[ReadJournalType, JdbcProfile, JdbcProfile#Backend#Database] {
-        (readJournal, profile, db) =>
-          actorSystem.toUntyped.spawn(
-            new ThreadReadModelUpdater(readJournal, profile, db).behavior(),
-            name = "local-thread-rmu"
-          )
-      }
-
   private[adaptor] def designOfShardedAggregates(
       actorSystem: ActorSystem[Nothing],
       clusterSharding: ClusterSharding
@@ -94,25 +81,7 @@ object AirframeSettings {
         )
       }
 
-  private[adaptor] def designOfLocalAggregatesWithPersistence(actorSystem: ActorSystem[Nothing]): Design =
-    newDesign
-      .bind[ThreadActorRefOfCommand].toProvider[ThreadActorRefOfMessage] { subscriber =>
-        actorSystem.toUntyped.spawn(
-          ThreadAggregates.behavior(Seq(subscriber), ThreadAggregate.name)(PersistentThreadAggregate.behavior),
-          name = "local-threads-aggregates-with-persistence"
-        )
-      }
-
-  private[adaptor] def designOfLocalAggregatesWithoutPersistence(actorSystem: ActorSystem[Nothing]): Design =
-    newDesign
-      .bind[ThreadActorRefOfCommand].toProvider[ThreadActorRefOfMessage] { subscriber =>
-        actorSystem.toUntyped.spawn(
-          ThreadAggregates.behavior(Seq(subscriber), ThreadAggregate.name)(ThreadAggregate.behavior),
-          name = "local-threads-aggregates-without-persistence"
-        )
-      }
-
-  def designOfRouter(actorSystem: ActorSystem[Nothing]): Design =
+  private[adaptor] def designOfRouter(actorSystem: ActorSystem[Nothing]): Design =
     newDesign
       .bind[ThreadActorRefOfMessage].toProvider[ThreadReadModelUpdaterRef] { ref =>
         actorSystem.toUntyped.spawn(
@@ -143,3 +112,5 @@ object AirframeSettings {
       .add(designOfPresenters)
 
 }
+
+object DISettings extends DISettings

@@ -14,11 +14,7 @@ import io.circe.generic.auto._
 import kamon.context.Context
 import wvlet.airframe._
 
-trait ThreadControllerImpl
-    extends ThreadController
-    with ThreadValidateDirectives
-    with MetricsDirectives
-    with ThreadDas {
+trait ThreadControllerImpl extends ThreadController with ThreadValidateDirectives with MetricsDirectives {
   import com.github.j5ik2o.threadWeaver.adaptor.directives.ThreadValidateDirectives._
 
   private val createThreadUseCase   = bind[CreateThreadUseCase]
@@ -36,9 +32,11 @@ trait ThreadControllerImpl
   private val removeMessagesUseCase   = bind[RemoveMessagesUseCase]
   private val removeMessagesPresenter = bind[RemoveMessagesPresenter]
 
+  private val threadDas = bind[ThreadDas]
+
   override def toRoutes(implicit context: Context): Route = handleRejections(RejectionHandlers.default) {
     pathPrefix("v1") {
-      createThread ~ addAdministratorIds ~ addMemberIds ~ addMessages ~ getThreads ~ getMessages
+      createThread ~ addAdministratorIds ~ addMemberIds ~ addMessages ~ getThreads ~ getAdministratorIds ~ getMemberIds ~ getMessages
     }
   }
 
@@ -172,7 +170,8 @@ trait ThreadControllerImpl
           extractMaterializer { implicit mat =>
             validateThreadId(threadIdString) { threadId =>
               onSuccess(
-                getThreadByIdSource(threadId)
+                threadDas
+                  .getThreadByIdSource(threadId)
                   .map { threadRecord =>
                     ThreadJson(
                       threadRecord.id,
@@ -207,7 +206,8 @@ trait ThreadControllerImpl
               case (accountIdString, offset, limit) =>
                 validateAccountId(accountIdString) { accountId =>
                   onSuccess(
-                    getThreadsByAccountIdSource(accountId, offset, limit)
+                    threadDas
+                      .getThreadsByAccountIdSource(accountId, offset, limit)
                       .map { threadRecord =>
                         ThreadJson(
                           threadRecord.id,
@@ -240,7 +240,8 @@ trait ThreadControllerImpl
                 parameters(('offset.as[Long].?, 'limit.as[Long].?)) {
                   case (offset, limit) =>
                     onSuccess(
-                      getAdministratorsByThreadIdSource(threadId, offset, limit)
+                      threadDas
+                        .getAdministratorsByThreadIdSource(threadId, offset, limit)
                         .map { record =>
                           record.accountId
                         }.runWith(Sink.seq[String]).map(_.toSeq)
@@ -265,7 +266,8 @@ trait ThreadControllerImpl
                 parameters(('offset.as[Long].?, 'limit.as[Long].?)) {
                   case (offset, limit) =>
                     onSuccess(
-                      getMembersByThreadIdSource(threadId, offset, limit)
+                      threadDas
+                        .getMembersByThreadIdSource(threadId, offset, limit)
                         .map { record =>
                           record.accountId
                         }.runWith(Sink.seq[String]).map(_.toSeq)
@@ -289,7 +291,8 @@ trait ThreadControllerImpl
               parameters(('offset.as[Long].?, 'limit.as[Long].?)) {
                 case (offset, limit) =>
                   onSuccess(
-                    getMessagesByThreadIdSource(threadId, offset, limit)
+                    threadDas
+                      .getMessagesByThreadIdSource(threadId, offset, limit)
                       .map { messageRecord =>
                         ThreadMessageJson(
                           messageRecord.id,
