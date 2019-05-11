@@ -12,7 +12,7 @@ val dbPassword = "passwd"
 val dbPort     = RandomPortSupport.temporaryServerPort()
 val dbUrl      = s"jdbc:mysql://localhost:$dbPort/$dbName?useSSL=false"
 
-val `infrastructure` = (project in file("infrastructure"))
+val `infrastructure` = (project in file("modules/infrastructure"))
   .settings(baseSettings)
   .settings(
     name := "thread-weaver-infrastructure",
@@ -28,14 +28,14 @@ val `infrastructure` = (project in file("infrastructure"))
     )
   )
 
-val `domain` = (project in file("domain"))
+val `domain` = (project in file("modules/domain"))
   .settings(baseSettings)
   .settings(
     name := "thread-weaver-domain"
   ).dependsOn(`infrastructure`)
 
 
-val `contract-use-case` = (project in file("contract-use-case"))
+val `contract-use-case` = (project in file("contracts/contract-use-case"))
   .settings(baseSettings)
   .settings(
     name := "thread-weaver-contract-use-case",
@@ -45,7 +45,7 @@ val `contract-use-case` = (project in file("contract-use-case"))
   )
   .dependsOn(`domain`)
 
-val `contract-interface` = (project in file("contract-interface"))
+val `contract-interface` = (project in file("contracts/contract-interface"))
   .settings(baseSettings)
   .settings(
     name := "thread-weaver-contract-interface",
@@ -62,7 +62,7 @@ val `contract-interface` = (project in file("contract-interface"))
   )
   .dependsOn(`contract-use-case`)
 
-val `use-case` = (project in file("use-case"))
+val `use-case` = (project in file("modules/use-case"))
   .settings(baseSettings)
   .settings(
     name := "thread-weaver-use-case",
@@ -103,14 +103,14 @@ val `flyway` = (project in file("tools/flyway"))
     flywayMigrate := (flywayMigrate dependsOn wixMySQLStart).value
   )
 
-lazy val `proto` = (project in file("proto"))
+lazy val `grpc-proto` = (project in file("modules/grpc-proto"))
   .enablePlugins(AkkaGrpcPlugin)
 
 lazy val `api-client` = (project in file("api-client"))
-  .dependsOn(proto)
+  .dependsOn(`grpc-proto`)
   .enablePlugins(AkkaGrpcPlugin)
 
-val interface = (project in file("interface"))
+val interface = (project in file("modules/interface"))
   .enablePlugins(AkkaGrpcPlugin)
   .settings(baseSettings)
   .settings(
@@ -231,7 +231,7 @@ val interface = (project in file("interface"))
   )
   .enablePlugins(MultiJvmPlugin)
   .configs(MultiJvm)
-  .dependsOn(`contract-interface`, `use-case`, `infrastructure`)
+  .dependsOn(`contract-interface`, `use-case`, `infrastructure`, `grpc-proto`)
 
 val `api-server` = (project in file("api-server"))
   .enablePlugins(AshScriptPlugin, JavaAgent)
@@ -271,10 +271,6 @@ val `api-server` = (project in file("api-server"))
       "org.codehaus.janino" % "janino" % "3.0.6"
     )
   ).dependsOn(`interface`)
-
-
-
-
 
 val gatlingVersion                 = "2.2.3"
 val awsSdkVersion = "1.11.169"
@@ -327,4 +323,4 @@ val root = (project in file("."))
   .settings(baseSettings)
   .settings(
     name := "thread-weaver"
-  ).aggregate(`domain`, `use-case`, `interface`, `infrastructure`, `api-server`, `proto`, `api-client`)
+  ).aggregate(`domain`, `use-case`, `interface`, `infrastructure`, `api-server`, `grpc-proto`, `api-client`)
