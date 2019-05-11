@@ -21,34 +21,34 @@ object PersistentThreadAggregate {
     // for Administrators
     case (
         State(Some(thread), _),
-        c @ AddAdministratorIds(cmdId, threadId, senderId, administratorIds, createAt, replyTo)
+        c @ JoinAdministratorIds(cmdId, threadId, senderId, administratorIds, createAt, replyTo)
         ) =>
-      thread.addAdministratorIds(administratorIds, senderId, createAt) match {
+      thread.joinAdministratorIds(administratorIds, senderId, createAt) match {
         case Left(exception) =>
           Effect.none.thenRun { _ =>
             replyTo.foreach(
-              _ ! AddAdministratorIdsFailed(ULID(), cmdId, threadId, exception.getMessage, createAt)
+              _ ! JoinAdministratorIdsFailed(ULID(), cmdId, threadId, exception.getMessage, createAt)
             )
           }
         case Right(_) =>
           Effect.persist(c.toEvent).thenRun { _ =>
-            replyTo.foreach(_ ! AddAdministratorIdsSucceeded(ULID(), cmdId, threadId, createAt))
+            replyTo.foreach(_ ! JoinAdministratorIdsSucceeded(ULID(), cmdId, threadId, createAt))
           }
       }
     case (
         State(Some(thread), _),
-        c @ RemoveAdministratorIds(cmdId, threadId, senderId, administratorIds, createAt, replyTo)
+        c @ LeaveAdministratorIds(cmdId, threadId, senderId, administratorIds, createAt, replyTo)
         ) =>
-      thread.removeAdministratorIds(administratorIds, senderId, createAt) match {
+      thread.leaveAdministratorIds(administratorIds, senderId, createAt) match {
         case Left(exception) =>
           Effect.none.thenRun { _ =>
             replyTo.foreach(
-              _ ! RemoveAdministratorIdsFailed(ULID(), cmdId, threadId, exception.getMessage, createAt)
+              _ ! LeaveAdministratorIdsFailed(ULID(), cmdId, threadId, exception.getMessage, createAt)
             )
           }
         case Right(_) =>
           Effect.persist(c.toEvent).thenRun { _ =>
-            replyTo.foreach(_ ! RemoveAdministratorIdsSucceeded(ULID(), cmdId, threadId, createAt))
+            replyTo.foreach(_ ! LeaveAdministratorIdsSucceeded(ULID(), cmdId, threadId, createAt))
           }
       }
     case (State(Some(thread), _), GetAdministratorIds(cmdId, threadId, senderId, createAt, replyTo)) =>
@@ -64,34 +64,34 @@ object PersistentThreadAggregate {
     // for Members
     case (
         State(Some(thread), _),
-        c @ AddMemberIds(cmdId, threadId, senderId, memberIds, createAt, replyTo)
+        c @ JoinMemberIds(cmdId, threadId, senderId, memberIds, createAt, replyTo)
         ) =>
-      thread.addMemberIds(memberIds, senderId, createAt) match {
+      thread.joinMemberIds(memberIds, senderId, createAt) match {
         case Left(exception) =>
           Effect.none.thenRun { _ =>
             replyTo.foreach(
-              _ ! AddMemberIdsFailed(ULID(), cmdId, threadId, exception.getMessage, createAt)
+              _ ! JoinMemberIdsFailed(ULID(), cmdId, threadId, exception.getMessage, createAt)
             )
           }
         case Right(_) =>
           Effect.persist(c.toEvent).thenRun { _ =>
-            replyTo.foreach(_ ! AddMemberIdsSucceeded(ULID(), cmdId, threadId, createAt))
+            replyTo.foreach(_ ! JoinMemberIdsSucceeded(ULID(), cmdId, threadId, createAt))
           }
       }
     case (
         State(Some(thread), _),
-        c @ RemoveMemberIds(cmdId, threadId, senderId, memberIds, createAt, replyTo)
+        c @ LeaveMemberIds(cmdId, threadId, senderId, memberIds, createAt, replyTo)
         ) =>
-      thread.removeMemberIds(memberIds, senderId, createAt) match {
+      thread.leaveMemberIds(memberIds, senderId, createAt) match {
         case Left(exception) =>
           Effect.none.thenRun { _ =>
             replyTo.foreach(
-              _ ! RemoveMemberIdsFailed(ULID(), cmdId, threadId, exception.getMessage, createAt)
+              _ ! LeaveMemberIdsFailed(ULID(), cmdId, threadId, exception.getMessage, createAt)
             )
           }
         case Right(_) =>
           Effect.persist(c.toEvent).thenRun { _ =>
-            replyTo.foreach(_ ! RemoveMemberIdsSucceeded(ULID(), cmdId, threadId, createAt))
+            replyTo.foreach(_ ! LeaveMemberIdsSucceeded(ULID(), cmdId, threadId, createAt))
           }
       }
     case (State(Some(thread), _), GetMemberIds(cmdId, threadId, senderId, createAt, replyTo)) =>
@@ -176,16 +176,16 @@ object PersistentThreadAggregate {
       )
 
     // for Administrators
-    case (s @ State(Some(thread), _), AdministratorIdsAdded(_, _, adderId, administratorIds, createdAt)) =>
-      s.applyState(thread.addAdministratorIds(administratorIds, adderId, createdAt).right.get)
-    case (s @ State(Some(thread), _), AdministratorIdsRemoved(_, _, removerId, administratorIds, createdAt)) =>
-      s.applyState(thread.removeAdministratorIds(administratorIds, removerId, createdAt).right.get)
+    case (s @ State(Some(thread), _), AdministratorIdsJoined(_, _, adderId, administratorIds, createdAt)) =>
+      s.applyState(thread.joinAdministratorIds(administratorIds, adderId, createdAt).right.get)
+    case (s @ State(Some(thread), _), AdministratorIdsLeft(_, _, removerId, administratorIds, createdAt)) =>
+      s.applyState(thread.leaveAdministratorIds(administratorIds, removerId, createdAt).right.get)
 
     // for Members
     case (s @ State(Some(thread), _), MemberIdsAdded(_, _, adderId, memberIds, createdAt)) =>
-      s.applyState(thread.addMemberIds(memberIds, adderId, createdAt).right.get)
-    case (s @ State(Some(thread), _), MemberIdsRemoved(_, _, removerId, memberIds, createdAt)) =>
-      s.applyState(thread.removeMemberIds(memberIds, removerId, createdAt).right.get)
+      s.applyState(thread.joinMemberIds(memberIds, adderId, createdAt).right.get)
+    case (s @ State(Some(thread), _), MemberIdsLeft(_, _, removerId, memberIds, createdAt)) =>
+      s.applyState(thread.leaveMemberIds(memberIds, removerId, createdAt).right.get)
 
     // for Messages
     case (s @ State(Some(thread), _), MessagesAdded(_, _, messages, createdAt)) =>

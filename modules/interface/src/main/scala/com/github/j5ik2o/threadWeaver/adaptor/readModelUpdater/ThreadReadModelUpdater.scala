@@ -110,13 +110,13 @@ class ThreadReadModelUpdater(
   }
 
   private def forAdministrator(threadId: ThreadId): Handler = {
-    case (sequenceNr, AdministratorIdsAdded(_, _, senderId, administratorIds, createdAt)) =>
+    case (sequenceNr, AdministratorIdsJoined(_, _, senderId, administratorIds, createdAt)) =>
       DBIO
         .seq(
           updateSequenceNrInThreadAction(threadId, sequenceNr, createdAt) ::
           insertAdministratorIdsAction(threadId, senderId, administratorIds, createdAt): _*
         ).transactionally
-    case (sequenceNr, AdministratorIdsRemoved(_, _, _, administratorIds, createdAt)) =>
+    case (sequenceNr, AdministratorIdsLeft(_, _, _, administratorIds, createdAt)) =>
       DBIO
         .seq(
           updateSequenceNrInThreadAction(threadId, sequenceNr, createdAt),
@@ -131,7 +131,7 @@ class ThreadReadModelUpdater(
           updateSequenceNrInThreadAction(threadId, sequenceNr, createdAt) ::
           insertMemberIdsAction(threadId, adderId, memberIds, createdAt): _*
         ).transactionally
-    case (sequenceNr, MemberIdsRemoved(_, _, _, memberIds, createdAt)) =>
+    case (sequenceNr, MemberIdsLeft(_, _, _, memberIds, createdAt)) =>
       DBIO
         .seq(
           updateSequenceNrInThreadAction(threadId, sequenceNr, createdAt),

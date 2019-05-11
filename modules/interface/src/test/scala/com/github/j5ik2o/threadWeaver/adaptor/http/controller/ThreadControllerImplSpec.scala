@@ -146,10 +146,10 @@ class ThreadControllerImplSpec
         val threadId  = responseJson.threadId.get
         val accountId = ULID().asString
         val addMemberIds =
-          AddMemberIdsRequestJson(administratorId, Seq(accountId), Instant.now.toEpochMilli).toHttpEntity
+          JoinMemberIdsRequestJson(administratorId, Seq(accountId), Instant.now.toEpochMilli).toHttpEntity
         Post(RouteNames.JoinMemberIds(threadId), addMemberIds) ~> commandController.joinMemberIds ~> check {
           response.status shouldEqual StatusCodes.OK
-          val responseJson = responseAs[AddMemberIdsResponseJson]
+          val responseJson = responseAs[JoinMemberIdsResponseJson]
           responseJson.isSuccessful shouldBe true
           eventually {
             Get(RouteNames.GetMemberIds(threadId)) ~> queryController.getMemberIds ~> check {

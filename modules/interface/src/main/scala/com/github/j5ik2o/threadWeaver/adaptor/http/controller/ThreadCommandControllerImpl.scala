@@ -91,7 +91,7 @@ trait ThreadCommandControllerImpl extends ThreadCommandController with ThreadVal
         post {
           extractMaterializer { implicit mat =>
             validateThreadId(threadIdString) { threadId =>
-              entity(as[AddMemberIdsRequestJson]) { json =>
+              entity(as[JoinMemberIdsRequestJson]) { json =>
                 validateRequestJson((threadId, json)).apply { commandRequest =>
                   val responseFuture = Source
                     .single(
