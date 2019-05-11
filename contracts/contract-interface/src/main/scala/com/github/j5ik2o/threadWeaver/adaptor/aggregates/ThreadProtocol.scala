@@ -239,12 +239,13 @@ object ThreadProtocol {
   sealed trait JoinMemberIdsResponse extends CommandResponse
   final case class JoinMemberIdsSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
       extends JoinMemberIdsResponse
-  final case class JoinMemberIdsFailed(id: ULID,
-                                       requestId: ULID,
-                                       threadId: ThreadId,
-                                       message: String,
-                                       createAt: Instant)
-      extends JoinMemberIdsResponse
+  final case class JoinMemberIdsFailed(
+      id: ULID,
+      requestId: ULID,
+      threadId: ThreadId,
+      message: String,
+      createAt: Instant
+  ) extends JoinMemberIdsResponse
   final case class MemberIdsAdded(
       id: ULID,
       threadId: ThreadId,

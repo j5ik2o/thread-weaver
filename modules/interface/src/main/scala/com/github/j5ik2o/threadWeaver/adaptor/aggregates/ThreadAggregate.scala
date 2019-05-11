@@ -2,7 +2,7 @@ package com.github.j5ik2o.threadWeaver.adaptor.aggregates
 
 import java.time.Instant
 
-import akka.actor.typed.{ ActorRef, Behavior, PostStop }
+import akka.actor.typed.{ ActorRef, Behavior, PostStop, Signal }
 import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors }
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol._
 import com.github.j5ik2o.threadWeaver.domain.model.threads.{ Messages, Thread, ThreadId }
@@ -13,8 +13,50 @@ class ThreadAggregate(context: ActorContext[CommandRequest])(id: ThreadId, subsc
 
   subscribers.foreach(_ ! Started(ULID(), id, Instant.now, context.self))
 
-  override def onMessage(msg: CommandRequest): Behavior[CommandRequest] = onStarted.receiveSignal {
-    case (_, PostStop) =>
+  override def onMessage(msg: CommandRequest): Behavior[CommandRequest] = msg match {
+    case CreateThread(
+        requestId,
+        threadId,
+        creatorId,
+        parentThreadId,
+        title,
+        remarks,
+        administratorIds,
+        memberIds,
+        createAt,
+        replyTo
+        ) if threadId == id =>
+      replyTo.foreach(_ ! CreateThreadSucceeded(ULID(), requestId, threadId, createAt))
+      onCreated(
+        Thread(
+          threadId,
+          creatorId,
+          parentThreadId,
+          title,
+          remarks,
+          administratorIds,
+          memberIds,
+          Messages.empty,
+          createAt,
+          createAt
+        )
+      )
+
+    case DestroyThread(requestId, threadId, _, createAt, replyTo) if threadId == id =>
+      replyTo.foreach(_ ! DestroyThreadFailed(ULID(), requestId, threadId, "Not created yet", createAt))
+      Behaviors.same
+
+    case AddMessages(requestId, threadId, _, createAt, replyTo) if threadId == id =>
+      replyTo.foreach(_ ! AddMessagesFailed(ULID(), requestId, threadId, "Not created yet", createAt))
+      Behaviors.same
+
+    case RemoveMessages(requestId, threadId, _, _, createAt, replyTo) if threadId == id =>
+      replyTo.foreach(_ ! RemoveMessagesFailed(ULID(), requestId, threadId, "Not created yet", createAt))
+      Behaviors.same
+  }
+
+  override def onSignal: PartialFunction[Signal, Behavior[CommandRequest]] = {
+    case PostStop =>
       subscribers.foreach(_ ! Stopped(ULID(), id, Instant.now, context.self))
       Behaviors.same
   }
@@ -162,48 +204,6 @@ class ThreadAggregate(context: ActorContext[CommandRequest])(id: ThreadId, subsc
       .orElse(commandAdministratorIds(thread).orElse(queryAdministratorIds(thread)))
       .orElse(commandMemberIds(thread).orElse(queryMemberIds(thread)))
       .orElse(commandMessages(thread).orElse(queryMessages(thread)))
-
-  private def onStarted: Behaviors.Receive[CommandRequest] = Behaviors.receiveMessage[CommandRequest] {
-    case CreateThread(
-        requestId,
-        threadId,
-        creatorId,
-        parentThreadId,
-        title,
-        remarks,
-        administratorIds,
-        memberIds,
-        createAt,
-        replyTo
-        ) if threadId == id =>
-      replyTo.foreach(_ ! CreateThreadSucceeded(ULID(), requestId, threadId, createAt))
-      onCreated(
-        Thread(
-          threadId,
-          creatorId,
-          parentThreadId,
-          title,
-          remarks,
-          administratorIds,
-          memberIds,
-          Messages.empty,
-          createAt,
-          createAt
-        )
-      )
-
-    case DestroyThread(requestId, threadId, _, createAt, replyTo) if threadId == id =>
-      replyTo.foreach(_ ! DestroyThreadFailed(ULID(), requestId, threadId, "Not created yet", createAt))
-      Behaviors.same
-
-    case AddMessages(requestId, threadId, _, createAt, replyTo) if threadId == id =>
-      replyTo.foreach(_ ! AddMessagesFailed(ULID(), requestId, threadId, "Not created yet", createAt))
-      Behaviors.same
-
-    case RemoveMessages(requestId, threadId, _, _, createAt, replyTo) if threadId == id =>
-      replyTo.foreach(_ ! RemoveMessagesFailed(ULID(), requestId, threadId, "Not created yet", createAt))
-      Behaviors.same
-  }
 
 }
 
