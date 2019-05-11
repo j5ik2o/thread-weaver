@@ -10,9 +10,11 @@ import com.github.j5ik2o.threadWeaver.adaptor.http.controller.{ ThreadCommandCon
 import com.github.j5ik2o.threadWeaver.adaptor.http.directives.MetricsDirectives
 import com.github.j5ik2o.threadWeaver.adaptor.swagger.SwaggerDocService
 
-class Routes(val swaggerDocService: SwaggerDocService,
-             threadCommandController: ThreadCommandController,
-             threadQueryController: ThreadQueryController)(
+class Routes(
+    val swaggerDocService: SwaggerDocService,
+    threadCommandController: ThreadCommandController,
+    threadQueryController: ThreadQueryController
+)(
     implicit system: ActorSystem[Nothing],
     mat: Materializer
 ) extends MetricsDirectives {
