@@ -130,8 +130,13 @@ object ThreadWeaverProtocol {
       createdAt: Instant
   ) extends ThreadWeaverRequest
   sealed trait RemoveMessagesResponse extends ThreadWeaverResponse
-  final case class RemoveMessagesSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
-      extends RemoveMessagesResponse
+  final case class RemoveMessagesSucceeded(
+      id: ULID,
+      requestId: ULID,
+      threadId: ThreadId,
+      messageIds: MessageIds,
+      createAt: Instant
+  ) extends RemoveMessagesResponse
   final case class RemoveMessagesFailed(
       id: ULID,
       requestId: ULID,

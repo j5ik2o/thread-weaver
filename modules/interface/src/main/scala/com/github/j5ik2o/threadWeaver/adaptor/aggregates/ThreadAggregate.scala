@@ -159,8 +159,8 @@ class ThreadAggregate(context: ActorContext[CommandRequest])(id: ThreadId, subsc
           case Left(exception) =>
             replyTo.foreach(_ ! RemoveMessagesFailed(ULID(), requestId, threadId, exception.getMessage, createAt))
             Behaviors.same
-          case Right(newThread) =>
-            replyTo.foreach(_ ! RemoveMessagesSucceeded(ULID(), requestId, threadId, createAt))
+          case Right((newThread, messageIds)) =>
+            replyTo.foreach(_ ! RemoveMessagesSucceeded(ULID(), requestId, threadId, messageIds, createAt))
             onCreated(newThread)
         }
     }

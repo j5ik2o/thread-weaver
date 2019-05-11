@@ -42,7 +42,7 @@ class RemoveMessagesUseCaseImpl(
           )
         }.map {
           case v: RemoveMessagesSucceeded =>
-            URemoveMessagesSucceeded(v.id, v.requestId, v.threadId, v.createAt)
+            URemoveMessagesSucceeded(v.id, v.requestId, v.threadId, v.messageIds, v.createAt)
           case v: RemoveMessagesFailed =>
             URemoveMessagesFailed(v.id, v.requestId, v.threadId, v.message, v.createAt)
         }

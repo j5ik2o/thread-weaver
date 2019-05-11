@@ -356,8 +356,13 @@ object ThreadProtocol {
     override def toEvent: Event      = MessagesRemoved(ULID(), threadId, removerId, messageIds, createAt)
   }
   sealed trait RemoveMessagesResponse extends CommandResponse
-  final case class RemoveMessagesSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
-      extends RemoveMessagesResponse
+  final case class RemoveMessagesSucceeded(
+      id: ULID,
+      requestId: ULID,
+      threadId: ThreadId,
+      messageIds: MessageIds,
+      createAt: Instant
+  ) extends RemoveMessagesResponse
   final case class RemoveMessagesFailed(
       id: ULID,
       requestId: ULID,

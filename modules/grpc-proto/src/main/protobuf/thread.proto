@@ -7,24 +7,61 @@ option java_outer_classname = "ThreadProto";
 package thread;
 
 service ThreadsService {
-
-    rpc NewThread (NewThreadRequest) returns (NewThreadResponse) {}
-
+    rpc CreateThread (CreateThreadRequest) returns (CreateThreadResponse) {}
+    rpc DestroyThread (DestroyThreadRequest) returns (DestroyThreadResponse) {}
+    rpc AddMessages (AddMessagesRequest) returns (AddMessagesResponse) {}
 }
 
-message NewThreadRequest {
+message CreateThreadRequest {
     bool has_parent_id = 1;
     string parent_id = 2;
     string title = 3;
     bool has_remarks = 4;
     string remarks = 5;
-    repeated int64 administrator_ids = 6;
-    repeated int64 member_ids = 7;
-    int64 create_at = 8;
+    repeated string administrator_ids = 6;
+    repeated string member_ids = 7;
+    int64 create_at = 255;
 }
 
-message NewThreadResponse {
+message CreateThreadResponse {
     bool is_successful = 1;
     int64 thread_id = 2;
+    repeated string error_messages = 3;
+}
+
+message DestroyThreadRequest {
+    string thread_id = 1;
+    int64 create_at = 255;
+}
+
+message DestroyThreadResponse {
+    bool is_successful = 1;
+    int64 thread_id = 2;
+    repeated string error_messages = 3;
+}
+
+message AddMessagesRequest {
+    string thread_id = 1;
+    string sender_id = 2;
+    repeated string messages = 3;
+    int64 create_at = 255;
+}
+
+message AddMessagesResponse {
+    bool is_successful = 1;
+    repeated string message_ids = 2;
+    repeated string error_messages = 3;
+}
+
+message RemoveMessagesRequest {
+    string thread_id = 1;
+    string sender_id = 2;
+    repeated string message_ids = 3;
+    int64 create_at = 255;
+}
+
+message RemoveMessagesResponse {
+    bool is_successful = 1;
+    repeated string message_ids = 2;
     repeated string error_messages = 3;
 }

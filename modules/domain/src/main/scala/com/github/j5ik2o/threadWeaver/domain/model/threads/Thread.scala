@@ -101,7 +101,7 @@ final case class Thread(
       Right(copy(messages = messages combine values, updatedAt = at))
   }
 
-  def removeMessages(values: MessageIds, removerId: AccountId, at: Instant): Either[Exception, Thread] = {
+  def removeMessages(values: MessageIds, removerId: AccountId, at: Instant): Either[Exception, (Thread, MessageIds)] = {
     if (isRemoved)
       Left(new IllegalStateException("already removed the thread"))
     else if (!isMemberId(removerId))
@@ -109,8 +109,11 @@ final case class Thread(
     else {
       if (!messages.filter(values).forall(_.senderId == removerId))
         Left(new IllegalArgumentException("The removerId is not the senderId"))
-      else
-        Right(copy(messages = messages.filterNot(values), updatedAt = at))
+      else {
+        val newMessage = messages.filterNot(values)
+        val diff       = messages.toMessageIds.diff(newMessage.toMessageIds)
+        Right((copy(messages = newMessage, updatedAt = at), diff))
+      }
     }
   }
 
