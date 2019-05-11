@@ -147,9 +147,9 @@ class ThreadReadModelUpdaterOnDynamoDBSpec
       }
 
       val memberId             = AccountId()
-      val addMemberIdsResponse = TestProbe[AddMemberIdsResponse]()
+      val addMemberIdsResponse = TestProbe[JoinMemberIdsResponse]()
 
-      threadRef ! AddMemberIds(
+      threadRef ! JoinMemberIds(
         ULID(),
         threadId,
         administratorId,
@@ -158,10 +158,10 @@ class ThreadReadModelUpdaterOnDynamoDBSpec
         Some(addMemberIdsResponse.ref)
       )
 
-      addMemberIdsResponse.expectMessageType[AddMemberIdsResponse] match {
-        case f: AddMemberIdsFailed =>
+      addMemberIdsResponse.expectMessageType[JoinMemberIdsResponse] match {
+        case f: JoinMemberIdsFailed =>
           fail(f.message)
-        case s: AddMemberIdsSucceeded =>
+        case s: JoinMemberIdsSucceeded =>
           s.threadId shouldBe threadId
           s.createAt shouldBe now
       }

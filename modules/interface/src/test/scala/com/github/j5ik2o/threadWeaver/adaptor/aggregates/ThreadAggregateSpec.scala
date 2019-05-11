@@ -68,9 +68,9 @@ class ThreadAggregateSpec extends ScalaTestWithActorTestKit with FreeSpecLike wi
       }
 
       val administratorId2                 = AccountId()
-      val addAdministratorIdsResponseProbe = TestProbe[AddAdministratorIdsResponse]()
+      val addAdministratorIdsResponseProbe = TestProbe[JoinAdministratorIdsResponse]()
 
-      threadRef ! AddAdministratorIds(
+      threadRef ! JoinAdministratorIds(
         ULID(),
         threadId,
         administratorId,
@@ -79,10 +79,10 @@ class ThreadAggregateSpec extends ScalaTestWithActorTestKit with FreeSpecLike wi
         Some(addAdministratorIdsResponseProbe.ref)
       )
 
-      addAdministratorIdsResponseProbe.expectMessageType[AddAdministratorIdsResponse] match {
-        case f: AddAdministratorIdsFailed =>
+      addAdministratorIdsResponseProbe.expectMessageType[JoinAdministratorIdsResponse] match {
+        case f: JoinAdministratorIdsFailed =>
           fail(f.message)
-        case s: AddAdministratorIdsSucceeded =>
+        case s: JoinAdministratorIdsSucceeded =>
           s.threadId shouldBe threadId
           s.createAt shouldBe now
       }
@@ -129,9 +129,9 @@ class ThreadAggregateSpec extends ScalaTestWithActorTestKit with FreeSpecLike wi
       }
 
       val memberId                  = AccountId()
-      val addMemberIdsResponseProbe = TestProbe[AddMemberIdsResponse]()
+      val addMemberIdsResponseProbe = TestProbe[JoinMemberIdsResponse]()
 
-      threadRef ! AddMemberIds(
+      threadRef ! JoinMemberIds(
         ULID(),
         threadId,
         administratorId,
@@ -140,10 +140,10 @@ class ThreadAggregateSpec extends ScalaTestWithActorTestKit with FreeSpecLike wi
         Some(addMemberIdsResponseProbe.ref)
       )
 
-      addMemberIdsResponseProbe.expectMessageType[AddMemberIdsResponse] match {
-        case f: AddMemberIdsFailed =>
+      addMemberIdsResponseProbe.expectMessageType[JoinMemberIdsResponse] match {
+        case f: JoinMemberIdsFailed =>
           fail(f.message)
-        case s: AddMemberIdsSucceeded =>
+        case s: JoinMemberIdsSucceeded =>
           s.threadId shouldBe threadId
           s.createAt shouldBe now
       }
@@ -185,9 +185,9 @@ class ThreadAggregateSpec extends ScalaTestWithActorTestKit with FreeSpecLike wi
       createThreadSucceeded.createAt shouldBe now
 
       val memberId                  = AccountId()
-      val addMemberIdsResponseProbe = TestProbe[AddMemberIdsResponse]()
+      val addMemberIdsResponseProbe = TestProbe[JoinMemberIdsResponse]()
 
-      threadRef ! AddMemberIds(
+      threadRef ! JoinMemberIds(
         ULID(),
         threadId,
         administratorId,
@@ -196,10 +196,10 @@ class ThreadAggregateSpec extends ScalaTestWithActorTestKit with FreeSpecLike wi
         Some(addMemberIdsResponseProbe.ref)
       )
 
-      addMemberIdsResponseProbe.expectMessageType[AddMemberIdsResponse] match {
-        case f: AddMemberIdsFailed =>
+      addMemberIdsResponseProbe.expectMessageType[JoinMemberIdsResponse] match {
+        case f: JoinMemberIdsFailed =>
           fail(f.message)
-        case s: AddMemberIdsSucceeded =>
+        case s: JoinMemberIdsSucceeded =>
           s.threadId shouldBe threadId
           s.createAt shouldBe now
       }

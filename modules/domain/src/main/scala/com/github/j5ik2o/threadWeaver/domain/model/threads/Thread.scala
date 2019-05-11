@@ -34,7 +34,7 @@ final case class Thread(
   def isMemberId(accountId: AccountId): Boolean =
     memberIds.contains(accountId) || administratorIds.contains(accountId)
 
-  def addAdministratorIds(value: AdministratorIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
+  def joinAdministratorIds(value: AdministratorIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
     if (isRemoved)
       Left(new IllegalStateException("already removed thread"))
     else if (!isAdministratorId(senderId))
@@ -43,7 +43,7 @@ final case class Thread(
       Right(copy(administratorIds = administratorIds combine value, updatedAt = at))
   }
 
-  def removeAdministratorIds(value: AdministratorIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
+  def leaveAdministratorIds(value: AdministratorIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
     if (isRemoved)
       Left(new IllegalStateException("already removed thread"))
     else if (!isAdministratorId(senderId))
@@ -63,7 +63,7 @@ final case class Thread(
       Right(administratorIds)
   }
 
-  def addMemberIds(value: MemberIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
+  def joinMemberIds(value: MemberIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
     if (isRemoved)
       Left(new IllegalStateException("already removed the thread"))
     else if (!isAdministratorId(senderId))
@@ -72,7 +72,7 @@ final case class Thread(
       Right(copy(memberIds = memberIds combine value, updatedAt = at))
   }
 
-  def removeMemberIds(value: MemberIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
+  def leaveMemberIds(value: MemberIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
     if (isRemoved)
       Left(new IllegalStateException("already removed the thread"))
     else if (!isAdministratorId(senderId))

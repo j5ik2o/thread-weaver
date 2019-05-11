@@ -23,26 +23,26 @@ class ThreadAggregate(context: ActorContext[CommandRequest])(id: ThreadId, subsc
 
   private def commandAdministratorIds(thread: Thread): Behaviors.Receive[CommandRequest] =
     Behaviors.receiveMessagePartial[CommandRequest] {
-      case AddAdministratorIds(cmdId, threadId, senderId, administratorIds, createAt, replyTo) if threadId == id =>
-        thread.addAdministratorIds(administratorIds, senderId, createAt) match {
+      case JoinAdministratorIds(cmdId, threadId, senderId, administratorIds, createAt, replyTo) if threadId == id =>
+        thread.joinAdministratorIds(administratorIds, senderId, createAt) match {
           case Left(exception) =>
             replyTo.foreach(
-              _ ! AddAdministratorIdsFailed(ULID(), cmdId, threadId, exception.getMessage, createAt)
+              _ ! JoinAdministratorIdsFailed(ULID(), cmdId, threadId, exception.getMessage, createAt)
             )
             Behaviors.same
           case Right(newThread) =>
-            replyTo.foreach(_ ! AddAdministratorIdsSucceeded(ULID(), cmdId, threadId, createAt))
+            replyTo.foreach(_ ! JoinAdministratorIdsSucceeded(ULID(), cmdId, threadId, createAt))
             onCreated(newThread)
         }
-      case RemoveAdministratorIds(cmdId, threadId, senderId, administratorIds, createAt, replyTo) if threadId == id =>
-        thread.removeAdministratorIds(administratorIds, senderId, createAt) match {
+      case LeaveAdministratorIds(cmdId, threadId, senderId, administratorIds, createAt, replyTo) if threadId == id =>
+        thread.leaveAdministratorIds(administratorIds, senderId, createAt) match {
           case Left(exception) =>
             replyTo.foreach(
-              _ ! RemoveAdministratorIdsFailed(ULID(), cmdId, threadId, exception.getMessage, createAt)
+              _ ! LeaveAdministratorIdsFailed(ULID(), cmdId, threadId, exception.getMessage, createAt)
             )
             Behaviors.same
           case Right(newThread) =>
-            replyTo.foreach(_ ! RemoveAdministratorIdsSucceeded(ULID(), cmdId, threadId, createAt))
+            replyTo.foreach(_ ! LeaveAdministratorIdsSucceeded(ULID(), cmdId, threadId, createAt))
             onCreated(newThread)
         }
     }
@@ -64,26 +64,26 @@ class ThreadAggregate(context: ActorContext[CommandRequest])(id: ThreadId, subsc
   private def commandMemberIds(thread: Thread): Behaviors.Receive[CommandRequest] =
     Behaviors.receiveMessagePartial[CommandRequest] {
       // for Members
-      case AddMemberIds(requestId, threadId, senderId, memberIds, createAt, replyTo) if threadId == id =>
-        thread.addMemberIds(memberIds, senderId, createAt) match {
+      case JoinMemberIds(requestId, threadId, senderId, memberIds, createAt, replyTo) if threadId == id =>
+        thread.joinMemberIds(memberIds, senderId, createAt) match {
           case Left(exception) =>
             replyTo.foreach(
-              _ ! AddMemberIdsFailed(ULID(), requestId, threadId, exception.getMessage, createAt)
+              _ ! JoinMemberIdsFailed(ULID(), requestId, threadId, exception.getMessage, createAt)
             )
             Behaviors.same
           case Right(newThread) =>
-            replyTo.foreach(_ ! AddMemberIdsSucceeded(ULID(), requestId, threadId, createAt))
+            replyTo.foreach(_ ! JoinMemberIdsSucceeded(ULID(), requestId, threadId, createAt))
             onCreated(newThread)
         }
-      case RemoveMemberIds(requestId, threadId, senderId, memberIds, createAt, replyTo) if threadId == id =>
-        thread.addMemberIds(memberIds, senderId, createAt) match {
+      case LeaveMemberIds(requestId, threadId, senderId, memberIds, createAt, replyTo) if threadId == id =>
+        thread.joinMemberIds(memberIds, senderId, createAt) match {
           case Left(exception) =>
             replyTo.foreach(
-              _ ! RemoveMemberIdsFailed(ULID(), requestId, threadId, exception.getMessage, createAt)
+              _ ! LeaveMemberIdsFailed(ULID(), requestId, threadId, exception.getMessage, createAt)
             )
             Behaviors.same
           case Right(newThread) =>
-            replyTo.foreach(_ ! RemoveMemberIdsSucceeded(ULID(), requestId, threadId, createAt))
+            replyTo.foreach(_ ! LeaveMemberIdsSucceeded(ULID(), requestId, threadId, createAt))
             onCreated(newThread)
         }
     }

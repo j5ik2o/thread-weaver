@@ -31,8 +31,8 @@ private[useCase] class AddMemberIdsUseCaseImpl(
       implicit val scheduler: Scheduler         = system.scheduler
       implicit val ec: ExecutionContextExecutor = system.executionContext
       threadAggregates
-        .ask[AddMemberIdsResponse] { ref =>
-          AddMemberIds(
+        .ask[JoinMemberIdsResponse] { ref =>
+          JoinMemberIds(
             ULID(),
             request.threadId,
             request.adderId,
@@ -41,9 +41,9 @@ private[useCase] class AddMemberIdsUseCaseImpl(
             Some(ref)
           )
         }.map {
-          case v: AddMemberIdsSucceeded =>
+          case v: JoinMemberIdsSucceeded =>
             UAddMemberIdsSucceeded(v.id, v.requestId, v.threadId, v.createAt)
-          case v: AddMemberIdsFailed =>
+          case v: JoinMemberIdsFailed =>
             UAddMemberIdsFailed(v.id, v.requestId, v.threadId, v.message, v.createAt)
         }
     }

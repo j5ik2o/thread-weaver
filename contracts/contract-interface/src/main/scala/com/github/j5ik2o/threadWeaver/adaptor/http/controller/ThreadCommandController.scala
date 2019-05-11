@@ -97,7 +97,7 @@ trait ThreadCommandController {
     requestBody = new RequestBody(
       content = Array(
         new Content(
-          schema = new Schema(implementation = classOf[AddMemberIdsRequestJson])
+          schema = new Schema(implementation = classOf[JoinMemberIdsRequestJson])
         )
       )
     ),
@@ -105,7 +105,7 @@ trait ThreadCommandController {
       new ApiResponse(
         responseCode = "200",
         description = "Join memberIds response",
-        content = Array(new Content(schema = new Schema(implementation = classOf[AddMemberIdsResponseJson])))
+        content = Array(new Content(schema = new Schema(implementation = classOf[JoinMemberIdsResponseJson])))
       ),
       new ApiResponse(responseCode = "500", description = "Internal server error")
     )

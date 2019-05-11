@@ -84,8 +84,8 @@ object ThreadValidateDirectives {
   }
 
   implicit object AddMemberIdsRequestJsonValidator
-      extends Validator[(ThreadId, AddMemberIdsRequestJson), AddMemberIds] {
-    override def validate(value: (ThreadId, AddMemberIdsRequestJson)): ValidationResult[AddMemberIds] = {
+      extends Validator[(ThreadId, JoinMemberIdsRequestJson), AddMemberIds] {
+    override def validate(value: (ThreadId, JoinMemberIdsRequestJson)): ValidationResult[AddMemberIds] = {
       (
         validateAccountId(value._2.adderId),
         validateMemberIds(value._2.memberIds),
