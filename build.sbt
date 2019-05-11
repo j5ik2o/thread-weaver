@@ -106,7 +106,7 @@ val `flyway` = (project in file("tools/flyway"))
 lazy val `proto` = (project in file("proto"))
   .enablePlugins(AkkaGrpcPlugin)
 
-lazy val `api-client` = (project in file("client"))
+lazy val `api-client` = (project in file("api-client"))
   .dependsOn(proto)
   .enablePlugins(AkkaGrpcPlugin)
 
@@ -233,7 +233,7 @@ val interface = (project in file("interface"))
   .configs(MultiJvm)
   .dependsOn(`contract-interface`, `use-case`, `infrastructure`)
 
-val api = (project in file("api"))
+val `api-server` = (project in file("api-server"))
   .enablePlugins(AshScriptPlugin, JavaAgent)
   .settings(baseSettings)
   .settings(dockerCommonSettings)
@@ -327,4 +327,4 @@ val root = (project in file("."))
   .settings(baseSettings)
   .settings(
     name := "thread-weaver"
-  ).aggregate(`domain`, `use-case`, `interface`, `infrastructure`, `api`, `proto`, `api-client`)
+  ).aggregate(`domain`, `use-case`, `interface`, `infrastructure`, `api-server`, `proto`, `api-client`)
