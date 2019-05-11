@@ -6,9 +6,9 @@ option java_outer_classname = "ThreadProto";
 
 package thread;
 
-service Threads {
+service ThreadsService {
 
-  rpc NewThread(NewThreadRequest) returns (NewThreadResponse) {}
+    rpc NewThread (NewThreadRequest) returns (NewThreadResponse) {}
 
 }
 
@@ -25,6 +25,6 @@ message NewThreadRequest {
 
 message NewThreadResponse {
     bool is_successful = 1;
-   int64 thread_id = 2;
-   repeated string error_messages = 3;
+    int64 thread_id = 2;
+    repeated string error_messages = 3;
 }
