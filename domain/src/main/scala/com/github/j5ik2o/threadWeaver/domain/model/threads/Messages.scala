@@ -4,7 +4,7 @@ import cats.Monoid
 
 final case class Messages(breachEncapsulationOfValues: Vector[Message[_]]) {
 
-  def size = breachEncapsulationOfValues.size
+  def size: Int = breachEncapsulationOfValues.size
 
   def filter(messageIds: MessageIds): Messages =
     copy(

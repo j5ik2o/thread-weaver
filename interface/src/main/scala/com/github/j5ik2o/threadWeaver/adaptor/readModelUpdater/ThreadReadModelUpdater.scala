@@ -89,6 +89,71 @@ class ThreadReadModelUpdater(
     onFinish = Attributes.LogLevels.Info
   )
 
+  type Handler = PartialFunction[(Long, Event), DBIOAction[Unit, NoStream, Effect.Write with Effect.Transactional]]
+
+  private def forLifecycle(threadId: ThreadId): Handler = {
+    case (
+        sequenceNr,
+        ThreadCreated(_, _, senderId, parentThreadId, title, remarks, administratorIds, memberIds, createdAt)
+        ) =>
+      DBIO
+        .seq(
+          insertThreadAction(threadId, sequenceNr, senderId, parentThreadId, title, remarks, createdAt) ::
+          insertAdministratorIdsAction(threadId, senderId, administratorIds, createdAt) :::
+          insertMemberIdsAction(threadId, senderId, memberIds, createdAt): _*
+        ).transactionally
+    case (sequenceNr, ThreadDestroyed(_, _, _, createdAt)) =>
+      DBIO
+        .seq(
+          updateThreadToRemoveAction(threadId, sequenceNr, createdAt)
+        )
+  }
+
+  private def forAdministrator(threadId: ThreadId): Handler = {
+    case (sequenceNr, AdministratorIdsAdded(_, _, senderId, administratorIds, createdAt)) =>
+      DBIO
+        .seq(
+          updateSequenceNrInThreadAction(threadId, sequenceNr, createdAt) ::
+          insertAdministratorIdsAction(threadId, senderId, administratorIds, createdAt): _*
+        ).transactionally
+    case (sequenceNr, AdministratorIdsRemoved(_, _, _, administratorIds, createdAt)) =>
+      DBIO
+        .seq(
+          updateSequenceNrInThreadAction(threadId, sequenceNr, createdAt),
+          deleteAdministratorIdsAction(threadId, administratorIds)
+        ).transactionally
+  }
+
+  private def forMember(threadId: ThreadId): Handler = {
+    case (sequenceNr, MemberIdsAdded(_, _, adderId, memberIds, createdAt)) =>
+      DBIO
+        .seq(
+          updateSequenceNrInThreadAction(threadId, sequenceNr, createdAt) ::
+          insertMemberIdsAction(threadId, adderId, memberIds, createdAt): _*
+        ).transactionally
+    case (sequenceNr, MemberIdsRemoved(_, _, _, memberIds, createdAt)) =>
+      DBIO
+        .seq(
+          updateSequenceNrInThreadAction(threadId, sequenceNr, createdAt),
+          deleteMemberIdsAction(threadId, memberIds)
+        ).transactionally
+  }
+
+  private def forMessage(threadId: ThreadId): Handler = {
+    case (sequenceNr, MessagesAdded(_, _, messages, createdAt)) =>
+      DBIO
+        .seq(
+          updateSequenceNrInThreadAction(threadId, sequenceNr, createdAt) ::
+          insertMessagesAction(threadId, messages, createdAt): _*
+        ).transactionally
+    case (sequenceNr, MessagesRemoved(_, _, _, messageIds, createdAt)) =>
+      DBIO
+        .seq(
+          updateSequenceNrInThreadAction(threadId, sequenceNr, createdAt),
+          deleteMessagesAction(messageIds, createdAt)
+        ).transactionally
+  }
+
   private def sqlActionFlow(
       threadId: ThreadId
   ): Flow[EventEnvelope, DBIOAction[Unit, NoStream, Effect.Write with Effect.Transactional], NotUsed] =
@@ -96,66 +161,12 @@ class ThreadReadModelUpdater(
       .map { ee =>
         (ee.sequenceNr, ee.event.asInstanceOf[Event])
       }.map {
-        case (
-            sequenceNr,
-            ThreadCreated(_, _, senderId, parentThreadId, title, remarks, administratorIds, memberIds, createdAt)
-            ) =>
-          DBIO
-            .seq(
-              insertThreadAction(threadId, sequenceNr, senderId, parentThreadId, title, remarks, createdAt) ::
-              insertAdministratorIdsAction(threadId, senderId, administratorIds, createdAt) :::
-              insertMemberIdsAction(threadId, senderId, memberIds, createdAt): _*
-            ).transactionally
-        case (sequenceNr, ThreadDestroyed(_, _, _, createdAt)) =>
-          DBIO
-            .seq(
-              updateThreadToRemoveAction(threadId, sequenceNr, createdAt)
-            )
-
-        // for Administrators
-        case (sequenceNr, AdministratorIdsAdded(_, _, senderId, administratorIds, createdAt)) =>
-          DBIO
-            .seq(
-              updateSequenceNrInThreadAction(threadId, sequenceNr, createdAt) ::
-              insertAdministratorIdsAction(threadId, senderId, administratorIds, createdAt): _*
-            ).transactionally
-        case (sequenceNr, AdministratorIdsRemoved(_, _, _, administratorIds, createdAt)) =>
-          DBIO
-            .seq(
-              updateSequenceNrInThreadAction(threadId, sequenceNr, createdAt),
-              deleteAdministratorIdsAction(threadId, administratorIds)
-            ).transactionally
-
-        // for Members
-        case (sequenceNr, MemberIdsAdded(_, _, adderId, memberIds, createdAt)) =>
-          DBIO
-            .seq(
-              updateSequenceNrInThreadAction(threadId, sequenceNr, createdAt) ::
-              insertMemberIdsAction(threadId, adderId, memberIds, createdAt): _*
-            ).transactionally
-        case (sequenceNr, MemberIdsRemoved(_, _, _, memberIds, createdAt)) =>
-          DBIO
-            .seq(
-              updateSequenceNrInThreadAction(threadId, sequenceNr, createdAt),
-              deleteMemberIdsAction(threadId, memberIds)
-            ).transactionally
-
-        // for Messages
-        case (sequenceNr, MessagesAdded(_, _, messages, createdAt)) =>
-          DBIO
-            .seq(
-              updateSequenceNrInThreadAction(threadId, sequenceNr, createdAt) ::
-              insertMessagesAction(threadId, messages, createdAt): _*
-            ).transactionally
-        case (sequenceNr, MessagesRemoved(_, _, _, messageIds, createdAt)) =>
-          DBIO
-            .seq(
-              updateSequenceNrInThreadAction(threadId, sequenceNr, createdAt),
-              deleteMessagesAction(messageIds, createdAt)
-            ).transactionally
-
-        case _ =>
-          DBIO.successful(())
+        forLifecycle(threadId)
+          .orElse(forAdministrator(threadId)).orElse(forMember(threadId)).orElse(forMessage(threadId))
+          .orElse {
+            case _ =>
+              DBIO.successful(())
+          }
       }
 
   private def projectionSource(sqlBatchSize: Long, threadId: ThreadId)(implicit ec: ExecutionContext) = {

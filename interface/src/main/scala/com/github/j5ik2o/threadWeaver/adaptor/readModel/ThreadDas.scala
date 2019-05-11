@@ -47,16 +47,20 @@ trait ThreadDas
     Source.fromPublisher(db.stream(q)).drop(offset.getOrElse(0)).take(limit.getOrElse(100))
   }
 
-  def getAdministratorsByThreadIdSource(threadId: ThreadId,
-                                        offset: Option[Long],
-                                        limit: Option[Long]): Source[ThreadAdministratorIdsRecord, NotUsed] = {
+  def getAdministratorsByThreadIdSource(
+      threadId: ThreadId,
+      offset: Option[Long],
+      limit: Option[Long]
+  ): Source[ThreadAdministratorIdsRecord, NotUsed] = {
     val q = ThreadAdministratorIdsDao.filter(_.threadId === threadId.value.asString).result
     Source.fromPublisher(db.stream(q)).drop(offset.getOrElse(0)).take(limit.getOrElse(100))
   }
 
-  def getMembersByThreadIdSource(threadId: ThreadId,
-                                 offset: Option[Long],
-                                 limit: Option[Long]): Source[ThreadMemberIdsRecord, NotUsed] = {
+  def getMembersByThreadIdSource(
+      threadId: ThreadId,
+      offset: Option[Long],
+      limit: Option[Long]
+  ): Source[ThreadMemberIdsRecord, NotUsed] = {
     val q = ThreadMemberIdsDao.filter(_.threadId === threadId.value.asString).result
     Source.fromPublisher(db.stream(q)).drop(offset.getOrElse(0)).take(limit.getOrElse(100))
   }

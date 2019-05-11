@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.github.j5ik2o.threadWeaver.adaptor.grpc";
+option java_outer_classname = "ThreadProto";
+
+package thread;
+
+service Threads {
+
+  rpc NewThread(NewThreadRequest) returns (NewThreadResponse) {}
+
+}
+
+message NewThreadRequest {
+    bool has_parent_id = 1;
+    string parent_id = 2;
+    string title = 3;
+    bool has_remarks = 4;
+    string remarks = 5;
+    repeated int64 administrator_ids = 6;
+    repeated int64 member_ids = 7;
+    int64 create_at = 8;
+}
+
+message NewThreadResponse {
+    bool is_successful = 1;
+   int64 thread_id = 2;
+   repeated string error_messages = 3;
+}

@@ -15,6 +15,8 @@ addSbtPlugin("io.kamon" % "sbt-aspectj-runner" % "1.1.0")
 
 addSbtPlugin("com.lightbend.sbt" % "sbt-javaagent" % "0.1.4")
 
+addSbtPlugin("org.scalastyle" %% "scalastyle-sbt-plugin" % "1.0.0")
+
 addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.0.0")
 
 addSbtPlugin("org.wartremover" % "sbt-wartremover" % "2.4.1")
@@ -34,3 +36,5 @@ addSbtPlugin("io.github.davidmweber" % "flyway-sbt" % "5.2.0")
 addSbtPlugin("jp.co.septeni-original" % "sbt-dao-generator" % "1.0.8")
 
 addSbtPlugin("com.chatwork" % "sbt-wix-embedded-mysql" % "1.0.9")
+
+addSbtPlugin("com.lightbend.akka.grpc" % "sbt-akka-grpc" % "0.6.1")

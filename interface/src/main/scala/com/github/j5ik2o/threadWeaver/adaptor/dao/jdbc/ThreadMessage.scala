@@ -1,5 +1,8 @@
 package com.github.j5ik2o.threadWeaver.adaptor.dao.jdbc
 
+import slick.lifted.ProvenShape
+import slick.lifted.PrimaryKey
+
 trait ThreadMessageComponent extends SlickDaoSupport {
 
   import profile.api._
@@ -26,8 +29,8 @@ trait ThreadMessageComponent extends SlickDaoSupport {
     def body: Rep[String]                 = column[String]("body")
     def createdAt: Rep[java.time.Instant] = column[java.time.Instant]("created_at")
     def updatedAt: Rep[java.time.Instant] = column[java.time.Instant]("updated_at")
-    def pk                                = primaryKey("pk", (id))
-    override def * =
+    def pk: PrimaryKey                    = primaryKey("pk", (id))
+    override def * : ProvenShape[ThreadMessageRecord] =
       (id, deleted, threadId, senderId, `type`, body, createdAt, updatedAt) <> (ThreadMessageRecord.tupled, ThreadMessageRecord.unapply)
   }
 

@@ -17,7 +17,7 @@ final case class MemberIds(breachEncapsulationOfValues: Vector[AccountId]) {
 
 object MemberIds {
 
-  def apply(values: AccountId*) = new MemberIds(Vector(values: _*))
+  def apply(values: AccountId*): MemberIds = new MemberIds(Vector(values: _*))
 
   val empty = MemberIds(Vector.empty)
 
