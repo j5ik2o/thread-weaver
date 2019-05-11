@@ -13,7 +13,7 @@ final case class MessageIds(breachEncapsulationOfValues: Vector[MessageId]) {
 
 object MessageIds {
 
-  def apply(values: MessageId*) = new MessageIds(Vector(values: _*))
+  def apply(values: MessageId*): MessageIds = new MessageIds(Vector(values: _*))
 
   val empty = MessageIds(Vector.empty)
 

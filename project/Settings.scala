@@ -4,6 +4,7 @@ import com.typesafe.sbt.SbtNativePackager.autoImport._
 import com.typesafe.sbt.packager.archetypes.scripts.BashStartScriptPlugin.autoImport._
 import com.typesafe.sbt.packager.docker.DockerPlugin.autoImport._
 import org.scalafmt.sbt.ScalafmtPlugin.autoImport._
+import org.scalastyle.sbt.ScalastylePlugin.autoImport._
 import wartremover.WartRemover.autoImport._
 
 object Settings {
@@ -14,6 +15,8 @@ object Settings {
   val monocleVersion        = "1.5.0"
   val swaggerVersion        = "2.0.8"
   val slickVersion          = "3.2.3"
+
+  val compileScalaStyle = taskKey[Unit]("compileScalaStyle")
 
   lazy val dockerCommonSettings = Seq(
     dockerBaseImage := "adoptopenjdk/openjdk8:x86_64-alpine-jdk8u191-b12",
@@ -99,7 +102,10 @@ object Settings {
       "com.typesafe.akka"      %% "akka-parsing"          % "10.1.8"
     ),
     parallelExecution in Test := false,
-    fork := true
+    fork := true,
+    (scalastyleConfig in Compile) := file("scalastyle-config.xml"),
+    compileScalaStyle := scalastyle.in(Compile).toTask("").value,
+    (compile in Compile) := (compile in Compile).dependsOn(compileScalaStyle).value
   )
 
   lazy val gatlingCommonSettings = Seq(

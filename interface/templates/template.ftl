@@ -1,5 +1,8 @@
 package com.github.j5ik2o.threadWeaver.adaptor.dao.jdbc
 
+import slick.lifted.ProvenShape
+import slick.lifted.PrimaryKey
+
 <#assign softDelete=false>
 trait ${className}Component extends SlickDaoSupport {
 
@@ -29,8 +32,8 @@ case class ${className}s(tag: Tag) extends TableBase[${className}Record](tag, "$
         def ${column.propertyName}: Rep[${column.propertyTypeName}] = column[${column.propertyTypeName}]("${column.columnName}")
     </#if>
 </#list>
-def pk  = primaryKey("pk", (<#list primaryKeys as primaryKey>${primaryKey.propertyName}<#if primaryKey_has_next>,</#if></#list>))
-override def * = (<#list primaryKeys as primaryKey>${primaryKey.propertyName}<#if primaryKey_has_next>,</#if></#list><#if primaryKeys?has_content>,</#if><#list columns as column>${column.propertyName}<#if column_has_next>,</#if></#list>) <> (${className}Record.tupled, ${className}Record.unapply)
+def pk: PrimaryKey  = primaryKey("pk", (<#list primaryKeys as primaryKey>${primaryKey.propertyName}<#if primaryKey_has_next>,</#if></#list>))
+override def * : ProvenShape[${className}Record] = (<#list primaryKeys as primaryKey>${primaryKey.propertyName}<#if primaryKey_has_next>,</#if></#list><#if primaryKeys?has_content>,</#if><#list columns as column>${column.propertyName}<#if column_has_next>,</#if></#list>) <> (${className}Record.tupled, ${className}Record.unapply)
 }
 
 object ${className}Dao extends TableQuery(${className}s)

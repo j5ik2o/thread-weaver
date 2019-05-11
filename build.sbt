@@ -85,7 +85,6 @@ val `flyway` = (project in file("tools/flyway"))
     wixMySQLSchemaName := dbName,
     wixMySQLPort := Some(dbPort),
     wixMySQLDownloadPath := Some(sys.env("HOME") + "/.wixMySQL/downloads"),
-    //wixMySQLTempPath := Some(sys.env("HOME") + "/.wixMySQL/work"),
     wixMySQLTimeout := Some(2 minutes),
     flywayDriver := dbDriver,
     flywayUrl := dbUrl,
@@ -104,7 +103,15 @@ val `flyway` = (project in file("tools/flyway"))
     flywayMigrate := (flywayMigrate dependsOn wixMySQLStart).value
   )
 
+lazy val `proto` = (project in file("proto"))
+  .enablePlugins(AkkaGrpcPlugin)
+
+lazy val `api-client` = (project in file("client"))
+  .dependsOn(proto)
+  .enablePlugins(AkkaGrpcPlugin)
+
 val interface = (project in file("interface"))
+  .enablePlugins(AkkaGrpcPlugin)
   .settings(baseSettings)
   .settings(
     name := "thread-weaver-interface",
@@ -237,6 +244,7 @@ val api = (project in file("api"))
     dockerUsername := Some("j5ik2o"),
     fork in run := true,
     javaAgents += "org.aspectj" % "aspectjweaver" % "1.8.13",
+    javaAgents += "org.mortbay.jetty.alpn" % "jetty-alpn-agent" % "2.0.9" % "runtime;test",
     javaOptions in Universal += "-Dorg.aspectj.tracing.factory=default",
     javaOptions in run ++= Seq(
       s"-Dcom.sun.management.jmxremote.port=${sys.env.getOrElse("JMX_PORT", "8999")}",
@@ -319,4 +327,4 @@ val root = (project in file("."))
   .settings(baseSettings)
   .settings(
     name := "thread-weaver"
-  ).aggregate(`domain`, `use-case`, `interface`, `infrastructure`, `api`)
+  ).aggregate(`domain`, `use-case`, `interface`, `infrastructure`, `api`, `proto`, `api-client`)
