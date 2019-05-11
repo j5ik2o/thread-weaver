@@ -6,11 +6,13 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.Materializer
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
-import com.github.j5ik2o.threadWeaver.adaptor.http.controller.ThreadController
+import com.github.j5ik2o.threadWeaver.adaptor.http.controller.{ ThreadCommandController, ThreadQueryController }
 import com.github.j5ik2o.threadWeaver.adaptor.http.directives.MetricsDirectives
 import com.github.j5ik2o.threadWeaver.adaptor.swagger.SwaggerDocService
 
-class Routes(val swaggerDocService: SwaggerDocService, threadController: ThreadController)(
+class Routes(val swaggerDocService: SwaggerDocService,
+             threadCommandController: ThreadCommandController,
+             threadQueryController: ThreadQueryController)(
     implicit system: ActorSystem[Nothing],
     mat: Materializer
 ) extends MetricsDirectives {
@@ -25,7 +27,7 @@ class Routes(val swaggerDocService: SwaggerDocService, threadController: ThreadC
         } ~ path("swagger") {
           getFromResource("swagger/index.html")
         } ~ getFromResourceDirectory("swagger") ~
-        swaggerDocService.routes ~ threadController.toRoutes
+        swaggerDocService.routes ~ threadCommandController.toRoutes ~ threadQueryController.toRoutes
       }
     }
   }

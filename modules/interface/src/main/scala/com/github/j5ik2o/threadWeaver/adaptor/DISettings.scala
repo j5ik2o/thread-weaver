@@ -10,7 +10,7 @@ import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{
   ThreadReadModelUpdaterRef
 }
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates._
-import com.github.j5ik2o.threadWeaver.adaptor.http.controller.{ ThreadController, ThreadControllerImpl }
+import com.github.j5ik2o.threadWeaver.adaptor.http.controller._
 import com.github.j5ik2o.threadWeaver.adaptor.http.presenter._
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ShardedThreadReadModelUpdaterProxy
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdater.ReadJournalType
@@ -35,7 +35,8 @@ trait DISettings {
 
   private[adaptor] def designOfControllers: Design =
     newDesign
-      .bind[ThreadController].to[ThreadControllerImpl]
+      .bind[ThreadCommandController].to[ThreadCommandControllerImpl]
+      .bind[ThreadQueryController].to[ThreadQueryControllerImpl]
 
   private[adaptor] def designOfPresenters: Design =
     newDesign
@@ -48,7 +49,7 @@ trait DISettings {
   private[adaptor] def designOfSwagger(host: String, port: Int): Design =
     newDesign
       .bind[SwaggerDocService].toInstance(
-        new SwaggerDocService(host, port, Set(classOf[ThreadController]))
+        new SwaggerDocService(host, port, Set(classOf[ThreadCommandController]))
       )
 
   private[adaptor] def designOfReadJournal(readJournal: ReadJournalType): Design = {

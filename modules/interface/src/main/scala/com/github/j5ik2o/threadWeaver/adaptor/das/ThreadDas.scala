@@ -1,4 +1,4 @@
-package com.github.j5ik2o.threadWeaver.adaptor.readModel
+package com.github.j5ik2o.threadWeaver.adaptor.das
 
 import akka.NotUsed
 import akka.stream.scaladsl.Source

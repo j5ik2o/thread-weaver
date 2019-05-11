@@ -2,166 +2,24 @@ package com.github.j5ik2o.threadWeaver.adaptor.http.controller
 
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import akka.stream.scaladsl.{ Sink, Source }
+import akka.stream.scaladsl.Sink
+import com.github.j5ik2o.threadWeaver.adaptor.das.ThreadDas
 import com.github.j5ik2o.threadWeaver.adaptor.http.directives.{ MetricsDirectives, ThreadValidateDirectives }
 import com.github.j5ik2o.threadWeaver.adaptor.http.json._
-import com.github.j5ik2o.threadWeaver.adaptor.http.presenter._
-import com.github.j5ik2o.threadWeaver.adaptor.readModel.ThreadDas
 import com.github.j5ik2o.threadWeaver.adaptor.http.rejections.{ NotFoundRejection, RejectionHandlers }
-import com.github.j5ik2o.threadWeaver.useCase._
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.generic.auto._
 import kamon.context.Context
 import wvlet.airframe._
 
-trait ThreadControllerImpl extends ThreadController with ThreadValidateDirectives with MetricsDirectives {
-  import com.github.j5ik2o.threadWeaver.adaptor.http.directives.ThreadValidateDirectives._
-
-  private val createThreadUseCase   = bind[CreateThreadUseCase]
-  private val createThreadPresenter = bind[CreateThreadPresenter]
-
-  private val addAdministratorIdsUseCase   = bind[AddAdministratorIdsUseCase]
-  private val addAdministratorIdsPresenter = bind[AddAdministratorIdsPresenter]
-
-  private val addMemberIdsUseCase   = bind[AddMemberIdsUseCase]
-  private val addMemberIdsPresenter = bind[AddMemberIdsPresenter]
-
-  private val addMessagesUseCase   = bind[AddMessagesUseCase]
-  private val addMessagesPresenter = bind[AddMessagesPresenter]
-
-  private val removeMessagesUseCase   = bind[RemoveMessagesUseCase]
-  private val removeMessagesPresenter = bind[RemoveMessagesPresenter]
-
+trait ThreadQueryControllerImpl extends ThreadQueryController with ThreadValidateDirectives with MetricsDirectives {
   private val threadDas = bind[ThreadDas]
 
   override def toRoutes(implicit context: Context): Route = handleRejections(RejectionHandlers.default) {
     pathPrefix("v1") {
-      createThread ~ addAdministratorIds ~ addMemberIds ~ addMessages ~ getThreads ~ getAdministratorIds ~ getMemberIds ~ getMessages
+      getThread ~ getThreads ~ getAdministratorIds ~ getMemberIds ~ getMessages
     }
   }
-
-  override private[controller] def createThread(implicit context: Context): Route =
-    traceName(context)("create-thread") {
-      path("threads" / "new") {
-        post {
-          extractMaterializer { implicit mat =>
-            entity(as[CreateThreadRequestJson]) { json =>
-              validateRequestJson(json).apply { commandRequest =>
-                val responseFuture = Source
-                  .single(
-                    commandRequest
-                  ).via(
-                    createThreadUseCase.execute
-                  ).via(createThreadPresenter.response).runWith(Sink.head)
-                onSuccess(responseFuture) { response =>
-                  complete(response)
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-  override private[controller] def addAdministratorIds(implicit context: Context): Route =
-    traceName(context)("add-administrator-ids") {
-      path("threads" / Segment / "administrator-ids" / "add") { threadIdString =>
-        post {
-          extractMaterializer { implicit mat =>
-            validateThreadId(threadIdString) { threadId =>
-              entity(as[AddAdministratorIdsRequestJson]) { json =>
-                validateRequestJson((threadId, json)).apply { commandRequest =>
-                  val responseFuture = Source
-                    .single(
-                      commandRequest
-                    ).via(
-                      addAdministratorIdsUseCase.execute
-                    ).via(addAdministratorIdsPresenter.response).runWith(Sink.head)
-                  onSuccess(responseFuture) { response =>
-                    complete(response)
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-  override private[controller] def addMemberIds(implicit context: Context): Route =
-    traceName(context)("add-member-ids") {
-      path("threads" / Segment / "member-ids" / "add") { threadIdString =>
-        post {
-          extractMaterializer { implicit mat =>
-            validateThreadId(threadIdString) { threadId =>
-              entity(as[AddMemberIdsRequestJson]) { json =>
-                validateRequestJson((threadId, json)).apply { commandRequest =>
-                  val responseFuture = Source
-                    .single(
-                      commandRequest
-                    ).via(
-                      addMemberIdsUseCase.execute
-                    ).via(addMemberIdsPresenter.response).runWith(Sink.head)
-                  onSuccess(responseFuture) { response =>
-                    complete(response)
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-  override private[controller] def addMessages(implicit context: Context): Route =
-    traceName(context)("add-messages") {
-      path("threads" / Segment / "messages" / "add") { threadIdString =>
-        post {
-          extractMaterializer { implicit mat =>
-            validateThreadId(threadIdString) { threadId =>
-              entity(as[AddMessagesRequestJson]) { json =>
-                validateRequestJson((threadId, json)).apply { commandRequest =>
-                  val responseFuture = Source
-                    .single(
-                      commandRequest
-                    ).via(
-                      addMessagesUseCase.execute
-                    ).via(addMessagesPresenter.response).runWith(Sink.head)
-                  onSuccess(responseFuture) { response =>
-                    complete(response)
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-  override private[controller] def removeMessages(implicit context: Context): Route =
-    traceName(context)("remove-messages") {
-      path("threads" / Segment / "messages" / "remove") { threadIdString =>
-        post {
-          extractMaterializer { implicit mat =>
-            validateThreadId(threadIdString) { threadId =>
-              entity(as[RemoveMessagesRequestJson]) { json =>
-                validateRequestJson((threadId, json)).apply { commandRequest =>
-                  val responseFuture = Source
-                    .single(
-                      commandRequest
-                    ).via(
-                      removeMessagesUseCase.execute
-                    ).via(removeMessagesPresenter.response).runWith(Sink.head)
-                  onSuccess(responseFuture) { response =>
-                    complete(response)
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
 
   override private[controller] def getThread(implicit context: Context) = traceName(context)("get-thread") {
     path("threads" / Segment) { threadIdString =>
@@ -185,7 +43,7 @@ trait ThreadControllerImpl extends ThreadController with ThreadValidateDirective
                   }.runWith(Sink.headOption[ThreadJson]).map(identity)
               ) {
                 case None =>
-                  reject(new NotFoundRejection("thread is not found", None))
+                  reject(NotFoundRejection("thread is not found", None))
                 case Some(response) =>
                   complete(GetThreadResponseJson(response))
               }

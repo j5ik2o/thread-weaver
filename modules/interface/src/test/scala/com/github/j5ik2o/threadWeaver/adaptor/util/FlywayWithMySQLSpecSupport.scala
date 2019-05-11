@@ -26,7 +26,7 @@ trait FlywayWithMySQLSpecSupport extends FlywayWithMySQLdOneInstancePerSuite {
 
   override protected def flywayConfig(jdbcUrl: String): FlywayConfig = {
     val buildDir = ResourceUtil.getBuildDir(getClass)
-    val file     = new File(buildDir, "/../../../../tools/flyway/src/test/resources/db-migration")
+    val file     = new File(buildDir, "/../../../../../tools/flyway/src/test/resources/db-migration")
     FlywayConfig(
       locations = Seq(
         s"filesystem:${file.getAbsolutePath}"

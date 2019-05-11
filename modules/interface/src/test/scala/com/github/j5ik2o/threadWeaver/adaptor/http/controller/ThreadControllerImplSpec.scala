@@ -8,6 +8,7 @@ import akka.http.scaladsl.model._
 import com.github.j5ik2o.threadWeaver.adaptor.DISettings
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.PersistenceCleanup
 import com.github.j5ik2o.threadWeaver.adaptor.http.json._
+import com.github.j5ik2o.threadWeaver.adaptor.http.routes.RouteNames
 import com.github.j5ik2o.threadWeaver.adaptor.util.{
   FlywayWithMySQLSpecSupport,
   ScalaFuturesSpecSupport,
@@ -53,14 +54,16 @@ class ThreadControllerImplSpec
 
   override val tables: Seq[String] = Seq.empty
 
-  var controller: ThreadController = _
+  var commandController: ThreadCommandController = _
+  var queryController: ThreadQueryController     = _
 
   override def design: Design = super.design.add(DISettings.designOfSlick(dbConfig.profile, dbConfig.db))
 
   override def beforeAll(): Unit = {
     deleteStorageLocations()
     super.beforeAll()
-    controller = session.build[ThreadController]
+    commandController = session.build[ThreadCommandController]
+    queryController = session.build[ThreadQueryController]
   }
 
   "ThreadControllerImpl" - {
@@ -76,13 +79,13 @@ class ThreadControllerImplSpec
           Seq.empty,
           Instant.now.toEpochMilli
         ).toHttpEntity
-      Post("/threads/new", entity) ~> controller.createThread ~> check {
+      Post(RouteNames.CreateThread, entity) ~> commandController.createThread ~> check {
         response.status shouldEqual StatusCodes.OK
         val responseJson = responseAs[CreateThreadResponseJson]
         responseJson.isSuccessful shouldBe true
         val threadId = responseJson.threadId.get
         eventually {
-          Get(s"/threads/$threadId") ~> controller.getThread ~> check {
+          Get(RouteNames.GetThread(threadId)) ~> queryController.getThread ~> check {
             response.status shouldEqual StatusCodes.OK
             val responseJson = responseAs[GetThreadResponseJson]
             responseJson.isSuccessful shouldBe true
@@ -102,20 +105,20 @@ class ThreadControllerImplSpec
           Seq.empty,
           Instant.now.toEpochMilli
         ).toHttpEntity
-      Post("/threads/new", createThread) ~> controller.createThread ~> check {
+      Post(RouteNames.CreateThread, createThread) ~> commandController.createThread ~> check {
         response.status shouldEqual StatusCodes.OK
         val responseJson = responseAs[CreateThreadResponseJson]
         responseJson.isSuccessful shouldBe true
         val threadId  = responseJson.threadId.get
         val accountId = ULID().asString
         val addAdministratorIds =
-          AddAdministratorIdsRequestJson(administratorId, Seq(accountId), Instant.now.toEpochMilli).toHttpEntity
-        Post(s"/threads/$threadId/administrator-ids/add", addAdministratorIds) ~> controller.addAdministratorIds ~> check {
+          JoinAdministratorIdsRequestJson(administratorId, Seq(accountId), Instant.now.toEpochMilli).toHttpEntity
+        Post(RouteNames.JoinAdministratorIds(threadId), addAdministratorIds) ~> commandController.joinAdministratorIds ~> check {
           response.status shouldEqual StatusCodes.OK
-          val responseJson = responseAs[AddAdministratorIdsResponseJson]
+          val responseJson = responseAs[JoinAdministratorIdsResponseJson]
           responseJson.isSuccessful shouldBe true
           eventually {
-            Get(s"/threads/$threadId/administrator-ids") ~> controller.getAdministratorIds ~> check {
+            Get(RouteNames.GetAdministratorIds(threadId)) ~> queryController.getAdministratorIds ~> check {
               response.status shouldEqual StatusCodes.OK
               val responseJson = responseAs[GetThreadAdministratorIdsResponseJson]
               responseJson.isSuccessful shouldBe true
@@ -136,7 +139,7 @@ class ThreadControllerImplSpec
           Seq.empty,
           Instant.now.toEpochMilli
         ).toHttpEntity
-      Post("/threads/new", createThread) ~> controller.createThread ~> check {
+      Post(RouteNames.CreateThread, createThread) ~> commandController.createThread ~> check {
         response.status shouldEqual StatusCodes.OK
         val responseJson = responseAs[CreateThreadResponseJson]
         responseJson.isSuccessful shouldBe true
@@ -144,12 +147,12 @@ class ThreadControllerImplSpec
         val accountId = ULID().asString
         val addMemberIds =
           AddMemberIdsRequestJson(administratorId, Seq(accountId), Instant.now.toEpochMilli).toHttpEntity
-        Post(s"/threads/$threadId/member-ids/add", addMemberIds) ~> controller.addMemberIds ~> check {
+        Post(RouteNames.JoinMemberIds(threadId), addMemberIds) ~> commandController.joinMemberIds ~> check {
           response.status shouldEqual StatusCodes.OK
           val responseJson = responseAs[AddMemberIdsResponseJson]
           responseJson.isSuccessful shouldBe true
           eventually {
-            Get(s"/threads/$threadId/member-ids") ~> controller.getMemberIds ~> check {
+            Get(RouteNames.GetMemberIds(threadId)) ~> queryController.getMemberIds ~> check {
               response.status shouldEqual StatusCodes.OK
               val responseJson = responseAs[GetThreadMemberIdsResponseJson]
               responseJson.isSuccessful shouldBe true
@@ -171,19 +174,19 @@ class ThreadControllerImplSpec
           Seq(accountId),
           Instant.now.toEpochMilli
         ).toHttpEntity
-      Post("/threads/new", createThread) ~> controller.createThread ~> check {
+      Post(RouteNames.CreateThread, createThread) ~> commandController.createThread ~> check {
         response.status shouldEqual StatusCodes.OK
         val responseJson = responseAs[CreateThreadResponseJson]
         responseJson.isSuccessful shouldBe true
         val threadId = responseJson.threadId.get
         val addMessages =
           AddMessagesRequestJson(accountId, Seq(TextMessage(None, Seq.empty, "ABC")), Instant.now.toEpochMilli).toHttpEntity
-        Post(s"/threads/$threadId/messages/add", addMessages) ~> controller.addMessages ~> check {
+        Post(RouteNames.AddMessages(threadId), addMessages) ~> commandController.addMessages ~> check {
           response.status shouldEqual StatusCodes.OK
           val responseJson = responseAs[AddMessagesResponseJson]
           responseJson.isSuccessful shouldBe true
           eventually {
-            Get(s"/threads/$threadId/messages") ~> controller.getMessages ~> check {
+            Get(RouteNames.GetMessages(threadId)) ~> queryController.getMessages ~> check {
               response.status shouldEqual StatusCodes.OK
               val responseJson = responseAs[GetThreadMessagesResponseJson]
               responseJson.isSuccessful shouldBe true
@@ -205,21 +208,21 @@ class ThreadControllerImplSpec
           Seq(accountId),
           Instant.now.toEpochMilli
         ).toHttpEntity
-      Post("/threads/new", createThread) ~> controller.createThread ~> check {
+      Post(RouteNames.CreateThread, createThread) ~> commandController.createThread ~> check {
         response.status shouldEqual StatusCodes.OK
         val responseJson = responseAs[CreateThreadResponseJson]
         responseJson.isSuccessful shouldBe true
         val threadId = responseJson.threadId.get
         val addMessages =
           AddMessagesRequestJson(accountId, Seq(TextMessage(None, Seq.empty, "ABC")), Instant.now.toEpochMilli).toHttpEntity
-        Post(s"/threads/$threadId/messages/add", addMessages) ~> controller.addMessages ~> check {
+        Post(s"/threads/$threadId/messages/add", addMessages) ~> commandController.addMessages ~> check {
           response.status shouldEqual StatusCodes.OK
           val responseJson = responseAs[AddMessagesResponseJson]
           responseJson.isSuccessful shouldBe true
           val messageIds = responseJson.messageIds
           val removeMessagesRequestJson =
             RemoveMessagesRequestJson(accountId, messageIds, Instant.now.toEpochMilli).toHttpEntity
-          Post(s"/threads/$threadId/messages/remove", removeMessagesRequestJson) ~> controller.removeMessages ~> check {
+          Post(s"/threads/$threadId/messages/remove", removeMessagesRequestJson) ~> commandController.removeMessages ~> check {
             response.status shouldEqual StatusCodes.OK
           }
         }
