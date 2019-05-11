@@ -10,8 +10,8 @@ import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{
   ThreadReadModelUpdaterRef
 }
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates._
-import com.github.j5ik2o.threadWeaver.adaptor.controller.{ ThreadController, ThreadControllerImpl }
-import com.github.j5ik2o.threadWeaver.adaptor.presenter._
+import com.github.j5ik2o.threadWeaver.adaptor.http.controller.{ ThreadController, ThreadControllerImpl }
+import com.github.j5ik2o.threadWeaver.adaptor.http.presenter._
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ShardedThreadReadModelUpdaterProxy
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdater.ReadJournalType
 import com.github.j5ik2o.threadWeaver.adaptor.router.AggregateToRMU
