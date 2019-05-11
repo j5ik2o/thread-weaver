@@ -18,7 +18,7 @@ import com.github.everpeace.healthchecks._
 import com.github.everpeace.healthchecks.k8s._
 import com.github.j5ik2o.akka.persistence.dynamodb.query.scaladsl.DynamoDBReadJournal
 import com.github.j5ik2o.threadWeaver.adaptor.DISettings
-import com.github.j5ik2o.threadWeaver.adaptor.routes.Routes
+import com.github.j5ik2o.threadWeaver.adaptor.http.routes.Routes
 import com.github.j5ik2o.threadWeaver.api.config.EnvironmentURLStreamHandlerFactory
 import com.typesafe.config.ConfigFactory
 import kamon.Kamon
@@ -105,7 +105,7 @@ object Main extends App {
   session.start
 
   val routes = session
-      .build[Routes].root ~ readinessProbe(akkaHealthCheck).toRoute ~ livenessProbe(akkaHealthCheck).toRoute
+    .build[Routes].root ~ readinessProbe(akkaHealthCheck).toRoute ~ livenessProbe(akkaHealthCheck).toRoute
 
   val bindingFuture = Http().bindAndHandle(routes, host, port).map { serverBinding =>
     system.log.info(s"Server online at ${serverBinding.localAddress}")
