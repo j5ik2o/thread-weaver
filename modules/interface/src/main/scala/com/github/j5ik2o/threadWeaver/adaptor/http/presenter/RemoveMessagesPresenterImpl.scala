@@ -11,12 +11,12 @@ private[adaptor] class RemoveMessagesPresenterImpl extends RemoveMessagesPresent
     Flow[RemoveMessagesResponse].map {
       case f: RemoveMessagesFailed =>
         RemoveMessagesResponseJson(
-          threadId = None,
+          messageIds = Seq.empty,
           error_messages = Seq(f.message)
         )
       case s: RemoveMessagesSucceeded =>
         RemoveMessagesResponseJson(
-          threadId = Some(s.threadId.value.asString),
+          messageIds = s.messageIds.valuesAsString,
           error_messages = Seq.empty
         )
     }

@@ -7,6 +7,9 @@ final case class MessageIds(breachEncapsulationOfValues: Vector[MessageId]) {
   def contains(value: MessageId): Boolean =
     breachEncapsulationOfValues.contains(value)
 
+  def diff(other: MessageIds): MessageIds =
+    MessageIds(breachEncapsulationOfValues.diff(other.breachEncapsulationOfValues))
+
   def valuesAsString: Vector[String] = breachEncapsulationOfValues.map(_.value.asString)
 
 }
