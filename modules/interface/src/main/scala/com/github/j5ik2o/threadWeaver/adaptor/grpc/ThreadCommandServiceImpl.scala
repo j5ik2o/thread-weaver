@@ -12,7 +12,7 @@ import wvlet.airframe.bind
 
 import scala.concurrent.Future
 
-trait ThreadsCommandServiceImpl extends ThreadsCommandService {
+trait ThreadCommandServiceImpl extends ThreadCommandService {
 
   private implicit val system       = bind[ActorSystem[Nothing]]
   private val createThreadUseCase   = bind[CreateThreadUseCase]

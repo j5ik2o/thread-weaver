@@ -42,11 +42,11 @@ trait RouteSpec extends ScalatestRouteTest with Matchers with BeforeAndAfterAll 
           PersistenceQuery(system).readJournalFor[LeveldbReadJournal](LeveldbReadJournal.Identifier)
         )
       )
-      .add(DISettings.designOfPresenters)
-      .add(DISettings.designOfControllers)
-      .add(DITestSettings.designOfLocalAggregatesWithPersistence(system.toTyped))
-      .add(DITestSettings.designOfLocalReadModelUpdater(system.toTyped))
-      .add(DISettings.designOfRouter(system.toTyped))
+      .add(DISettings.designOfRestPresenters)
+      .add(DISettings.designOfRestControllers)
+      .add(DITestSettings.designOfLocalAggregatesWithPersistence)
+      .add(DITestSettings.designOfLocalReadModelUpdater)
+      .add(DISettings.designOfRouter)
 
   override def beforeAll(): Unit = {
     super.beforeAll()

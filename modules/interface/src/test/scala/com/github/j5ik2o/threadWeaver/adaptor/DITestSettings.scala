@@ -20,31 +20,35 @@ import slick.jdbc.JdbcProfile
 import wvlet.airframe.{ newDesign, Design }
 
 object DITestSettings extends DISettings {
-  private[adaptor] def designOfLocalReadModelUpdater(actorSystem: ActorSystem[Nothing]): Design =
+
+  private[adaptor] def designOfLocalReadModelUpdater: Design =
     newDesign
-      .bind[ThreadReadModelUpdaterRef].toProvider[ReadJournalType, JdbcProfile, JdbcProfile#Backend#Database] {
-        (readJournal, profile, db) =>
+      .bind[ThreadReadModelUpdaterRef].toProvider[ActorSystem[Nothing], ReadJournalType, JdbcProfile, JdbcProfile#Backend#Database] {
+        (actorSystem, readJournal, profile, db) =>
           actorSystem.toUntyped.spawn(
             new ThreadReadModelUpdater(readJournal, profile, db).behavior(),
             name = "local-thread-rmu"
           )
       }
-  private[adaptor] def designOfLocalAggregatesWithPersistence(actorSystem: ActorSystem[Nothing]): Design =
+
+  private[adaptor] def designOfLocalAggregatesWithPersistence: Design =
     newDesign
-      .bind[ThreadActorRefOfCommand].toProvider[ThreadActorRefOfMessage] { subscriber =>
-        actorSystem.toUntyped.spawn(
-          ThreadAggregates.behavior(Seq(subscriber), ThreadAggregate.name)(PersistentThreadAggregate.behavior),
-          name = "local-threads-aggregates-with-persistence"
-        )
+      .bind[ThreadActorRefOfCommand].toProvider[ActorSystem[Nothing], ThreadActorRefOfMessage] {
+        (actorSystem, subscriber) =>
+          actorSystem.toUntyped.spawn(
+            ThreadAggregates.behavior(Seq(subscriber), ThreadAggregate.name)(PersistentThreadAggregate.behavior),
+            name = "local-threads-aggregates-with-persistence"
+          )
       }
 
-  private[adaptor] def designOfLocalAggregatesWithoutPersistence(actorSystem: ActorSystem[Nothing]): Design =
+  private[adaptor] def designOfLocalAggregatesWithoutPersistence: Design =
     newDesign
-      .bind[ThreadActorRefOfCommand].toProvider[ThreadActorRefOfMessage] { subscriber =>
-        actorSystem.toUntyped.spawn(
-          ThreadAggregates.behavior(Seq(subscriber), ThreadAggregate.name)(ThreadAggregate.behavior),
-          name = "local-threads-aggregates-without-persistence"
-        )
+      .bind[ThreadActorRefOfCommand].toProvider[ActorSystem[Nothing], ThreadActorRefOfMessage] {
+        (actorSystem, subscriber) =>
+          actorSystem.toUntyped.spawn(
+            ThreadAggregates.behavior(Seq(subscriber), ThreadAggregate.name)(ThreadAggregate.behavior),
+            name = "local-threads-aggregates-without-persistence"
+          )
       }
 
   override def design(
@@ -62,9 +66,9 @@ object DITestSettings extends DISettings {
       .add(designOfActorSystem(system, materializer))
       .add(designOfReadJournal(readJournal))
       .add(designOfSlick(profile, db))
-      .add(designOfLocalAggregatesWithPersistence(system))
-      .add(designOfLocalReadModelUpdater(system))
-      .add(designOfRouter(system))
-      .add(designOfControllers)
-      .add(designOfPresenters)
+      .add(designOfLocalAggregatesWithPersistence)
+      .add(designOfLocalReadModelUpdater)
+      .add(designOfRouter)
+      .add(designOfRestControllers)
+      .add(designOfRestPresenters)
 }

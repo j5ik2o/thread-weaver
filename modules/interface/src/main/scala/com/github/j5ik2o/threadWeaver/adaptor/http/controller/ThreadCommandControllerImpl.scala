@@ -45,11 +45,10 @@ trait ThreadCommandControllerImpl extends ThreadCommandController with ThreadVal
             entity(as[CreateThreadRequestJson]) { json =>
               validateRequestJson(json).apply { commandRequest =>
                 val responseFuture = Source
-                  .single(
-                    commandRequest
-                  ).via(
-                    createThreadUseCase.execute
-                  ).via(createThreadPresenter.response).runWith(Sink.head)
+                  .single(commandRequest)
+                  .via(createThreadUseCase.execute)
+                  .via(createThreadPresenter.response)
+                  .runWith(Sink.head)
                 onSuccess(responseFuture) { response =>
                   complete(response)
                 }
@@ -69,11 +68,9 @@ trait ThreadCommandControllerImpl extends ThreadCommandController with ThreadVal
               entity(as[JoinAdministratorIdsRequestJson]) { json =>
                 validateRequestJson((threadId, json)).apply { commandRequest =>
                   val responseFuture = Source
-                    .single(
-                      commandRequest
-                    ).via(
-                      addAdministratorIdsUseCase.execute
-                    ).via(addAdministratorIdsPresenter.response).runWith(Sink.head)
+                    .single(commandRequest)
+                    .via(addAdministratorIdsUseCase.execute)
+                    .via(addAdministratorIdsPresenter.response).runWith(Sink.head)
                   onSuccess(responseFuture) { response =>
                     complete(response)
                   }
@@ -94,11 +91,10 @@ trait ThreadCommandControllerImpl extends ThreadCommandController with ThreadVal
               entity(as[JoinMemberIdsRequestJson]) { json =>
                 validateRequestJson((threadId, json)).apply { commandRequest =>
                   val responseFuture = Source
-                    .single(
-                      commandRequest
-                    ).via(
-                      addMemberIdsUseCase.execute
-                    ).via(addMemberIdsPresenter.response).runWith(Sink.head)
+                    .single(commandRequest)
+                    .via(addMemberIdsUseCase.execute)
+                    .via(addMemberIdsPresenter.response)
+                    .runWith(Sink.head)
                   onSuccess(responseFuture) { response =>
                     complete(response)
                   }
@@ -119,11 +115,10 @@ trait ThreadCommandControllerImpl extends ThreadCommandController with ThreadVal
               entity(as[AddMessagesRequestJson]) { json =>
                 validateRequestJson((threadId, json)).apply { commandRequest =>
                   val responseFuture = Source
-                    .single(
-                      commandRequest
-                    ).via(
-                      addMessagesUseCase.execute
-                    ).via(addMessagesPresenter.response).runWith(Sink.head)
+                    .single(commandRequest)
+                    .via(addMessagesUseCase.execute)
+                    .via(addMessagesPresenter.response)
+                    .runWith(Sink.head)
                   onSuccess(responseFuture) { response =>
                     complete(response)
                   }
@@ -144,11 +139,10 @@ trait ThreadCommandControllerImpl extends ThreadCommandController with ThreadVal
               entity(as[RemoveMessagesRequestJson]) { json =>
                 validateRequestJson((threadId, json)).apply { commandRequest =>
                   val responseFuture = Source
-                    .single(
-                      commandRequest
-                    ).via(
-                      removeMessagesUseCase.execute
-                    ).via(removeMessagesPresenter.response).runWith(Sink.head)
+                    .single(commandRequest)
+                    .via(removeMessagesUseCase.execute)
+                    .via(removeMessagesPresenter.response)
+                    .runWith(Sink.head)
                   onSuccess(responseFuture) { response =>
                     complete(response)
                   }
