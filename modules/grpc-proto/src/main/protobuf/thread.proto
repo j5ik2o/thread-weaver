@@ -6,26 +6,30 @@ option java_outer_classname = "ThreadProto";
 
 package thread;
 
-service ThreadsService {
-    rpc CreateThread (CreateThreadRequest) returns (CreateThreadResponse) {}
-    rpc DestroyThread (DestroyThreadRequest) returns (DestroyThreadResponse) {}
-    rpc AddMessages (AddMessagesRequest) returns (AddMessagesResponse) {}
+service ThreadCommandService {
+    rpc CreateThread (CreateThreadRequest) returns (CreateThreadResponse) {
+    }
+    rpc DestroyThread (DestroyThreadRequest) returns (DestroyThreadResponse) {
+    }
+    rpc AddMessages (AddMessagesRequest) returns (AddMessagesResponse) {
+    }
 }
 
 message CreateThreadRequest {
-    bool has_parent_id = 1;
-    string parent_id = 2;
-    string title = 3;
-    bool has_remarks = 4;
-    string remarks = 5;
-    repeated string administrator_ids = 6;
-    repeated string member_ids = 7;
+    string creator_id = 1;
+    bool has_parent_id = 2;
+    string parent_id = 3;
+    string title = 4;
+    bool has_remarks = 5;
+    string remarks = 6;
+    repeated string administrator_ids = 7;
+    repeated string member_ids = 8;
     int64 create_at = 255;
 }
 
 message CreateThreadResponse {
     bool is_successful = 1;
-    int64 thread_id = 2;
+    string thread_id = 2;
     repeated string error_messages = 3;
 }
 
@@ -36,7 +40,7 @@ message DestroyThreadRequest {
 
 message DestroyThreadResponse {
     bool is_successful = 1;
-    int64 thread_id = 2;
+    string thread_id = 2;
     repeated string error_messages = 3;
 }
 

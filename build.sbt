@@ -45,6 +45,11 @@ val `contract-use-case` = (project in file("contracts/contract-use-case"))
   )
   .dependsOn(`domain`)
 
+lazy val `grpc-proto` = (project in file("modules/grpc-proto"))
+  .enablePlugins(AkkaGrpcPlugin)
+  .settings(
+  )
+
 val `contract-interface` = (project in file("contracts/contract-interface"))
   .settings(baseSettings)
   .settings(
@@ -60,7 +65,7 @@ val `contract-interface` = (project in file("contracts/contract-interface"))
       "io.swagger.core.v3" % "swagger-jaxrs2" % swaggerVersion
     )
   )
-  .dependsOn(`contract-use-case`)
+  .dependsOn(`contract-use-case`, `grpc-proto`)
 
 val `use-case` = (project in file("modules/use-case"))
   .settings(baseSettings)
@@ -102,9 +107,6 @@ val `flyway` = (project in file("tools/flyway"))
     ),
     flywayMigrate := (flywayMigrate dependsOn wixMySQLStart).value
   )
-
-lazy val `grpc-proto` = (project in file("modules/grpc-proto"))
-  .enablePlugins(AkkaGrpcPlugin)
 
 lazy val `api-client` = (project in file("api-client"))
   .dependsOn(`grpc-proto`)
@@ -231,7 +233,7 @@ val interface = (project in file("modules/interface"))
   )
   .enablePlugins(MultiJvmPlugin)
   .configs(MultiJvm)
-  .dependsOn(`contract-interface`, `use-case`, `infrastructure`, `grpc-proto`)
+  .dependsOn(`contract-interface`, `use-case`, `infrastructure`)
 
 val `api-server` = (project in file("api-server"))
   .enablePlugins(AshScriptPlugin, JavaAgent)
