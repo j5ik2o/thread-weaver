@@ -1,12 +1,13 @@
-package com.github.j5ik2o.threadWeaver.adaptor.grpc
+package com.github.j5ik2o.threadWeaver.adaptor.grpc.service
 
 import akka.actor.typed.ActorSystem
 import akka.stream.scaladsl.{ Sink, Source }
 import akka.stream.typed.scaladsl.ActorMaterializer
 import cats.data.NonEmptyList
 import com.github.j5ik2o.threadWeaver.adaptor.error.InterfaceError
+import com.github.j5ik2o.threadWeaver.adaptor.grpc.model._
 import com.github.j5ik2o.threadWeaver.adaptor.grpc.presenter.CreateThreadPresenter
-import com.github.j5ik2o.threadWeaver.adaptor.grpc.validator.ThreadValidateUtils._
+import com.github.j5ik2o.threadWeaver.adaptor.grpc.validator.ThreadValidateUtils.validateCreateThreadRequest
 import com.github.j5ik2o.threadWeaver.useCase.CreateThreadUseCase
 import wvlet.airframe.bind
 

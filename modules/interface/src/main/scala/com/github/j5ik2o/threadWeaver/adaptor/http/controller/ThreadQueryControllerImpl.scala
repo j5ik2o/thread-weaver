@@ -27,27 +27,30 @@ trait ThreadQueryControllerImpl extends ThreadQueryController with ThreadValidat
         extractExecutionContext { implicit ec =>
           extractMaterializer { implicit mat =>
             validateThreadId(threadIdString) { threadId =>
-              onSuccess(
-                threadDas
-                  .getThreadByIdSource(threadId)
-                  .map { threadRecord =>
-                    ThreadJson(
-                      threadRecord.id,
-                      threadRecord.creatorId,
-                      threadRecord.parentId,
-                      threadRecord.title,
-                      threadRecord.remarks,
-                      threadRecord.createdAt.toEpochMilli,
-                      threadRecord.updatedAt.toEpochMilli
-                    )
-                  }.runWith(Sink.headOption[ThreadJson]).map(identity)
-              ) {
-                case None =>
-                  reject(NotFoundRejection("thread is not found", None))
-                case Some(response) =>
-                  complete(GetThreadResponseJson(response))
+              parameter('account_id) { accountValue =>
+                validateAccountId(accountValue) { accountId =>
+                  onSuccess(
+                    threadDas
+                      .getThreadByIdSource(accountId, threadId)
+                      .map { threadRecord =>
+                        ThreadJson(
+                          threadRecord.id,
+                          threadRecord.creatorId,
+                          threadRecord.parentId,
+                          threadRecord.title,
+                          threadRecord.remarks,
+                          threadRecord.createdAt.toEpochMilli,
+                          threadRecord.updatedAt.toEpochMilli
+                        )
+                      }.runWith(Sink.headOption[ThreadJson]).map(identity)
+                  ) {
+                    case None =>
+                      reject(NotFoundRejection("thread is not found", None))
+                    case Some(response) =>
+                      complete(GetThreadResponseJson(response))
+                  }
+                }
               }
-
             }
           }
         }
@@ -95,16 +98,18 @@ trait ThreadQueryControllerImpl extends ThreadQueryController with ThreadValidat
           extractExecutionContext { implicit ec =>
             extractMaterializer { implicit mat =>
               validateThreadId(threadIdString) { threadId =>
-                parameters(('offset.as[Long].?, 'limit.as[Long].?)) {
-                  case (offset, limit) =>
-                    onSuccess(
-                      threadDas
-                        .getAdministratorsByThreadIdSource(threadId, offset, limit)
-                        .map { record =>
-                          record.accountId
-                        }.runWith(Sink.seq[String]).map(_.toSeq)
-                    ) { response =>
-                      complete(GetThreadAdministratorIdsResponseJson(response))
+                parameters(('account_id, 'offset.as[Long].?, 'limit.as[Long].?)) {
+                  case (accountIdValue, offset, limit) =>
+                    validateAccountId(accountIdValue) { accountId =>
+                      onSuccess(
+                        threadDas
+                          .getAdministratorsByThreadIdSource(accountId, threadId, offset, limit)
+                          .map { record =>
+                            record.accountId
+                          }.runWith(Sink.seq[String]).map(_.toSeq)
+                      ) { response =>
+                        complete(GetThreadAdministratorIdsResponseJson(response))
+                      }
                     }
                 }
               }
@@ -121,16 +126,18 @@ trait ThreadQueryControllerImpl extends ThreadQueryController with ThreadValidat
           extractExecutionContext { implicit ec =>
             extractMaterializer { implicit mat =>
               validateThreadId(threadIdString) { threadId =>
-                parameters(('offset.as[Long].?, 'limit.as[Long].?)) {
-                  case (offset, limit) =>
-                    onSuccess(
-                      threadDas
-                        .getMembersByThreadIdSource(threadId, offset, limit)
-                        .map { record =>
-                          record.accountId
-                        }.runWith(Sink.seq[String]).map(_.toSeq)
-                    ) { response =>
-                      complete(GetThreadMemberIdsResponseJson(response))
+                parameters(('account_id, 'offset.as[Long].?, 'limit.as[Long].?)) {
+                  case (accountIdValue, offset, limit) =>
+                    validateAccountId(accountIdValue) { accountId =>
+                      onSuccess(
+                        threadDas
+                          .getMembersByThreadIdSource(accountId, threadId, offset, limit)
+                          .map { record =>
+                            record.accountId
+                          }.runWith(Sink.seq[String]).map(_.toSeq)
+                      ) { response =>
+                        complete(GetThreadMemberIdsResponseJson(response))
+                      }
                     }
                 }
               }
@@ -146,24 +153,26 @@ trait ThreadQueryControllerImpl extends ThreadQueryController with ThreadValidat
         extractExecutionContext { implicit ec =>
           extractMaterializer { implicit mat =>
             validateThreadId(threadIdString) { threadId =>
-              parameters(('offset.as[Long].?, 'limit.as[Long].?)) {
-                case (offset, limit) =>
-                  onSuccess(
-                    threadDas
-                      .getMessagesByThreadIdSource(threadId, offset, limit)
-                      .map { messageRecord =>
-                        ThreadMessageJson(
-                          messageRecord.id,
-                          messageRecord.threadId,
-                          messageRecord.senderId,
-                          messageRecord.`type`,
-                          messageRecord.body,
-                          messageRecord.createdAt.toEpochMilli,
-                          messageRecord.updatedAt.toEpochMilli
-                        )
-                      }.runWith(Sink.seq[ThreadMessageJson]).map(_.toSeq)
-                  ) { response =>
-                    complete(GetThreadMessagesResponseJson(response))
+              parameters(('account_id, 'offset.as[Long].?, 'limit.as[Long].?)) {
+                case (accountIdValue, offset, limit) =>
+                  validateAccountId(accountIdValue) { accountId =>
+                    onSuccess(
+                      threadDas
+                        .getMessagesByThreadIdSource(accountId, threadId, offset, limit)
+                        .map { messageRecord =>
+                          ThreadMessageJson(
+                            messageRecord.id,
+                            messageRecord.threadId,
+                            messageRecord.senderId,
+                            messageRecord.`type`,
+                            messageRecord.body,
+                            messageRecord.createdAt.toEpochMilli,
+                            messageRecord.updatedAt.toEpochMilli
+                          )
+                        }.runWith(Sink.seq[ThreadMessageJson]).map(_.toSeq)
+                    ) { response =>
+                      complete(GetThreadMessagesResponseJson(response))
+                    }
                   }
               }
             }
