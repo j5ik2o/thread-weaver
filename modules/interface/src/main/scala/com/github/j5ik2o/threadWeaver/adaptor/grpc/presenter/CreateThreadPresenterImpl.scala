@@ -2,7 +2,7 @@ package com.github.j5ik2o.threadWeaver.adaptor.grpc.presenter
 
 import akka.NotUsed
 import akka.stream.scaladsl.Flow
-import com.github.j5ik2o.threadWeaver.adaptor.grpc.CreateThreadResponse
+import com.github.j5ik2o.threadWeaver.adaptor.grpc.model.CreateThreadResponse
 import com.github.j5ik2o.threadWeaver.useCase.ThreadWeaverProtocol
 import com.github.j5ik2o.threadWeaver.useCase.ThreadWeaverProtocol.{ CreateThreadFailed, CreateThreadSucceeded }
 

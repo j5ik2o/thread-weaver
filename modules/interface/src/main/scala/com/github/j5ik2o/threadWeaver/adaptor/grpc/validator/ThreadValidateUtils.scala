@@ -1,12 +1,12 @@
 package com.github.j5ik2o.threadWeaver.adaptor.grpc.validator
 
-import com.github.j5ik2o.threadWeaver.adaptor.grpc.CreateThreadRequest
+import cats.implicits._
+import com.github.j5ik2o.threadWeaver.adaptor.grpc.model.CreateThreadRequest
 import com.github.j5ik2o.threadWeaver.adaptor.validator.ValidateUtils._
 import com.github.j5ik2o.threadWeaver.adaptor.validator.ValidationResult
 import com.github.j5ik2o.threadWeaver.domain.model.threads.ThreadId
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 import com.github.j5ik2o.threadWeaver.useCase.ThreadWeaverProtocol.CreateThread
-import cats.implicits._
 
 object ThreadValidateUtils {
 

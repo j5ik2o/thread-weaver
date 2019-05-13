@@ -24,8 +24,17 @@ trait ThreadDas
 
   import profile.api._
 
-  def getThreadByIdSource(threadId: ThreadId): Source[ThreadRecord, NotUsed] = {
-    val q = ThreadDao.filter(_.id === threadId.value.asString).result
+  def getThreadByIdSource(accountId: AccountId, threadId: ThreadId): Source[ThreadRecord, NotUsed] = {
+    val q = (for {
+      ((t, tm), ta) <- (ThreadDao join ThreadMemberIdsDao on (_.id === _.threadId)) join ThreadAdministratorIdsDao on {
+        case ((t, _), ta) =>
+          t.id === ta.threadId
+      }
+    } yield (t, tm, ta))
+      .filter {
+        case (t, tm, ta) =>
+          (tm.accountId === accountId.value.asString || ta.accountId === accountId.value.asString) && t.id === threadId.value.asString
+      }.map { case (t, _, _) => t }.result
     Source.fromPublisher(db.stream(q)).take(1)
   }
 
@@ -48,29 +57,56 @@ trait ThreadDas
   }
 
   def getAdministratorsByThreadIdSource(
+      accountId: AccountId,
       threadId: ThreadId,
       offset: Option[Long],
       limit: Option[Long]
   ): Source[ThreadAdministratorIdsRecord, NotUsed] = {
-    val q = ThreadAdministratorIdsDao.filter(_.threadId === threadId.value.asString).result
+    val q = (for {
+      (t, ta) <- ThreadDao join ThreadAdministratorIdsDao on { case (t, ta) => t.id === ta.threadId }
+    } yield (t, ta))
+      .filter {
+        case (t, ta) =>
+          ta.accountId === accountId.value.asString && t.id === threadId.value.asString
+      }.map { case (_, ta) => ta }.result
     Source.fromPublisher(db.stream(q)).drop(offset.getOrElse(0)).take(limit.getOrElse(100))
   }
 
   def getMembersByThreadIdSource(
+      accountId: AccountId,
       threadId: ThreadId,
       offset: Option[Long],
       limit: Option[Long]
   ): Source[ThreadMemberIdsRecord, NotUsed] = {
-    val q = ThreadMemberIdsDao.filter(_.threadId === threadId.value.asString).result
+    val q = (for {
+      (t, tm) <- ThreadDao join ThreadMemberIdsDao on (_.id === _.threadId)
+    } yield (t, tm))
+      .filter {
+        case (t, tm) =>
+          tm.accountId === accountId.value.asString && t.id === threadId.value.asString
+      }.map { case (_, tm) => tm }.result
     Source.fromPublisher(db.stream(q)).drop(offset.getOrElse(0)).take(limit.getOrElse(100))
   }
 
   def getMessagesByThreadIdSource(
+      accountId: AccountId,
       threadId: ThreadId,
       offset: Option[Long],
       limit: Option[Long]
   ): Source[ThreadMessageRecord, NotUsed] = {
-    val q = ThreadMessageDao.filter(_.threadId === threadId.value.asString).result
+    val q = (for {
+      (((t, tm), ta), m) <- (ThreadDao join ThreadMemberIdsDao on (_.id === _.threadId)) join ThreadAdministratorIdsDao on {
+        case ((t, _), ta) =>
+          t.id === ta.threadId
+      } join ThreadMessageDao on {
+        case (((t, _), _), m) =>
+          t.id === m.threadId
+      }
+    } yield (t, tm, ta, m))
+      .filter {
+        case (t, tm, ta, m) =>
+          (tm.accountId === accountId.value.asString || ta.accountId === accountId.value.asString) && t.id === threadId.value.asString
+      }.map { case (_, _, _, m) => m }.result
     Source.fromPublisher(db.stream(q)).drop(offset.getOrElse(0)).take(limit.getOrElse(100))
   }
 
