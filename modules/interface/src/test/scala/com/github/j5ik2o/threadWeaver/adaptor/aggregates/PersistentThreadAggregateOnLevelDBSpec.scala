@@ -74,8 +74,8 @@ class PersistentThreadAggregateOnLevelDBSpec
           s.createAt shouldBe now
       }
 
-      val memberId             = AccountId()
-      val addMemberIdsResponse = TestProbe[JoinMemberIdsResponse]()
+      val memberId              = AccountId()
+      val joinMemberIdsResponse = TestProbe[JoinMemberIdsResponse]()
 
       threadRef ! JoinMemberIds(
         ULID(),
@@ -83,10 +83,10 @@ class PersistentThreadAggregateOnLevelDBSpec
         administratorId,
         MemberIds(memberId),
         now,
-        Some(addMemberIdsResponse.ref)
+        Some(joinMemberIdsResponse.ref)
       )
 
-      addMemberIdsResponse.expectMessageType[JoinMemberIdsResponse] match {
+      joinMemberIdsResponse.expectMessageType[JoinMemberIdsResponse] match {
         case f: JoinMemberIdsFailed =>
           fail(f.message)
         case s: JoinMemberIdsSucceeded =>

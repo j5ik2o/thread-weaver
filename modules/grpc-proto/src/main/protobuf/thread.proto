@@ -11,6 +11,8 @@ service ThreadCommandService {
     }
     rpc DestroyThread (DestroyThreadRequest) returns (DestroyThreadResponse) {
     }
+    rpc AddAdministratorIds (AddAdministratorIdsRequest) returns (AddAdministratorIdsResponse) {
+    }
     rpc AddMessages (AddMessagesRequest) returns (AddMessagesResponse) {
     }
 }
@@ -39,6 +41,18 @@ message DestroyThreadRequest {
 }
 
 message DestroyThreadResponse {
+    bool is_successful = 1;
+    string thread_id = 2;
+    repeated string error_messages = 3;
+}
+
+message AddAdministratorIdsRequest {
+    string thread_id = 1;
+    repeated string account_ids = 2;
+    int64 create_at = 255;
+}
+
+message AddAdministratorIdsResponse {
     bool is_successful = 1;
     string thread_id = 2;
     repeated string error_messages = 3;

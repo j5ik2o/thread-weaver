@@ -19,11 +19,17 @@ trait ThreadCommandControllerImpl extends ThreadCommandController with ThreadVal
   private val createThreadUseCase   = bind[CreateThreadUseCase]
   private val createThreadPresenter = bind[CreateThreadPresenter]
 
-  private val addAdministratorIdsUseCase   = bind[AddAdministratorIdsUseCase]
-  private val addAdministratorIdsPresenter = bind[AddAdministratorIdsPresenter]
+  private val joinAdministratorIdsUseCase   = bind[JoinAdministratorIdsUseCase]
+  private val joinAdministratorIdsPresenter = bind[JoinAdministratorIdsPresenter]
 
-  private val addMemberIdsUseCase   = bind[AddMemberIdsUseCase]
-  private val addMemberIdsPresenter = bind[AddMemberIdsPresenter]
+  private val leaveAdministratorIdsUseCase   = bind[LeaveAdministratorIdsUseCase]
+  private val leaveAdministratorIdsPresenter = bind[LeaveAdministratorIdsPresenter]
+
+  private val joinMemberIdsUseCase   = bind[JoinMemberIdsUseCase]
+  private val joinMemberIdsPresenter = bind[JoinMemberIdsPresenter]
+
+  private val leaveMemberIdsUseCase   = bind[LeaveMemberIdsUseCase]
+  private val leaveMemberIdsPresenter = bind[LeaveMemberIdsPresenter]
 
   private val addMessagesUseCase   = bind[AddMessagesUseCase]
   private val addMessagesPresenter = bind[AddMessagesPresenter]
@@ -60,7 +66,7 @@ trait ThreadCommandControllerImpl extends ThreadCommandController with ThreadVal
     }
 
   override private[controller] def joinAdministratorIds(implicit context: Context): Route =
-    traceName(context)("add-administrator-ids") {
+    traceName(context)("join-administrator-ids") {
       path("threads" / Segment / "administrator-ids" / "join") { threadIdString =>
         post {
           extractMaterializer { implicit mat =>
@@ -69,8 +75,32 @@ trait ThreadCommandControllerImpl extends ThreadCommandController with ThreadVal
                 validateRequestJson((threadId, json)).apply { commandRequest =>
                   val responseFuture = Source
                     .single(commandRequest)
-                    .via(addAdministratorIdsUseCase.execute)
-                    .via(addAdministratorIdsPresenter.response).runWith(Sink.head)
+                    .via(joinAdministratorIdsUseCase.execute)
+                    .via(joinAdministratorIdsPresenter.response).runWith(Sink.head)
+                  onSuccess(responseFuture) { response =>
+                    complete(response)
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+  override private[controller] def leaveAdministratorIds(implicit context: Context) =
+    traceName(context)("leave-administrator-ids") {
+      path("threads" / Segment / "administrator-ids" / "leave") { threadIdString =>
+        post {
+          extractMaterializer { implicit mat =>
+            validateThreadId(threadIdString) { threadId =>
+              entity(as[LeaveAdministratorIdsRequestJson]) { json =>
+                validateRequestJson((threadId, json)).apply { commandRequest =>
+                  val responseFuture = Source
+                    .single(commandRequest)
+                    .via(leaveAdministratorIdsUseCase.execute)
+                    .via(leaveAdministratorIdsPresenter.response)
+                    .runWith(Sink.head)
                   onSuccess(responseFuture) { response =>
                     complete(response)
                   }
@@ -83,7 +113,7 @@ trait ThreadCommandControllerImpl extends ThreadCommandController with ThreadVal
     }
 
   override private[controller] def joinMemberIds(implicit context: Context): Route =
-    traceName(context)("add-member-ids") {
+    traceName(context)("join-member-ids") {
       path("threads" / Segment / "member-ids" / "join") { threadIdString =>
         post {
           extractMaterializer { implicit mat =>
@@ -92,8 +122,32 @@ trait ThreadCommandControllerImpl extends ThreadCommandController with ThreadVal
                 validateRequestJson((threadId, json)).apply { commandRequest =>
                   val responseFuture = Source
                     .single(commandRequest)
-                    .via(addMemberIdsUseCase.execute)
-                    .via(addMemberIdsPresenter.response)
+                    .via(joinMemberIdsUseCase.execute)
+                    .via(joinMemberIdsPresenter.response)
+                    .runWith(Sink.head)
+                  onSuccess(responseFuture) { response =>
+                    complete(response)
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+  override private[controller] def leaveMemberIds(implicit context: Context): Route =
+    traceName(context)("leave-member-ids") {
+      path("threads" / Segment / "member-ids" / "leave") { threadIdString =>
+        post {
+          extractMaterializer { implicit mat =>
+            validateThreadId(threadIdString) { threadId =>
+              entity(as[LeaveMemberIdsRequestJson]) { json =>
+                validateRequestJson((threadId, json)).apply { commandRequest =>
+                  val responseFuture = Source
+                    .single(commandRequest)
+                    .via(leaveMemberIdsUseCase.execute)
+                    .via(leaveMemberIdsPresenter.response)
                     .runWith(Sink.head)
                   onSuccess(responseFuture) { response =>
                     complete(response)

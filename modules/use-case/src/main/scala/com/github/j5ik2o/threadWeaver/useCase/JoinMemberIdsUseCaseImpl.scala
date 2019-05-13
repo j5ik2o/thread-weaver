@@ -9,42 +9,42 @@ import akka.util.Timeout
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol._
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 import com.github.j5ik2o.threadWeaver.useCase.ThreadWeaverProtocol.{
-  AddAdministratorIds => UAddAdministratorIds,
-  AddAdministratorIdsFailed => UAddAdministratorIdsFailed,
-  AddAdministratorIdsResponse => UAddAdministratorIdsResponse,
-  AddAdministratorIdsSucceeded => UAddAdministratorIdsSucceeded
+  JoinMemberIds => UJoinMemberIds,
+  JoinMemberIdsFailed => UJoinMemberIdsFailed,
+  JoinMemberIdsResponse => UJoinMemberIdsResponse,
+  JoinMemberIdsSucceeded => UJoinMemberIdsSucceeded
 }
 
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
 
-private[useCase] class AddAdministratorIdsUseCaseImpl(
+private[useCase] class JoinMemberIdsUseCaseImpl(
     threadAggregates: ThreadActorRefOfCommand,
     parallelism: Int = 1,
     timeout: Timeout = 3 seconds
 )(
     implicit system: ActorSystem[Nothing]
-) extends AddAdministratorIdsUseCase {
-  override def execute: Flow[UAddAdministratorIds, UAddAdministratorIdsResponse, NotUsed] =
-    Flow[UAddAdministratorIds].mapAsync(parallelism) { request =>
+) extends JoinMemberIdsUseCase {
+  override def execute: Flow[UJoinMemberIds, UJoinMemberIdsResponse, NotUsed] =
+    Flow[UJoinMemberIds].mapAsync(parallelism) { request =>
       implicit val to: Timeout                  = timeout
       implicit val scheduler: Scheduler         = system.scheduler
       implicit val ec: ExecutionContextExecutor = system.executionContext
       threadAggregates
-        .ask[JoinAdministratorIdsResponse] { ref =>
-          JoinAdministratorIds(
+        .ask[JoinMemberIdsResponse] { ref =>
+          JoinMemberIds(
             ULID(),
             request.threadId,
             request.adderId,
-            request.administratorIds,
+            request.memberIds,
             request.createAt,
             Some(ref)
           )
         }.map {
-          case v: JoinAdministratorIdsSucceeded =>
-            UAddAdministratorIdsSucceeded(v.id, v.requestId, v.threadId, v.createAt)
-          case v: JoinAdministratorIdsFailed =>
-            UAddAdministratorIdsFailed(v.id, v.requestId, v.threadId, v.message, v.createAt)
+          case v: JoinMemberIdsSucceeded =>
+            UJoinMemberIdsSucceeded(v.id, v.requestId, v.threadId, v.createAt)
+          case v: JoinMemberIdsFailed =>
+            UJoinMemberIdsFailed(v.id, v.requestId, v.threadId, v.message, v.createAt)
         }
     }
 }

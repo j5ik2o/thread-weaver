@@ -77,6 +77,42 @@ trait ThreadCommandController {
   private[controller] def joinAdministratorIds(implicit context: Context): Route
 
   @POST
+  @Path("/threads/{thread_id}/administrator-ids/leave")
+  @Consumes(Array("application/json"))
+  @Operation(
+    summary = "Leave administratorIds to thread",
+    description = "Leave administratorIds request",
+    parameters = Array(
+      new Parameter(
+        name = "thread_id",
+        required = true,
+        in = ParameterIn.PATH,
+        description = "threadId",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "string"
+        )
+      )
+    ),
+    requestBody = new RequestBody(
+      content = Array(
+        new Content(
+          schema = new Schema(implementation = classOf[LeaveAdministratorIdsRequestJson])
+        )
+      )
+    ),
+    responses = Array(
+      new ApiResponse(
+        responseCode = "200",
+        description = "Leave administratorIds response",
+        content = Array(new Content(schema = new Schema(implementation = classOf[LeaveAdministratorIdsResponseJson])))
+      ),
+      new ApiResponse(responseCode = "500", description = "Internal server error")
+    )
+  )
+  private[controller] def leaveAdministratorIds(implicit context: Context): Route
+
+  @POST
   @Path("/threads/{thread_id}/member-ids/join")
   @Consumes(Array("application/json"))
   @Operation(
@@ -111,6 +147,42 @@ trait ThreadCommandController {
     )
   )
   private[controller] def joinMemberIds(implicit context: Context): Route
+
+  @POST
+  @Path("/threads/{thread_id}/member-ids/leave")
+  @Consumes(Array("application/json"))
+  @Operation(
+    summary = "Leave memberIds to thread",
+    description = "Leave memberIds request",
+    parameters = Array(
+      new Parameter(
+        name = "thread_id",
+        required = true,
+        in = ParameterIn.PATH,
+        description = "threadId",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "string"
+        )
+      )
+    ),
+    requestBody = new RequestBody(
+      content = Array(
+        new Content(
+          schema = new Schema(implementation = classOf[LeaveMemberIdsRequestJson])
+        )
+      )
+    ),
+    responses = Array(
+      new ApiResponse(
+        responseCode = "200",
+        description = "Leave memberIds response",
+        content = Array(new Content(schema = new Schema(implementation = classOf[LeaveMemberIdsResponseJson])))
+      ),
+      new ApiResponse(responseCode = "500", description = "Internal server error")
+    )
+  )
+  private[controller] def leaveMemberIds(implicit context: Context): Route
 
   @POST
   @Path("/threads/{thread_id}/messages/add")

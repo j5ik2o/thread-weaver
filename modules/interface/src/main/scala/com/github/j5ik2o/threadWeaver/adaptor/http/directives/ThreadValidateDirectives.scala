@@ -69,30 +69,62 @@ object ThreadValidateDirectives {
     }
   }
 
-  implicit object AddAdministratorIdsRequestJsonValidator
-      extends Validator[(ThreadId, JoinAdministratorIdsRequestJson), AddAdministratorIds] {
-    override def validate(value: (ThreadId, JoinAdministratorIdsRequestJson)): ValidationResult[AddAdministratorIds] = {
+  implicit object JoinAdministratorIdsRequestJsonValidator
+      extends Validator[(ThreadId, JoinAdministratorIdsRequestJson), JoinAdministratorIds] {
+    override def validate(
+        value: (ThreadId, JoinAdministratorIdsRequestJson)
+    ): ValidationResult[JoinAdministratorIds] = {
       (
         validateAccountId(value._2.adderId),
-        validateAdministratorIds(value._2.administratorIds),
+        validateAdministratorIds(value._2.accountIds),
         validateInstant(value._2.createAt)
       ).mapN {
         case (adderId, administratorIds, createdAt) =>
-          AddAdministratorIds(ULID(), value._1, adderId, administratorIds, createdAt)
+          JoinAdministratorIds(ULID(), value._1, adderId, administratorIds, createdAt)
       }
     }
   }
 
-  implicit object AddMemberIdsRequestJsonValidator
-      extends Validator[(ThreadId, JoinMemberIdsRequestJson), AddMemberIds] {
-    override def validate(value: (ThreadId, JoinMemberIdsRequestJson)): ValidationResult[AddMemberIds] = {
+  implicit object LeaveAdministratorIdsRequestJsonValidator
+      extends Validator[(ThreadId, LeaveAdministratorIdsRequestJson), LeaveAdministratorIds] {
+    override def validate(
+        value: (ThreadId, LeaveAdministratorIdsRequestJson)
+    ): ValidationResult[LeaveAdministratorIds] = {
+      (
+        validateAccountId(value._2.removerId),
+        validateAdministratorIds(value._2.administratorIds),
+        validateInstant(value._2.createAt)
+      ).mapN {
+        case (adderId, administratorIds, createdAt) =>
+          LeaveAdministratorIds(ULID(), value._1, adderId, administratorIds, createdAt)
+      }
+    }
+  }
+
+  implicit object JoinMemberIdsRequestJsonValidator
+      extends Validator[(ThreadId, JoinMemberIdsRequestJson), JoinMemberIds] {
+    override def validate(value: (ThreadId, JoinMemberIdsRequestJson)): ValidationResult[JoinMemberIds] = {
       (
         validateAccountId(value._2.adderId),
-        validateMemberIds(value._2.memberIds),
+        validateMemberIds(value._2.accountIds),
         validateInstant(value._2.createAt)
       ).mapN {
         case (adderId, memberIds, createdAt) =>
-          AddMemberIds(ULID(), value._1, adderId, memberIds, createdAt)
+          JoinMemberIds(ULID(), value._1, adderId, memberIds, createdAt)
+      }
+    }
+  }
+
+  implicit object LeaveMemberIdsRequestJsonValidator
+      extends Validator[(ThreadId, LeaveMemberIdsRequestJson), LeaveMemberIds] {
+    override def validate(value: (ThreadId, LeaveMemberIdsRequestJson)): ValidationResult[LeaveMemberIds] = {
+      (
+        validateAccountId(value._2.removerId),
+        validateMemberIds(value._2.accountIds),
+        validateInstant(value._2.createAt)
+      ).mapN {
+        case (adderId, memberIds, createdAt) =>
+          LeaveMemberIds(ULID(), value._1, adderId, memberIds, createdAt)
       }
     }
   }

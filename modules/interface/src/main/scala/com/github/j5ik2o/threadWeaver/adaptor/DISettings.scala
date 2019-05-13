@@ -47,8 +47,10 @@ trait DISettings {
   private[adaptor] def designOfRestPresenters: Design =
     newDesign
       .bind[http.presenter.CreateThreadPresenter].to[http.presenter.CreateThreadPresenterImpl]
-      .bind[http.presenter.AddAdministratorIdsPresenter].to[http.presenter.AddAdministratorIdsPresenterImpl]
-      .bind[http.presenter.AddMemberIdsPresenter].to[http.presenter.AddMemberIdsPresenterImpl]
+      .bind[http.presenter.JoinAdministratorIdsPresenter].to[http.presenter.JoinAdministratorIdsPresenterImpl]
+      .bind[http.presenter.LeaveAdministratorIdsPresenter].to[http.presenter.LeaveAdministratorIdsPresenterImpl]
+      .bind[http.presenter.JoinMemberIdsPresenter].to[http.presenter.JoinMemberIdsPresenterImpl]
+      .bind[http.presenter.LeaveMemberIdsPresenter].to[http.presenter.LeaveMemberIdsPresenterImpl]
       .bind[http.presenter.AddMessagesPresenter].to[http.presenter.AddMessagesPresenterImpl]
       .bind[http.presenter.RemoveMessagesPresenter].to[http.presenter.RemoveMessagesPresenterImpl]
 
@@ -89,7 +91,7 @@ trait DISettings {
           )
       }
 
-  private[adaptor] def designOfRouter: Design =
+  private[adaptor] def designOfMessageRouters: Design =
     newDesign
       .bind[ThreadActorRefOfMessage].toProvider[ActorSystem[Nothing], ThreadReadModelUpdaterRef] { (actorSystem, ref) =>
         actorSystem.toUntyped.spawn(
@@ -108,14 +110,14 @@ trait DISettings {
       profile: JdbcProfile,
       db: JdbcProfile#Backend#Database
   ): Design =
-    com.github.j5ik2o.threadWeaver.useCase.AirframeSettings.design
+    com.github.j5ik2o.threadWeaver.useCase.DISettings.design
       .add(designOfSwagger(host, port))
       .add(designOfActorSystem(system, materializer))
       .add(designOfReadJournal(readJournal))
       .add(designOfSlick(profile, db))
       .add(designOfShardedAggregates(clusterSharding))
       .add(designOfShardedReadModelUpdater(clusterSharding))
-      .add(designOfRouter)
+      .add(designOfMessageRouters)
       .add(designOfRestControllers)
       .add(designOfRestPresenters)
 
