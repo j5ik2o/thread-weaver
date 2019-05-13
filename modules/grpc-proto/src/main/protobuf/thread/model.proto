@@ -34,7 +34,8 @@ message DestroyThreadResponse {
 
 message JoinAdministratorIdsRequest {
     string thread_id = 1;
-    repeated string account_ids = 2;
+    string adder_id = 2;
+    repeated string account_ids = 3;
     int64 create_at = 254;
 }
 
@@ -46,7 +47,8 @@ message JoinAdministratorIdsResponse {
 
 message LeaveAdministratorIdsRequest {
     string thread_id = 1;
-    repeated string account_ids = 2;
+    string remover_id = 2;
+    repeated string account_ids = 3;
     int64 create_at = 254;
 }
 
@@ -58,7 +60,8 @@ message LeaveAdministratorIdsResponse {
 
 message JoinMemberIdsRequest {
     string thread_id = 1;
-    repeated string account_ids = 2;
+    string adder_id = 2;
+    repeated string account_ids = 3;
     int64 create_at = 254;
 }
 
@@ -70,7 +73,8 @@ message JoinMemberIdsResponse {
 
 message LeaveMemberIdsRequest {
     string thread_id = 1;
-    repeated string account_ids = 2;
+    string remover_id = 2;
+    repeated string account_ids = 3;
     int64 create_at = 254;
 }
 

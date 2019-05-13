@@ -28,7 +28,7 @@ trait ThreadValidateDirectives {
       }, provide)
   }
 
-  protected def validateRequestJson[A, B](value: A)(implicit V: Validator[A, B]): Directive1[B] =
+  protected def validateJsonRequest[A, B](value: A)(implicit V: Validator[A, B]): Directive1[B] =
     V.validate(value)
       .fold({ errors =>
         reject(ValidationsRejection(errors))
@@ -63,6 +63,26 @@ object ThreadValidateDirectives {
             remarks,
             administratorIds,
             memberIds,
+            createdAt
+          )
+      }
+    }
+  }
+
+  implicit object DestroyThreadRequestJsonValidator
+      extends Validator[(ThreadId, DestroyThreadRequestJson), DestroyThread] {
+    override def validate(
+        value: (ThreadId, DestroyThreadRequestJson)
+    ): ValidationResult[DestroyThread] = {
+      (
+        validateAccountId(value._2.destroyerId),
+        validateInstant(value._2.createAt)
+      ).mapN {
+        case (destroyerId, createdAt) =>
+          DestroyThread(
+            ULID(),
+            value._1,
+            destroyerId,
             createdAt
           )
       }

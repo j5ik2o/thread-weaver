@@ -41,6 +41,30 @@ trait ThreadCommandController {
   private[controller] def createThread(implicit context: Context): Route
 
   @POST
+  @Path("threads/destroy")
+  @Consumes(Array("application/json"))
+  @Operation(
+    summary = "Destroy thread",
+    description = "Destroy thread request",
+    requestBody = new RequestBody(
+      content = Array(
+        new Content(
+          schema = new Schema(implementation = classOf[DestroyThreadRequestJson])
+        )
+      )
+    ),
+    responses = Array(
+      new ApiResponse(
+        responseCode = "200",
+        description = "Destroy thread response",
+        content = Array(new Content(schema = new Schema(implementation = classOf[DestroyThreadResponseJson])))
+      ),
+      new ApiResponse(responseCode = "500", description = "Internal server error")
+    )
+  )
+  private[controller] def destroyThread(implicit context: Context): Route
+
+  @POST
   @Path("/threads/{thread_id}/administrator-ids/join")
   @Consumes(Array("application/json"))
   @Operation(
