@@ -35,7 +35,7 @@ trait RouteSpec extends ScalatestRouteTest with Matchers with BeforeAndAfterAll 
   def session: Session                   = _session
 
   def design: Design =
-    com.github.j5ik2o.threadWeaver.useCase.AirframeSettings.design
+    com.github.j5ik2o.threadWeaver.useCase.DISettings.design
       .add(DISettings.designOfActorSystem(system.toTyped, materializer))
       .add(
         DISettings.designOfReadJournal(
@@ -46,7 +46,7 @@ trait RouteSpec extends ScalatestRouteTest with Matchers with BeforeAndAfterAll 
       .add(DISettings.designOfRestControllers)
       .add(DITestSettings.designOfLocalAggregatesWithPersistence)
       .add(DITestSettings.designOfLocalReadModelUpdater)
-      .add(DISettings.designOfRouter)
+      .add(DISettings.designOfMessageRouters)
 
   override def beforeAll(): Unit = {
     super.beforeAll()

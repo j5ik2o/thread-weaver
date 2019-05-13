@@ -61,14 +61,14 @@ object DITestSettings extends DISettings {
       profile: JdbcProfile,
       db: JdbcProfile#Backend#Database
   ): Design =
-    com.github.j5ik2o.threadWeaver.useCase.AirframeSettings.design
+    com.github.j5ik2o.threadWeaver.useCase.DISettings.design
       .add(designOfSwagger(host, port))
       .add(designOfActorSystem(system, materializer))
       .add(designOfReadJournal(readJournal))
       .add(designOfSlick(profile, db))
       .add(designOfLocalAggregatesWithPersistence)
       .add(designOfLocalReadModelUpdater)
-      .add(designOfRouter)
+      .add(designOfMessageRouters)
       .add(designOfRestControllers)
       .add(designOfRestPresenters)
 }

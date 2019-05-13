@@ -31,78 +31,78 @@ object ThreadWeaverProtocol {
       extends CreateThreadResponse
 
   // --- 管理者の追加
-  final case class AddAdministratorIds(
+  final case class JoinAdministratorIds(
       id: ULID,
       threadId: ThreadId,
       adderId: AccountId,
       administratorIds: AdministratorIds,
       createAt: Instant
   ) extends ThreadWeaverRequest
-  sealed trait AddAdministratorIdsResponse extends ThreadWeaverResponse
-  final case class AddAdministratorIdsSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
-      extends AddAdministratorIdsResponse
-  final case class AddAdministratorIdsFailed(
+  sealed trait JoinAdministratorIdsResponse extends ThreadWeaverResponse
+  final case class JoinAdministratorIdsSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
+      extends JoinAdministratorIdsResponse
+  final case class JoinAdministratorIdsFailed(
       id: ULID,
       requestId: ULID,
       threadId: ThreadId,
       message: String,
       createAt: Instant
-  ) extends AddAdministratorIdsResponse
+  ) extends JoinAdministratorIdsResponse
   // --- 管理者の削除
-  final case class RemoveAdministratorIds(
+  final case class LeaveAdministratorIds(
       id: ULID,
       threadId: ThreadId,
       removerId: AccountId,
       administratorIds: AdministratorIds,
       createAt: Instant
   ) extends ThreadWeaverRequest
-  sealed trait RemoveAdministratorIdsResponse extends ThreadWeaverResponse
-  final case class RemoveAdministratorIdsSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
-      extends RemoveAdministratorIdsResponse
-  final case class RemoveAdministratorIdsFailed(
+  sealed trait LeaveAdministratorIdsResponse extends ThreadWeaverResponse
+  final case class LeaveAdministratorIdsSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
+      extends LeaveAdministratorIdsResponse
+  final case class LeaveAdministratorIdsFailed(
       id: ULID,
       requestId: ULID,
       threadId: ThreadId,
       message: String,
       createAt: Instant
-  ) extends RemoveAdministratorIdsResponse
+  ) extends LeaveAdministratorIdsResponse
 
   // --- メンバーの追加
-  final case class AddMemberIds(
+  final case class JoinMemberIds(
       id: ULID,
       threadId: ThreadId,
       adderId: AccountId,
       memberIds: MemberIds,
       createAt: Instant
   ) extends ThreadWeaverRequest
-  sealed trait AddMemberIdsResponse extends ThreadWeaverResponse
-  final case class AddMemberIdsSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
-      extends AddMemberIdsResponse
-  final case class AddMemberIdsFailed(
+  sealed trait JoinMemberIdsResponse extends ThreadWeaverResponse
+  final case class JoinMemberIdsSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
+      extends JoinMemberIdsResponse
+  final case class JoinMemberIdsFailed(
       id: ULID,
       requestId: ULID,
       threadId: ThreadId,
       message: String,
       createAt: Instant
-  ) extends AddMemberIdsResponse
+  ) extends JoinMemberIdsResponse
   // --- メンバーの削除
-  final case class RemoveMemberIds(
+  final case class LeaveMemberIds(
       id: ULID,
       threadId: ThreadId,
       removerId: AccountId,
       memberIds: MemberIds,
       createAt: Instant
   ) extends ThreadWeaverRequest
-  sealed trait RemoveMemberIdsResponse extends ThreadWeaverResponse
-  final case class RemoveMemberIdsSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
-      extends RemoveMemberIdsResponse
-  final case class RemoveMemberIdsFailed(
+  sealed trait LeaveMemberIdsResponse extends ThreadWeaverResponse
+  final case class LeaveMemberIdsSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
+      extends LeaveMemberIdsResponse
+  final case class LeaveMemberIdsFailed(
       id: ULID,
       requestId: ULID,
       threadId: ThreadId,
       message: String,
       createAt: Instant
-  ) extends RemoveMemberIdsResponse
+  ) extends LeaveMemberIdsResponse
 
   // --- メッセージの追加
   final case class AddMessages(
