@@ -88,7 +88,7 @@ trait ThreadCommandControllerImpl extends ThreadCommandController with ThreadVal
       }
     }
 
-  override private[controller] def leaveAdministratorIds(implicit context: Context) =
+  override private[controller] def leaveAdministratorIds(implicit context: Context): Route =
     traceName(context)("leave-administrator-ids") {
       path("threads" / Segment / "administrator-ids" / "leave") { threadIdString =>
         post {

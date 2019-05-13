@@ -20,7 +20,7 @@ trait ThreadCommandServiceImpl extends ThreadCommandService {
 
   implicit val mat = ActorMaterializer()
 
-  private val toErrorResponse = { f: NonEmptyList[InterfaceError] =>
+  private val errorResponse = { f: NonEmptyList[InterfaceError] =>
     Future.successful(CreateThreadResponse(isSuccessful = false, "", f.map(_.message).toList))
   }
 
@@ -32,11 +32,21 @@ trait ThreadCommandServiceImpl extends ThreadCommandService {
           .via(createThreadUseCase.execute)
           .via(createThreadPresenter.response)
           .runWith(Sink.head)
-      }.valueOr(toErrorResponse)
+      }.valueOr(errorResponse)
   }
 
   override def destroyThread(in: DestroyThreadRequest): Future[DestroyThreadResponse] = ???
 
+  override def joinAdministratorIds(in: JoinAdministratorIdsRequest): Future[JoinAdministratorIdsResponse] = ???
+
+  override def leaveAdministratorIds(in: LeaveAdministratorIdsRequest): Future[LeaveAdministratorIdsResponse] = ???
+
+  override def joinMemberIds(in: JoinAdministratorIdsRequest): Future[JoinAdministratorIdsResponse] = ???
+
+  override def leaveMemberIds(in: LeaveAdministratorIdsRequest): Future[LeaveAdministratorIdsResponse] = ???
+
   override def addMessages(in: AddMessagesRequest): Future[AddMessagesResponse] = ???
+
+  override def removeMessages(in: RemoveMessagesRequest): Future[RemoveMessagesResponse] = ???
 
 }
