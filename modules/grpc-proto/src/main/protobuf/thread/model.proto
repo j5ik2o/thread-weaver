@@ -2,20 +2,6 @@ syntax = "proto3";
 
 option java_multiple_files = true;
 option java_package = "com.github.j5ik2o.threadWeaver.adaptor.grpc";
-option java_outer_classname = "ThreadProto";
-
-package thread;
-
-service ThreadCommandService {
-    rpc CreateThread (CreateThreadRequest) returns (CreateThreadResponse) {
-    }
-    rpc DestroyThread (DestroyThreadRequest) returns (DestroyThreadResponse) {
-    }
-    rpc AddAdministratorIds (AddAdministratorIdsRequest) returns (AddAdministratorIdsResponse) {
-    }
-    rpc AddMessages (AddMessagesRequest) returns (AddMessagesResponse) {
-    }
-}
 
 message CreateThreadRequest {
     string creator_id = 1;
@@ -26,7 +12,7 @@ message CreateThreadRequest {
     string remarks = 6;
     repeated string administrator_ids = 7;
     repeated string member_ids = 8;
-    int64 create_at = 255;
+    int64 create_at = 254;
 }
 
 message CreateThreadResponse {
@@ -37,7 +23,7 @@ message CreateThreadResponse {
 
 message DestroyThreadRequest {
     string thread_id = 1;
-    int64 create_at = 255;
+    int64 create_at = 254;
 }
 
 message DestroyThreadResponse {
@@ -46,13 +32,49 @@ message DestroyThreadResponse {
     repeated string error_messages = 3;
 }
 
-message AddAdministratorIdsRequest {
+message JoinAdministratorIdsRequest {
     string thread_id = 1;
     repeated string account_ids = 2;
-    int64 create_at = 255;
+    int64 create_at = 254;
 }
 
-message AddAdministratorIdsResponse {
+message JoinAdministratorIdsResponse {
+    bool is_successful = 1;
+    string thread_id = 2;
+    repeated string error_messages = 3;
+}
+
+message LeaveAdministratorIdsRequest {
+    string thread_id = 1;
+    repeated string account_ids = 2;
+    int64 create_at = 254;
+}
+
+message LeaveAdministratorIdsResponse {
+    bool is_successful = 1;
+    string thread_id = 2;
+    repeated string error_messages = 3;
+}
+
+message JoinMemberIdsRequest {
+    string thread_id = 1;
+    repeated string account_ids = 2;
+    int64 create_at = 254;
+}
+
+message JoinMemberIdsResponse {
+    bool is_successful = 1;
+    string thread_id = 2;
+    repeated string error_messages = 3;
+}
+
+message LeaveMemberIdsRequest {
+    string thread_id = 1;
+    repeated string account_ids = 2;
+    int64 create_at = 254;
+}
+
+message LeaveMemberIdsResponse {
     bool is_successful = 1;
     string thread_id = 2;
     repeated string error_messages = 3;
@@ -62,7 +84,7 @@ message AddMessagesRequest {
     string thread_id = 1;
     string sender_id = 2;
     repeated string messages = 3;
-    int64 create_at = 255;
+    int64 create_at = 254;
 }
 
 message AddMessagesResponse {
@@ -75,11 +97,28 @@ message RemoveMessagesRequest {
     string thread_id = 1;
     string sender_id = 2;
     repeated string message_ids = 3;
-    int64 create_at = 255;
+    int64 create_at = 254;
 }
 
 message RemoveMessagesResponse {
     bool is_successful = 1;
     repeated string message_ids = 2;
     repeated string error_messages = 3;
+}
+
+
+message GetThreadRequest {
+    string thread_id = 1;
+    string sender_id = 2;
+}
+
+message GetThreadResponse {
+    string id = 1;
+    string creator_id = 2;
+    bool has_parent_id = 3;
+    string parent_id = 4;
+    bool has_remarks = 5;
+    string title = 6;
+    int64 createdAt = 254;
+    int64 updatedAt = 255;
 }
