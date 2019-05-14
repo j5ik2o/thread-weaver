@@ -42,7 +42,7 @@ trait ThreadCommandControllerImpl extends ThreadCommandController with ThreadVal
 
   override def toRoutes(implicit context: Context): Route = handleRejections(RejectionHandlers.default) {
     pathPrefix("v1") {
-      createThread ~ joinAdministratorIds ~ joinMemberIds ~ addMessages
+      createThread ~ destroyThread ~ joinAdministratorIds ~ joinMemberIds ~ addMessages ~ removeMessages
     }
   }
 

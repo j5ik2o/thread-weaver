@@ -41,11 +41,23 @@ trait ThreadCommandController {
   private[controller] def createThread(implicit context: Context): Route
 
   @POST
-  @Path("threads/destroy")
+  @Path("threads/{thread_id}/destroy")
   @Consumes(Array("application/json"))
   @Operation(
     summary = "Destroy thread",
     description = "Destroy thread request",
+    parameters = Array(
+      new Parameter(
+        name = "thread_id",
+        required = true,
+        in = ParameterIn.PATH,
+        description = "threadId",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "string"
+        )
+      )
+    ),
     requestBody = new RequestBody(
       content = Array(
         new Content(
