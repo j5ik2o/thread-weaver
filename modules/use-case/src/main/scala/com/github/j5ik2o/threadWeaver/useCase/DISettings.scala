@@ -7,6 +7,7 @@ object DISettings {
   def design: Design =
     newDesign
       .bind[CreateThreadUseCase].to[CreateThreadUseCaseImpl]
+      .bind[DestroyThreadUseCase].to[DestroyThreadUseCaseImpl]
       .bind[JoinAdministratorIdsUseCase].to[JoinAdministratorIdsUseCaseImpl]
       .bind[LeaveAdministratorIdsUseCase].to[LeaveAdministratorIdsUseCaseImpl]
       .bind[JoinMemberIdsUseCase].to[JoinMemberIdsUseCaseImpl]

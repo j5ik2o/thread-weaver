@@ -85,7 +85,7 @@ class ThreadControllerImplSpec
         responseJson.isSuccessful shouldBe true
         val threadId = responseJson.threadId.get
         eventually {
-          Get(RouteNames.GetThread(threadId)) ~> queryController.getThread ~> check {
+          Get(RouteNames.GetThread(threadId, administratorId)) ~> queryController.getThread ~> check {
             response.status shouldEqual StatusCodes.OK
             val responseJson = responseAs[GetThreadResponseJson]
             responseJson.isSuccessful shouldBe true
@@ -93,7 +93,43 @@ class ThreadControllerImplSpec
         }
       }
     }
-    "add administratorIds" in {
+    "destroy" in {
+      val administratorId = ULID().asString
+      val createThreadRequestJson =
+        CreateThreadRequestJson(
+          administratorId,
+          None,
+          "test",
+          None,
+          Seq(administratorId),
+          Seq.empty,
+          Instant.now.toEpochMilli
+        ).toHttpEntity
+      Post(RouteNames.CreateThread, createThreadRequestJson) ~> commandController.createThread ~> check {
+        response.status shouldEqual StatusCodes.OK
+        val responseJson = responseAs[CreateThreadResponseJson]
+        responseJson.isSuccessful shouldBe true
+        val threadId = responseJson.threadId.get
+        eventually {
+          Get(RouteNames.GetThread(threadId, administratorId)) ~> queryController.getThread ~> check {
+            response.status shouldEqual StatusCodes.OK
+            val responseJson = responseAs[GetThreadResponseJson]
+            responseJson.isSuccessful shouldBe true
+          }
+        }
+        val destroyThreadRequestJson =
+          DestroyThreadRequestJson(
+            administratorId,
+            Instant.now.toEpochMilli
+          ).toHttpEntity
+        Post(RouteNames.DestroyThread(threadId), destroyThreadRequestJson) ~> commandController.destroyThread ~> check {
+          response.status shouldEqual StatusCodes.OK
+          val responseJson = responseAs[DestroyThreadResponseJson]
+          responseJson.isSuccessful shouldBe true
+        }
+      }
+    }
+    "join administratorIds" in {
       val administratorId = ULID().asString
       val createThread =
         CreateThreadRequestJson(
@@ -113,12 +149,12 @@ class ThreadControllerImplSpec
         val accountId = ULID().asString
         val joinAdministratorIds =
           JoinAdministratorIdsRequestJson(administratorId, Seq(accountId), Instant.now.toEpochMilli).toHttpEntity
-        Post(RouteNames.JoinAdministratorIds(threadId), joinAdministratorIds) ~> commandController.joinAdministratorIds ~> check {
+        Post(RouteNames.JoinAdministratorIds(threadId, administratorId), joinAdministratorIds) ~> commandController.joinAdministratorIds ~> check {
           response.status shouldEqual StatusCodes.OK
           val responseJson = responseAs[LeaveAdministratorIdsResponseJson]
           responseJson.isSuccessful shouldBe true
           eventually {
-            Get(RouteNames.GetAdministratorIds(threadId)) ~> queryController.getAdministratorIds ~> check {
+            Get(RouteNames.GetAdministratorIds(threadId, administratorId)) ~> queryController.getAdministratorIds ~> check {
               response.status shouldEqual StatusCodes.OK
               val responseJson = responseAs[GetThreadAdministratorIdsResponseJson]
               responseJson.isSuccessful shouldBe true
@@ -127,7 +163,7 @@ class ThreadControllerImplSpec
         }
       }
     }
-    "add memberIds" in {
+    "join memberIds" in {
       val administratorId = ULID().asString
       val createThread =
         CreateThreadRequestJson(
@@ -152,7 +188,7 @@ class ThreadControllerImplSpec
           val responseJson = responseAs[LeaveMemberIdsResponseJson]
           responseJson.isSuccessful shouldBe true
           eventually {
-            Get(RouteNames.GetMemberIds(threadId)) ~> queryController.getMemberIds ~> check {
+            Get(RouteNames.GetMemberIds(threadId, administratorId)) ~> queryController.getMemberIds ~> check {
               response.status shouldEqual StatusCodes.OK
               val responseJson = responseAs[GetThreadMemberIdsResponseJson]
               responseJson.isSuccessful shouldBe true
@@ -186,7 +222,7 @@ class ThreadControllerImplSpec
           val responseJson = responseAs[AddMessagesResponseJson]
           responseJson.isSuccessful shouldBe true
           eventually {
-            Get(RouteNames.GetMessages(threadId)) ~> queryController.getMessages ~> check {
+            Get(RouteNames.GetMessages(threadId, administratorId)) ~> queryController.getMessages ~> check {
               response.status shouldEqual StatusCodes.OK
               val responseJson = responseAs[GetThreadMessagesResponseJson]
               responseJson.isSuccessful shouldBe true

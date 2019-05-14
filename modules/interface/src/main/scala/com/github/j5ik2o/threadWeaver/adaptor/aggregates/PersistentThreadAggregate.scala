@@ -17,6 +17,19 @@ object PersistentThreadAggregate {
       Effect.persist(c.toEvent).thenRun { _ =>
         replyTo.foreach(_ ! CreateThreadSucceeded(ULID(), cmdId, threadId, createAt))
       }
+    case (State(Some(thread), _), c @ DestroyThread(cmdId, threadId, senderId, createAt, replyTo)) =>
+      thread.destroy(senderId, createAt) match {
+        case Left(exception) =>
+          Effect.none.thenRun { _ =>
+            replyTo.foreach(
+              _ ! DestroyThreadFailed(ULID(), cmdId, threadId, exception.getMessage, createAt)
+            )
+          }
+        case Right(_) =>
+          Effect.persist(c.toEvent).thenRun { _ =>
+            replyTo.foreach(_ ! DestroyThreadSucceeded(ULID(), cmdId, threadId, createAt))
+          }
+      }
 
     // for Administrators
     case (
@@ -137,20 +150,6 @@ object PersistentThreadAggregate {
           case Right(messages) =>
             replyTo ! GetMessagesSucceeded(ULID(), cmdId, threadId, messages, createAt)
         }
-      }
-
-    case (State(Some(thread), _), c @ DestroyThread(cmdId, threadId, senderId, createAt, replyTo)) =>
-      thread.destroy(senderId, createAt) match {
-        case Left(exception) =>
-          Effect.none.thenRun { _ =>
-            replyTo.foreach(
-              _ ! DestroyThreadFailed(ULID(), cmdId, threadId, exception.getMessage, createAt)
-            )
-          }
-        case Right(_) =>
-          Effect.persist(c.toEvent).thenRun { _ =>
-            replyTo.foreach(_ ! DestroyThreadSucceeded(ULID(), cmdId, threadId, createAt))
-          }
       }
 
     case _ =>

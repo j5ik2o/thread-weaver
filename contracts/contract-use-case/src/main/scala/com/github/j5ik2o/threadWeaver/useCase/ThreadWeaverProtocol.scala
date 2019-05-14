@@ -30,6 +30,21 @@ object ThreadWeaverProtocol {
   final case class CreateThreadFailed(id: ULID, requestId: ULID, threadId: ThreadId, message: String, createAt: Instant)
       extends CreateThreadResponse
 
+  // --- 破棄
+  final case class DestroyThread(id: ULID, threadId: ThreadId, destroyerId: AccountId, createAt: Instant)
+      extends ThreadWeaverRequest
+
+  sealed trait DestroyThreadResponse extends ThreadWeaverResponse
+  final case class DestroyThreadSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
+      extends DestroyThreadResponse
+  final case class DestroyThreadFailed(
+      id: ULID,
+      requestId: ULID,
+      threadId: ThreadId,
+      message: String,
+      createAt: Instant
+  ) extends DestroyThreadResponse
+
   // --- 管理者の追加
   final case class JoinAdministratorIds(
       id: ULID,

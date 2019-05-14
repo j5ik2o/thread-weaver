@@ -47,6 +47,7 @@ trait DISettings {
   private[adaptor] def designOfRestPresenters: Design =
     newDesign
       .bind[http.presenter.CreateThreadPresenter].to[http.presenter.CreateThreadPresenterImpl]
+      .bind[http.presenter.DestroyThreadPresenter].to[http.presenter.DestroyThreadPresenterImpl]
       .bind[http.presenter.JoinAdministratorIdsPresenter].to[http.presenter.JoinAdministratorIdsPresenterImpl]
       .bind[http.presenter.LeaveAdministratorIdsPresenter].to[http.presenter.LeaveAdministratorIdsPresenterImpl]
       .bind[http.presenter.JoinMemberIdsPresenter].to[http.presenter.JoinMemberIdsPresenterImpl]
