@@ -7,7 +7,7 @@ import akka.actor.typed.ActorRef
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
 import com.github.j5ik2o.threadWeaver.domain.model.threads._
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol._
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{ DestroyThreadResponse, _ }
 import org.scalatest.{ FreeSpecLike, Matchers }
 
 class ThreadAggregateSpec extends ScalaTestWithActorTestKit with FreeSpecLike with Matchers {
@@ -39,7 +39,48 @@ class ThreadAggregateSpec extends ScalaTestWithActorTestKit with FreeSpecLike wi
       createThreadSucceeded.threadId shouldBe threadId
       createThreadSucceeded.createAt shouldBe now
     }
-    "add administrator" in {
+    "destroy" in {
+      val threadId          = ThreadId()
+      val threadRef         = newThreadRef(threadId)
+      val now               = Instant.now
+      val createThreadProbe = TestProbe[CreateThreadResponse]()
+      val administratorId   = AccountId()
+      val title             = ThreadTitle("test")
+      threadRef ! CreateThread(
+        ULID(),
+        threadId,
+        administratorId,
+        None,
+        title,
+        None,
+        AdministratorIds(administratorId),
+        MemberIds.empty,
+        now,
+        Some(createThreadProbe.ref)
+      )
+
+      val createThreadResponse = createThreadProbe.expectMessageType[CreateThreadResponse]
+      createThreadResponse match {
+        case f: CreateThreadFailed =>
+          fail(f.message)
+        case s: CreateThreadSucceeded =>
+          s.threadId shouldBe threadId
+          s.createAt shouldBe now
+      }
+
+      val destroyThreadProbe = TestProbe[DestroyThreadResponse]()
+      threadRef ! DestroyThread(ULID(), threadId, administratorId, now, Some(destroyThreadProbe.ref))
+
+      val destroyThreadResponse = destroyThreadProbe.expectMessageType[DestroyThreadResponse]
+      destroyThreadResponse match {
+        case f: DestroyThreadFailed =>
+          fail(f.message)
+        case s: DestroyThreadSucceeded =>
+          s.threadId shouldBe threadId
+          s.createAt shouldBe now
+      }
+    }
+    "join administrator" in {
       val threadId          = ThreadId()
       val threadRef         = newThreadRef(threadId)
       val now               = Instant.now
@@ -100,7 +141,7 @@ class ThreadAggregateSpec extends ScalaTestWithActorTestKit with FreeSpecLike wi
       }
 
     }
-    "add members" in {
+    "join members" in {
       val threadId          = ThreadId()
       val threadRef         = newThreadRef(threadId)
       val now               = Instant.now

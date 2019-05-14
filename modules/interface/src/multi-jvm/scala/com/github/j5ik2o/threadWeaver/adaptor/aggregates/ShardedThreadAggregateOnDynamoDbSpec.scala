@@ -87,7 +87,7 @@ class ShardedThreadAggregateOnDynamoDbSpec
                                  MemberIds.empty,
                                  Instant.now,
                                  Some(self.toTyped[CreateThreadResponse]))
-        expectMsgType[CreateThreadResponse] match {
+        expectMsgType[CreateThreadResponse](10 seconds) match {
           case f: CreateThreadFailed =>
             fail(f.message)
           case s: CreateThreadSucceeded =>

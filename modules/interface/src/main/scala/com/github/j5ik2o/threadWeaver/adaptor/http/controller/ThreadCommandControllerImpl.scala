@@ -19,6 +19,9 @@ trait ThreadCommandControllerImpl extends ThreadCommandController with ThreadVal
   private val createThreadUseCase   = bind[CreateThreadUseCase]
   private val createThreadPresenter = bind[CreateThreadPresenter]
 
+  private val destroyThreadUseCase   = bind[DestroyThreadUseCase]
+  private val destroyThreadPresenter = bind[DestroyThreadPresenter]
+
   private val joinAdministratorIdsUseCase   = bind[JoinAdministratorIdsUseCase]
   private val joinAdministratorIdsPresenter = bind[JoinAdministratorIdsPresenter]
 
@@ -39,7 +42,7 @@ trait ThreadCommandControllerImpl extends ThreadCommandController with ThreadVal
 
   override def toRoutes(implicit context: Context): Route = handleRejections(RejectionHandlers.default) {
     pathPrefix("v1") {
-      createThread ~ joinAdministratorIds ~ joinMemberIds ~ addMessages
+      createThread ~ destroyThread ~ joinAdministratorIds ~ joinMemberIds ~ addMessages ~ removeMessages
     }
   }
 
@@ -49,7 +52,7 @@ trait ThreadCommandControllerImpl extends ThreadCommandController with ThreadVal
         post {
           extractMaterializer { implicit mat =>
             entity(as[CreateThreadRequestJson]) { json =>
-              validateRequestJson(json).apply { commandRequest =>
+              validateJsonRequest(json).apply { commandRequest =>
                 val responseFuture = Source
                   .single(commandRequest)
                   .via(createThreadUseCase.execute)
@@ -65,6 +68,30 @@ trait ThreadCommandControllerImpl extends ThreadCommandController with ThreadVal
       }
     }
 
+  override private[controller] def destroyThread(implicit context: Context): Route =
+    traceName(context)("destroy-thread") {
+      path("threads" / Segment / "destroy") { threadIdString =>
+        post {
+          extractMaterializer { implicit mat =>
+            validateThreadId(threadIdString) { threadId =>
+              entity(as[DestroyThreadRequestJson]) { json =>
+                validateJsonRequest((threadId, json)).apply { commandRequest =>
+                  val responseFuture = Source
+                    .single(commandRequest)
+                    .via(destroyThreadUseCase.execute)
+                    .via(destroyThreadPresenter.response)
+                    .runWith(Sink.head)
+                  onSuccess(responseFuture) { response =>
+                    complete(response)
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
   override private[controller] def joinAdministratorIds(implicit context: Context): Route =
     traceName(context)("join-administrator-ids") {
       path("threads" / Segment / "administrator-ids" / "join") { threadIdString =>
@@ -72,7 +99,7 @@ trait ThreadCommandControllerImpl extends ThreadCommandController with ThreadVal
           extractMaterializer { implicit mat =>
             validateThreadId(threadIdString) { threadId =>
               entity(as[JoinAdministratorIdsRequestJson]) { json =>
-                validateRequestJson((threadId, json)).apply { commandRequest =>
+                validateJsonRequest((threadId, json)).apply { commandRequest =>
                   val responseFuture = Source
                     .single(commandRequest)
                     .via(joinAdministratorIdsUseCase.execute)
@@ -95,7 +122,7 @@ trait ThreadCommandControllerImpl extends ThreadCommandController with ThreadVal
           extractMaterializer { implicit mat =>
             validateThreadId(threadIdString) { threadId =>
               entity(as[LeaveAdministratorIdsRequestJson]) { json =>
-                validateRequestJson((threadId, json)).apply { commandRequest =>
+                validateJsonRequest((threadId, json)).apply { commandRequest =>
                   val responseFuture = Source
                     .single(commandRequest)
                     .via(leaveAdministratorIdsUseCase.execute)
@@ -119,7 +146,7 @@ trait ThreadCommandControllerImpl extends ThreadCommandController with ThreadVal
           extractMaterializer { implicit mat =>
             validateThreadId(threadIdString) { threadId =>
               entity(as[JoinMemberIdsRequestJson]) { json =>
-                validateRequestJson((threadId, json)).apply { commandRequest =>
+                validateJsonRequest((threadId, json)).apply { commandRequest =>
                   val responseFuture = Source
                     .single(commandRequest)
                     .via(joinMemberIdsUseCase.execute)
@@ -143,7 +170,7 @@ trait ThreadCommandControllerImpl extends ThreadCommandController with ThreadVal
           extractMaterializer { implicit mat =>
             validateThreadId(threadIdString) { threadId =>
               entity(as[LeaveMemberIdsRequestJson]) { json =>
-                validateRequestJson((threadId, json)).apply { commandRequest =>
+                validateJsonRequest((threadId, json)).apply { commandRequest =>
                   val responseFuture = Source
                     .single(commandRequest)
                     .via(leaveMemberIdsUseCase.execute)
@@ -167,7 +194,7 @@ trait ThreadCommandControllerImpl extends ThreadCommandController with ThreadVal
           extractMaterializer { implicit mat =>
             validateThreadId(threadIdString) { threadId =>
               entity(as[AddMessagesRequestJson]) { json =>
-                validateRequestJson((threadId, json)).apply { commandRequest =>
+                validateJsonRequest((threadId, json)).apply { commandRequest =>
                   val responseFuture = Source
                     .single(commandRequest)
                     .via(addMessagesUseCase.execute)
@@ -191,7 +218,7 @@ trait ThreadCommandControllerImpl extends ThreadCommandController with ThreadVal
           extractMaterializer { implicit mat =>
             validateThreadId(threadIdString) { threadId =>
               entity(as[RemoveMessagesRequestJson]) { json =>
-                validateRequestJson((threadId, json)).apply { commandRequest =>
+                validateJsonRequest((threadId, json)).apply { commandRequest =>
                   val responseFuture = Source
                     .single(commandRequest)
                     .via(removeMessagesUseCase.execute)

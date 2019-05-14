@@ -7,17 +7,22 @@ import cats.data.NonEmptyList
 import com.github.j5ik2o.threadWeaver.adaptor.error.InterfaceError
 import com.github.j5ik2o.threadWeaver.adaptor.grpc.model._
 import com.github.j5ik2o.threadWeaver.adaptor.grpc.presenter.CreateThreadPresenter
-import com.github.j5ik2o.threadWeaver.adaptor.grpc.validator.ThreadValidateUtils.validateCreateThreadRequest
-import com.github.j5ik2o.threadWeaver.useCase.CreateThreadUseCase
+import com.github.j5ik2o.threadWeaver.adaptor.grpc.validator.ThreadValidatorSupport
+import com.github.j5ik2o.threadWeaver.adaptor.grpc.validator.ThreadValidatorSupport._
+import com.github.j5ik2o.threadWeaver.adaptor.http.presenter.JoinAdministratorIdsPresenter
+import com.github.j5ik2o.threadWeaver.useCase.{ CreateThreadUseCase, JoinAdministratorIdsUseCase }
 import wvlet.airframe.bind
 
 import scala.concurrent.Future
 
-trait ThreadCommandServiceImpl extends ThreadCommandService {
+trait ThreadCommandServiceImpl extends ThreadCommandService with ThreadValidatorSupport {
 
   private implicit val system       = bind[ActorSystem[Nothing]]
   private val createThreadUseCase   = bind[CreateThreadUseCase]
   private val createThreadPresenter = bind[CreateThreadPresenter]
+
+  private val joinAdministratorIdsUseCase   = bind[JoinAdministratorIdsUseCase]
+  private val joinAdministratorIdsPresenter = bind[JoinAdministratorIdsPresenter]
 
   implicit val mat = ActorMaterializer()
 
@@ -26,7 +31,7 @@ trait ThreadCommandServiceImpl extends ThreadCommandService {
   }
 
   override def createThread(in: CreateThreadRequest): Future[CreateThreadResponse] = {
-    validateCreateThreadRequest(in)
+    validateGrpcRequest(in)
       .map { request =>
         Source
           .single(request)
@@ -36,7 +41,7 @@ trait ThreadCommandServiceImpl extends ThreadCommandService {
       }.valueOr(errorResponse)
   }
 
-  override def destroyThread(in: DestroyThreadRequest): Future[DestroyThreadResponse] = ???
+  override def destroyThread(in: DestroyThreadRequest): Future[DestroyThreadResponse] = { ??? }
 
   override def joinAdministratorIds(in: JoinAdministratorIdsRequest): Future[JoinAdministratorIdsResponse] = ???
 
