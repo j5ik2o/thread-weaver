@@ -78,7 +78,7 @@ class ShardedThreadAggregateOnLevelDbSpec
                                  MemberIds.empty,
                                  Instant.now,
                                  Some(createThreadResponseProbe.ref))
-        createThreadResponseProbe.expectMessageType[CreateThreadResponse] match {
+        createThreadResponseProbe.expectMessageType[CreateThreadResponse](10 seconds) match {
           case f: CreateThreadFailed =>
             fail(f.message)
           case s: CreateThreadSucceeded =>
