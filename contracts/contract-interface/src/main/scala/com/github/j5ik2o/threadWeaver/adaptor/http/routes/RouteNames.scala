@@ -3,7 +3,7 @@ package com.github.j5ik2o.threadWeaver.adaptor.http.routes
 object RouteNames {
   final val Base: String                            = "threads"
   final val CreateThread: String                    = s"/$Base/create"
-  final def DestroyThread(threadId: String): String = s"$Base/$threadId/destroy"
+  final def DestroyThread(threadId: String): String = s"/$Base/$threadId/destroy"
   final def JoinAdministratorIds(threadId: String, accountId: String): String =
     s"/$Base/$threadId/administrator-ids/join"
   final def LeaveAdministratorIds(threadId: String): String = s"/$Base/$threadId/administrator-ids/leave"

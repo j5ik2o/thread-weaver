@@ -95,7 +95,7 @@ class ThreadControllerImplSpec
     }
     "destroy" in {
       val administratorId = ULID().asString
-      val entity =
+      val createThreadRequestJson =
         CreateThreadRequestJson(
           administratorId,
           None,
@@ -105,7 +105,7 @@ class ThreadControllerImplSpec
           Seq.empty,
           Instant.now.toEpochMilli
         ).toHttpEntity
-      Post(RouteNames.CreateThread, entity) ~> commandController.createThread ~> check {
+      Post(RouteNames.CreateThread, createThreadRequestJson) ~> commandController.createThread ~> check {
         response.status shouldEqual StatusCodes.OK
         val responseJson = responseAs[CreateThreadResponseJson]
         responseJson.isSuccessful shouldBe true
@@ -117,14 +117,19 @@ class ThreadControllerImplSpec
             responseJson.isSuccessful shouldBe true
           }
         }
-        Post(RouteNames.DestroyThread(threadId), entity) ~> commandController.destroyThread ~> check {
+        val destroyThreadRequestJson =
+          DestroyThreadRequestJson(
+            administratorId,
+            Instant.now.toEpochMilli
+          ).toHttpEntity
+        Post(RouteNames.DestroyThread(threadId), destroyThreadRequestJson) ~> commandController.destroyThread ~> check {
           response.status shouldEqual StatusCodes.OK
           val responseJson = responseAs[DestroyThreadResponseJson]
           responseJson.isSuccessful shouldBe true
         }
       }
     }
-    "add administratorIds" in {
+    "join administratorIds" in {
       val administratorId = ULID().asString
       val createThread =
         CreateThreadRequestJson(
@@ -158,7 +163,7 @@ class ThreadControllerImplSpec
         }
       }
     }
-    "add memberIds" in {
+    "join memberIds" in {
       val administratorId = ULID().asString
       val createThread =
         CreateThreadRequestJson(
