@@ -1,9 +1,9 @@
-package com.github.j5ik2o.threadWeaver.adaptor.aggregates
+package com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed
 
 import akka.actor.testkit.typed.scaladsl.ActorTestKit
 import akka.actor.typed.ActorRef
 
-trait ActorSpecSupport {
+trait TypedActorSpecSupport {
 
   val testKit: ActorTestKit
 

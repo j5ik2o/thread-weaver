@@ -1,9 +1,9 @@
-package com.github.j5ik2o.threadWeaver.adaptor.aggregates
+package com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed
 
 import java.time.Instant
 
-import akka.actor.typed.{ ActorRef, Behavior, PostStop, Signal }
 import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors }
+import akka.actor.typed.{ ActorRef, Behavior, PostStop, Signal }
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol._
 import com.github.j5ik2o.threadWeaver.domain.model.threads.{ Messages, Thread, ThreadId }
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
@@ -17,6 +17,7 @@ class ThreadAggregate(context: ActorContext[CommandRequest])(id: ThreadId, subsc
     case ExistsThread(requestId, threadId, senderId, createAt, replyTo) if threadId == id =>
       replyTo ! ExistsThreadSucceeded(ULID(), requestId, threadId, false, createAt)
       Behaviors.same
+
     case CreateThread(
         requestId,
         threadId,
@@ -56,7 +57,11 @@ class ThreadAggregate(context: ActorContext[CommandRequest])(id: ThreadId, subsc
       Behaviors.same
   }
 
-  private def onDestroyed: Behavior[CommandRequest] = Behaviors.unhandled[CommandRequest]
+  private def onDestroyed: Behavior[CommandRequest] = Behaviors.receiveMessagePartial[CommandRequest] {
+    case ExistsThread(requestId, threadId, senderId, createAt, replyTo) if threadId == id =>
+      replyTo ! ExistsThreadSucceeded(ULID(), requestId, threadId, exists = false, createAt)
+      Behaviors.same
+  }
 
   private def commandAdministratorIds(thread: Thread): Behaviors.Receive[CommandRequest] =
     Behaviors.receiveMessagePartial[CommandRequest] {
@@ -187,8 +192,8 @@ class ThreadAggregate(context: ActorContext[CommandRequest])(id: ThreadId, subsc
 
   private def create: Behaviors.Receive[CommandRequest] = {
     Behaviors.receiveMessagePartial[CommandRequest] {
-      case ExistsThread(requestId, threadId, senderId, createAt, replyTo) if threadId == id =>
-        replyTo ! ExistsThreadSucceeded(ULID(), requestId, threadId, true, createAt)
+      case ExistsThread(requestId, threadId, _, createAt, replyTo) if threadId == id =>
+        replyTo ! ExistsThreadSucceeded(ULID(), requestId, threadId, exists = true, createAt)
         Behaviors.same
       case CreateThread(requestId, threadId, _, _, _, _, _, _, createAt, replyTo) if threadId == id =>
         replyTo.foreach(_ ! CreateThreadFailed(ULID(), requestId, threadId, "Already created", createAt))

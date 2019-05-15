@@ -1,4 +1,4 @@
-package com.github.j5ik2o.threadWeaver.adaptor.aggregates
+package com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed
 
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ ActorRef, Behavior }
