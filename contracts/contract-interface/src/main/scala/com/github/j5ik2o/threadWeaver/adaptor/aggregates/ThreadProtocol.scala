@@ -100,6 +100,14 @@ object ThreadProtocol {
       CreateThread(ULID(), threadId, creatorId, parentThreadId, title, remarks, administratorIds, memberIds, createdAt)
   }
 
+  final case class ExistsThread(id: ULID, threadId: ThreadId, senderId: AccountId, createAt: Instant, replyTo: ActorRef[ExistsThreadResponse])
+    extends CommandRequest
+  sealed trait ExistsThreadResponse extends CommandResponse
+  final case class ExistsThreadSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, exists: Boolean, createAt: Instant)
+    extends ExistsThreadResponse
+  final case class ExistsThreadFailed(id: ULID, requestId: ULID, threadId: ThreadId, message: String, createAt: Instant)
+    extends ExistsThreadResponse
+
   // --- スレッドの破棄
   final case class DestroyThread(
       id: ULID,

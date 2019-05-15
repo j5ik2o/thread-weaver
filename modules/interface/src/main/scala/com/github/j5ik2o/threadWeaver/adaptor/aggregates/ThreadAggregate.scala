@@ -14,6 +14,9 @@ class ThreadAggregate(context: ActorContext[CommandRequest])(id: ThreadId, subsc
   subscribers.foreach(_ ! Started(ULID(), id, Instant.now, context.self))
 
   override def onMessage(msg: CommandRequest): Behavior[CommandRequest] = msg match {
+    case ExistsThread(requestId, threadId, senderId, createAt, replyTo) if threadId == id =>
+      replyTo ! ExistsThreadSucceeded(ULID(), requestId, threadId, false, createAt)
+      Behaviors.same
     case CreateThread(
         requestId,
         threadId,
@@ -41,18 +44,10 @@ class ThreadAggregate(context: ActorContext[CommandRequest])(id: ThreadId, subsc
           createAt
         )
       )
-
     case DestroyThread(requestId, threadId, _, createAt, replyTo) if threadId == id =>
       replyTo.foreach(_ ! DestroyThreadFailed(ULID(), requestId, threadId, "Not created yet", createAt))
       Behaviors.same
 
-    case AddMessages(requestId, threadId, _, createAt, replyTo) if threadId == id =>
-      replyTo.foreach(_ ! AddMessagesFailed(ULID(), requestId, threadId, "Not created yet", createAt))
-      Behaviors.same
-
-    case RemoveMessages(requestId, threadId, _, _, createAt, replyTo) if threadId == id =>
-      replyTo.foreach(_ ! RemoveMessagesFailed(ULID(), requestId, threadId, "Not created yet", createAt))
-      Behaviors.same
   }
 
   override def onSignal: PartialFunction[Signal, Behavior[CommandRequest]] = {
@@ -192,6 +187,9 @@ class ThreadAggregate(context: ActorContext[CommandRequest])(id: ThreadId, subsc
 
   private def create: Behaviors.Receive[CommandRequest] = {
     Behaviors.receiveMessagePartial[CommandRequest] {
+      case ExistsThread(requestId, threadId, senderId, createAt, replyTo) if threadId == id =>
+        replyTo ! ExistsThreadSucceeded(ULID(), requestId, threadId, true, createAt)
+        Behaviors.same
       case CreateThread(requestId, threadId, _, _, _, _, _, _, createAt, replyTo) if threadId == id =>
         replyTo.foreach(_ ! CreateThreadFailed(ULID(), requestId, threadId, "Already created", createAt))
         Behaviors.same

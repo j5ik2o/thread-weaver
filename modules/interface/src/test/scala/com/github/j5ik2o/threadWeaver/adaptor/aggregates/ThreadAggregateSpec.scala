@@ -38,6 +38,11 @@ class ThreadAggregateSpec extends ScalaTestWithActorTestKit with FreeSpecLike wi
       val createThreadSucceeded = createThreadProbe.expectMessageType[CreateThreadSucceeded]
       createThreadSucceeded.threadId shouldBe threadId
       createThreadSucceeded.createAt shouldBe now
+
+      val existsThreadProbe = TestProbe[ExistsThreadResponse]()
+      threadRef ! ExistsThread(ULID(), threadId, administratorId, now, existsThreadProbe.ref)
+      val existsThreadSucceeded = existsThreadProbe.expectMessageType[ExistsThreadSucceeded]
+      existsThreadSucceeded.exists shouldBe true
     }
     "destroy" in {
       val threadId          = ThreadId()
@@ -79,6 +84,11 @@ class ThreadAggregateSpec extends ScalaTestWithActorTestKit with FreeSpecLike wi
           s.threadId shouldBe threadId
           s.createAt shouldBe now
       }
+
+      val existsThreadProbe = TestProbe[ExistsThreadResponse]()
+      threadRef ! ExistsThread(ULID(), threadId, administratorId, now, existsThreadProbe.ref)
+      val existsThreadSucceeded = existsThreadProbe.expectMessageType[ExistsThreadSucceeded]
+      existsThreadSucceeded.exists shouldBe false
     }
     "join administrator" in {
       val threadId          = ThreadId()
