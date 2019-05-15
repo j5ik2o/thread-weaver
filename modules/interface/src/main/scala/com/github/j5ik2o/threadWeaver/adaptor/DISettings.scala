@@ -9,7 +9,7 @@ import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{
   ThreadActorRefOfMessage,
   ThreadReadModelUpdaterRef
 }
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates._
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ShardedThreadAggregatesProxy
 import com.github.j5ik2o.threadWeaver.adaptor.grpc.service.{ ThreadCommandService, ThreadCommandServiceImpl }
 import com.github.j5ik2o.threadWeaver.adaptor.http.controller._
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ShardedThreadReadModelUpdaterProxy

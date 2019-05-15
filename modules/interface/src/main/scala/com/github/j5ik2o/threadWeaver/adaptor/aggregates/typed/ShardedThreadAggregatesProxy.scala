@@ -1,8 +1,8 @@
-package com.github.j5ik2o.threadWeaver.adaptor.aggregates
+package com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed
 
-import akka.actor.typed.{ ActorRef, Behavior }
 import akka.actor.typed.scaladsl.Behaviors
-import akka.cluster.sharding.typed
+import akka.actor.typed.{ ActorRef, Behavior }
+import akka.cluster.sharding.typed.ShardingEnvelope
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{ CommandRequest, Message }
 
@@ -19,7 +19,7 @@ object ShardedThreadAggregatesProxy {
       val actorRef = ShardedThreadAggregates.initEntityActor(clusterSharding, receiveTimeout, subscribers)
       Behaviors.receiveMessagePartial[CommandRequest] {
         case msg =>
-          actorRef ! typed.ShardingEnvelope(msg.threadId.value.asString, msg)
+          actorRef ! ShardingEnvelope(msg.threadId.value.asString, msg)
           Behaviors.same
       }
     }

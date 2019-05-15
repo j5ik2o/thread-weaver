@@ -17,6 +17,7 @@ import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{
   CreateThreadResponse,
   CreateThreadSucceeded
 }
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ShardedThreadAggregates
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
 import com.github.j5ik2o.threadWeaver.domain.model.threads.{ AdministratorIds, MemberIds, ThreadId, ThreadTitle }
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID

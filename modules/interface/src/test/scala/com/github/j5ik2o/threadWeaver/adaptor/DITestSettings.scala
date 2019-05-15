@@ -4,15 +4,15 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.ActorSystem
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.stream.Materializer
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.{
-  PersistentThreadAggregate,
-  ThreadAggregate,
-  ThreadAggregates
-}
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{
   ThreadActorRefOfCommand,
   ThreadActorRefOfMessage,
   ThreadReadModelUpdaterRef
+}
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.{
+  PersistentThreadAggregate,
+  ThreadAggregate,
+  ThreadAggregates
 }
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdater
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdater.ReadJournalType

@@ -8,12 +8,12 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.persistence.query.PersistenceQuery
 import com.github.j5ik2o.akka.persistence.dynamodb.query.scaladsl.DynamoDBReadJournal
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol._
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.{
-  ActorSpecSupport,
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.{
   PersistentThreadAggregate,
   PersistentThreadAggregateOnDynamoDBSpec,
-  ThreadProtocol
+  TypedActorSpecSupport
 }
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol
 import com.github.j5ik2o.threadWeaver.adaptor.dao.jdbc.ThreadMessageComponent
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdaterProtocol.Start
 import com.github.j5ik2o.threadWeaver.adaptor.util.{
@@ -73,7 +73,7 @@ class ThreadReadModelUpdaterOnDynamoDBSpec
         )
     )
     with FreeSpecLike
-    with ActorSpecSupport
+    with TypedActorSpecSupport
     with DynamoDBSpecSupport
     with FlywayWithMySQLSpecSupport
     with Slick3SpecSupport {

@@ -1,4 +1,4 @@
-package com.github.j5ik2o.threadWeaver.adaptor.aggregates
+package com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed
 
 import java.time.Instant
 
@@ -46,7 +46,7 @@ class PersistentThreadAggregateOnDynamoDBSpec
         |}
       """.stripMargin).withFallback(ConfigFactory.load()))
     with FreeSpecLike
-    with ActorSpecSupport
+    with TypedActorSpecSupport
     with DynamoDBSpecSupport
     with ScalaFuturesSpecSupport {
 
