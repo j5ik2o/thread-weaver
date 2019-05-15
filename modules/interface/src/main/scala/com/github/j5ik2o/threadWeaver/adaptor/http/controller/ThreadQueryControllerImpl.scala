@@ -13,7 +13,8 @@ import kamon.context.Context
 import wvlet.airframe._
 
 trait ThreadQueryControllerImpl extends ThreadQueryController with ThreadValidateDirectives with MetricsDirectives {
-  private val threadDas = bind[ThreadDas]
+
+  private val threadDas: ThreadDas = bind[ThreadDas]
 
   override def toRoutes(implicit context: Context): Route = handleRejections(RejectionHandlers.default) {
     pathPrefix("v1") {

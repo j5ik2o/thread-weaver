@@ -10,7 +10,12 @@ import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{
   ThreadReadModelUpdaterRef
 }
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ShardedThreadAggregatesProxy
-import com.github.j5ik2o.threadWeaver.adaptor.grpc.service.{ ThreadCommandService, ThreadCommandServiceImpl }
+import com.github.j5ik2o.threadWeaver.adaptor.grpc.service.{
+  ThreadCommandService,
+  ThreadCommandServiceImpl,
+  ThreadQueryService,
+  ThreadQueryServiceImpl
+}
 import com.github.j5ik2o.threadWeaver.adaptor.http.controller._
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ShardedThreadReadModelUpdaterProxy
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdater.ReadJournalType
@@ -58,10 +63,18 @@ trait DISettings {
   private[adaptor] def designOfGrpcServices: Design =
     newDesign
       .bind[ThreadCommandService].to[ThreadCommandServiceImpl]
+      .bind[ThreadQueryService].to[ThreadQueryServiceImpl]
 
   private[adaptor] def designOfGrpcPresenters: Design =
     newDesign
       .bind[grpc.presenter.CreateThreadPresenter].to[grpc.presenter.CreateThreadPresenterImpl]
+      .bind[grpc.presenter.DestroyThreadPresenter].to[grpc.presenter.DestroyThreadPresenterImpl]
+      .bind[grpc.presenter.JoinAdministratorIdsPresenter].to[grpc.presenter.JoinAdministratorIdsPresenterImpl]
+      .bind[grpc.presenter.LeaveAdministratorIdsPresenter].to[grpc.presenter.LeaveAdministratorIdsPresenterImpl]
+      .bind[grpc.presenter.JoinMemberIdsPresenter].to[grpc.presenter.JoinMemberIdsPresenterImpl]
+      .bind[grpc.presenter.LeaveMemberIdsPresenter].to[grpc.presenter.LeaveMemberIdsPresenterImpl]
+      .bind[grpc.presenter.AddMessagesPresenter].to[grpc.presenter.AddMessagesPresenterImpl]
+      .bind[grpc.presenter.RemoveMessagesPresenter].to[grpc.presenter.RemoveMessagesPresenterImpl]
 
   private[adaptor] def designOfReadJournal(readJournal: ReadJournalType): Design = {
     newDesign.bind[ReadJournalType].toInstance(readJournal)

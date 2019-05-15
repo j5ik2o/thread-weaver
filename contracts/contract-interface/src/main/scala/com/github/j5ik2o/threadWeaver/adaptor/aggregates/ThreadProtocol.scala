@@ -390,9 +390,12 @@ object ThreadProtocol {
       createAt: Instant,
       replyTo: Option[ActorRef[AddMessagesResponse]] = None
   ) extends CommandRequest
-      with ToEvent {
+      with ToEvent
+      with HasReplyTo[Option, AddMessagesResponse] {
     override def senderId: AccountId = messages.breachEncapsulationOfValues.head.senderId
     override def toEvent: Event      = MessagesAdded(ULID(), threadId, messages, createAt)
+    override def withReplyTo(value: Option[ActorRef[AddMessagesResponse]]): AddMessages =
+      copy(replyTo = value)
   }
   sealed trait AddMessagesResponse extends CommandResponse
   final case class AddMessagesSucceeded(
@@ -425,9 +428,12 @@ object ThreadProtocol {
       createAt: Instant,
       replyTo: Option[ActorRef[RemoveMessagesResponse]] = None
   ) extends CommandRequest
-      with ToEvent {
+      with ToEvent
+      with HasReplyTo[Option, RemoveMessagesResponse] {
     override def senderId: AccountId = removerId
     override def toEvent: Event      = MessagesRemoved(ULID(), threadId, removerId, messageIds, createAt)
+    override def withReplyTo(value: Option[ActorRef[RemoveMessagesResponse]]): CommandRequest =
+      copy(replyTo = value)
   }
   sealed trait RemoveMessagesResponse extends CommandResponse
   final case class RemoveMessagesSucceeded(
@@ -465,6 +471,10 @@ object ThreadProtocol {
       createAt: Instant,
       replyTo: ActorRef[GetMessagesResponse]
   ) extends CommandRequest
+      with HasReplyTo[Id, GetMessagesResponse] {
+    override def withReplyTo(value: Id[ActorRef[GetMessagesResponse]]): CommandRequest =
+      copy(replyTo = value)
+  }
   trait GetMessagesResponse extends CommandResponse
   final case class GetMessagesSucceeded(
       id: ULID,

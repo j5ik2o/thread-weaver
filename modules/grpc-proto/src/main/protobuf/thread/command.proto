@@ -17,9 +17,9 @@ service ThreadCommandService {
     }
     rpc LeaveAdministratorIds (LeaveAdministratorIdsRequest) returns (LeaveAdministratorIdsResponse) {
     }
-    rpc JoinMemberIds (JoinAdministratorIdsRequest) returns (JoinAdministratorIdsResponse) {
+    rpc JoinMemberIds (JoinMemberIdsRequest) returns (JoinMemberIdsResponse) {
     }
-    rpc LeaveMemberIds (LeaveAdministratorIdsRequest) returns (LeaveAdministratorIdsResponse) {
+    rpc LeaveMemberIds (LeaveMemberIdsRequest) returns (LeaveMemberIdsResponse) {
     }
     rpc AddMessages (AddMessagesRequest) returns (AddMessagesResponse) {
     }
