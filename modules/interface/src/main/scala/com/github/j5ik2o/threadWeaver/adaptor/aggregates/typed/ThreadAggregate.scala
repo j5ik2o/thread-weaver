@@ -14,8 +14,8 @@ class ThreadAggregate(context: ActorContext[CommandRequest])(id: ThreadId, subsc
   subscribers.foreach(_ ! Started(ULID(), id, Instant.now, context.self))
 
   override def onMessage(msg: CommandRequest): Behavior[CommandRequest] = msg match {
-    case ExistsThread(requestId, threadId, senderId, createAt, replyTo) if threadId == id =>
-      replyTo ! ExistsThreadSucceeded(ULID(), requestId, threadId, false, createAt)
+    case ExistsThread(requestId, threadId, _, createAt, replyTo) if threadId == id =>
+      replyTo ! ExistsThreadSucceeded(ULID(), requestId, threadId, exists = false, createAt)
       Behaviors.same
 
     case CreateThread(
