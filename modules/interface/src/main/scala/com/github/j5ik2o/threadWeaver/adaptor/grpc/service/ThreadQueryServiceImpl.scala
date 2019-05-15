@@ -18,9 +18,9 @@ trait ThreadQueryServiceImpl extends ThreadQueryService {
 
   import system.executionContext
 
-  implicit val mat = ActorMaterializer()
+  implicit val mat: ActorMaterializer = ActorMaterializer()
 
-  private val threadDas = bind[ThreadDas]
+  private val threadDas: ThreadDas = bind[ThreadDas]
 
   private val errorResponse = { f: NonEmptyList[InterfaceError] =>
     Future.successful(GetThreadResponse(isSuccessful = false, None, f.map(_.message).toList))

@@ -23,6 +23,7 @@ message CreateThreadResponse {
 
 message DestroyThreadRequest {
     string thread_id = 1;
+    string destroyer_id = 2;
     int64 create_at = 254;
 }
 
@@ -84,10 +85,17 @@ message LeaveMemberIdsResponse {
     repeated string error_messages = 3;
 }
 
+message Message {
+    bool has_reply_message_id = 1;
+    string reply_message_id = 2;
+    repeated string to_account_ids = 3;
+    string text = 4;
+}
+
 message AddMessagesRequest {
     string thread_id = 1;
     string sender_id = 2;
-    repeated string messages = 3;
+    repeated Message messages = 3;
     int64 create_at = 254;
 }
 
@@ -109,7 +117,6 @@ message RemoveMessagesResponse {
     repeated string message_ids = 2;
     repeated string error_messages = 3;
 }
-
 
 message GetThreadRequest {
     string thread_id = 1;

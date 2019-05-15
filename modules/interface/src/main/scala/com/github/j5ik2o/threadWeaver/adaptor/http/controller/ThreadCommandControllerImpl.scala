@@ -16,29 +16,29 @@ import wvlet.airframe._
 
 trait ThreadCommandControllerImpl extends ThreadCommandController with ThreadValidateDirectives with MetricsDirectives {
 
-  private val createThreadUseCase   = bind[CreateThreadUseCase]
-  private val createThreadPresenter = bind[CreateThreadPresenter]
+  private val createThreadUseCase: CreateThreadUseCase     = bind[CreateThreadUseCase]
+  private val createThreadPresenter: CreateThreadPresenter = bind[CreateThreadPresenter]
 
-  private val destroyThreadUseCase   = bind[DestroyThreadUseCase]
-  private val destroyThreadPresenter = bind[DestroyThreadPresenter]
+  private val destroyThreadUseCase: DestroyThreadUseCase     = bind[DestroyThreadUseCase]
+  private val destroyThreadPresenter: DestroyThreadPresenter = bind[DestroyThreadPresenter]
 
-  private val joinAdministratorIdsUseCase   = bind[JoinAdministratorIdsUseCase]
-  private val joinAdministratorIdsPresenter = bind[JoinAdministratorIdsPresenter]
+  private val joinAdministratorIdsUseCase: JoinAdministratorIdsUseCase     = bind[JoinAdministratorIdsUseCase]
+  private val joinAdministratorIdsPresenter: JoinAdministratorIdsPresenter = bind[JoinAdministratorIdsPresenter]
 
-  private val leaveAdministratorIdsUseCase   = bind[LeaveAdministratorIdsUseCase]
-  private val leaveAdministratorIdsPresenter = bind[LeaveAdministratorIdsPresenter]
+  private val leaveAdministratorIdsUseCase: LeaveAdministratorIdsUseCase     = bind[LeaveAdministratorIdsUseCase]
+  private val leaveAdministratorIdsPresenter: LeaveAdministratorIdsPresenter = bind[LeaveAdministratorIdsPresenter]
 
-  private val joinMemberIdsUseCase   = bind[JoinMemberIdsUseCase]
-  private val joinMemberIdsPresenter = bind[JoinMemberIdsPresenter]
+  private val joinMemberIdsUseCase: JoinMemberIdsUseCase     = bind[JoinMemberIdsUseCase]
+  private val joinMemberIdsPresenter: JoinMemberIdsPresenter = bind[JoinMemberIdsPresenter]
 
-  private val leaveMemberIdsUseCase   = bind[LeaveMemberIdsUseCase]
-  private val leaveMemberIdsPresenter = bind[LeaveMemberIdsPresenter]
+  private val leaveMemberIdsUseCase: LeaveMemberIdsUseCase = bind[LeaveMemberIdsUseCase]
+  private val leaveMemberIdsPresenter                      = bind[LeaveMemberIdsPresenter]
 
-  private val addMessagesUseCase   = bind[AddMessagesUseCase]
-  private val addMessagesPresenter = bind[AddMessagesPresenter]
+  private val addMessagesUseCase: AddMessagesUseCase     = bind[AddMessagesUseCase]
+  private val addMessagesPresenter: AddMessagesPresenter = bind[AddMessagesPresenter]
 
-  private val removeMessagesUseCase   = bind[RemoveMessagesUseCase]
-  private val removeMessagesPresenter = bind[RemoveMessagesPresenter]
+  private val removeMessagesUseCase: RemoveMessagesUseCase     = bind[RemoveMessagesUseCase]
+  private val removeMessagesPresenter: RemoveMessagesPresenter = bind[RemoveMessagesPresenter]
 
   override def toRoutes(implicit context: Context): Route = handleRejections(RejectionHandlers.default) {
     pathPrefix("v1") {
