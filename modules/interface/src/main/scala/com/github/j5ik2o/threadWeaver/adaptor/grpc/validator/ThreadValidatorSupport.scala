@@ -22,7 +22,7 @@ object ThreadValidatorSupport {
         in: CreateThreadRequest
     ): ValidationResult[CreateThread] = {
       (
-        validateAccountId(in.creatorId),
+        validateAccountId(in.accountId),
         validateThreadIdOpt(if (in.hasParentId) Some(in.parentId) else None),
         validateThreadTitle(in.title),
         validateThreadRemarks(if (in.hasRemarks) Some(in.remarks) else None),
@@ -52,14 +52,14 @@ object ThreadValidatorSupport {
     ): ValidationResult[DestroyThread] = {
       (
         validateThreadId(in.threadId),
-        validateAccountId(in.destroyerId),
+        validateAccountId(in.accountId),
         validateInstant(in.createAt)
       ).mapN {
-        case (threadId, destoryId, createdAt) =>
+        case (threadId, accountId, createdAt) =>
           DestroyThread(
             ULID(),
             threadId,
-            destoryId,
+            accountId,
             createdAt
           )
       }
@@ -73,12 +73,12 @@ object ThreadValidatorSupport {
     ): ValidationResult[JoinAdministratorIds] = {
       (
         validateThreadId(value.threadId),
-        validateAccountId(value.adderId),
+        validateAccountId(value.accountId),
         validateAdministratorIds(value.accountIds),
         validateInstant(value.createAt)
       ).mapN {
-        case (threadId, adderId, administratorIds, createdAt) =>
-          JoinAdministratorIds(ULID(), threadId, adderId, administratorIds, createdAt)
+        case (threadId, accountId, administratorIds, createdAt) =>
+          JoinAdministratorIds(ULID(), threadId, accountId, administratorIds, createdAt)
       }
     }
   }
@@ -90,12 +90,12 @@ object ThreadValidatorSupport {
     ): ValidationResult[LeaveAdministratorIds] = {
       (
         validateThreadId(value.threadId),
-        validateAccountId(value.removerId),
+        validateAccountId(value.accountId),
         validateAdministratorIds(value.accountIds),
         validateInstant(value.createAt)
       ).mapN {
-        case (threadId, removerId, administratorIds, createdAt) =>
-          LeaveAdministratorIds(ULID(), threadId, removerId, administratorIds, createdAt)
+        case (threadId, accountId, administratorIds, createdAt) =>
+          LeaveAdministratorIds(ULID(), threadId, accountId, administratorIds, createdAt)
       }
     }
   }
@@ -106,12 +106,12 @@ object ThreadValidatorSupport {
     ): ValidationResult[JoinMemberIds] = {
       (
         validateThreadId(value.threadId),
-        validateAccountId(value.adderId),
+        validateAccountId(value.accountId),
         validateMemberIds(value.accountIds),
         validateInstant(value.createAt)
       ).mapN {
-        case (threadId, adderId, memberIds, createdAt) =>
-          JoinMemberIds(ULID(), threadId, adderId, memberIds, createdAt)
+        case (threadId, accountId, memberIds, createdAt) =>
+          JoinMemberIds(ULID(), threadId, accountId, memberIds, createdAt)
       }
     }
   }
@@ -122,12 +122,12 @@ object ThreadValidatorSupport {
     ): ValidationResult[LeaveMemberIds] = {
       (
         validateThreadId(value.threadId),
-        validateAccountId(value.removerId),
+        validateAccountId(value.accountId),
         validateMemberIds(value.accountIds),
         validateInstant(value.createAt)
       ).mapN {
-        case (threadId, removerId, memberIds, createdAt) =>
-          LeaveMemberIds(ULID(), threadId, removerId, memberIds, createdAt)
+        case (threadId, accountId, memberIds, createdAt) =>
+          LeaveMemberIds(ULID(), threadId, accountId, memberIds, createdAt)
       }
     }
   }
@@ -144,7 +144,7 @@ object ThreadValidatorSupport {
               if (v.hasReplyMessageId) Some(v.replyMessageId) else None,
               v.toAccountIds,
               v.text,
-              in.senderId
+              in.accountId
             )
           }.toList.sequence,
         validateInstant(in.createAt)
@@ -161,12 +161,12 @@ object ThreadValidatorSupport {
     ): ValidationResult[RemoveMessages] = {
       (
         validateThreadId(in.threadId),
-        validateAccountId(in.senderId),
+        validateAccountId(in.accountId),
         validateMessageIds(in.messageIds),
         validateInstant(in.createAt)
       ).mapN {
-        case (threadId, adderId, messageIds, createdAt) =>
-          RemoveMessages(ULID(), threadId, adderId, messageIds, createdAt)
+        case (threadId, accountId, messageIds, createdAt) =>
+          RemoveMessages(ULID(), threadId, accountId, messageIds, createdAt)
       }
     }
   }

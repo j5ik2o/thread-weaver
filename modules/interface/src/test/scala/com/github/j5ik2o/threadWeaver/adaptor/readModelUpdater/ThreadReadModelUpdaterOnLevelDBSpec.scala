@@ -61,13 +61,13 @@ class ThreadReadModelUpdaterOnLevelDBSpec
 
   var readJournal: LeveldbReadJournal = _
 
-  override protected def beforeAll(): Unit = {
+  override def beforeAll: Unit = {
     deleteStorageLocations()
     super.beforeAll()
     readJournal = PersistenceQuery(system.toUntyped).readJournalFor[LeveldbReadJournal](LeveldbReadJournal.Identifier)
   }
 
-  override protected def afterAll(): Unit = {
+  override def afterAll: Unit = {
     deleteStorageLocations()
     super.afterAll()
   }

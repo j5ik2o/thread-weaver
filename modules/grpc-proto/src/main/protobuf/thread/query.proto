@@ -10,4 +10,6 @@ import "thread/model.proto";
 
 service ThreadQueryService {
     rpc GetThread (GetThreadRequest) returns (GetThreadResponse) {}
+    rpc GetThreads (GetThreadsRequest) returns (GetThreadsResponse) {}
+    rpc GetMessages (GetMessagesRequest) returns (GetMessagesResponse) {}
 }
