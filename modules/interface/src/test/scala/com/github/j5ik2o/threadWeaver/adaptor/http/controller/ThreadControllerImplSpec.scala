@@ -151,7 +151,7 @@ class ThreadControllerImplSpec
           JoinAdministratorIdsRequestJson(administratorId, Seq(accountId), Instant.now.toEpochMilli).toHttpEntity
         Post(RouteNames.JoinAdministratorIds(threadId, administratorId), joinAdministratorIds) ~> commandController.joinAdministratorIds ~> check {
           response.status shouldEqual StatusCodes.OK
-          val responseJson = responseAs[LeaveAdministratorIdsResponseJson]
+          val responseJson = responseAs[JoinAdministratorIdsResponseJson]
           responseJson.isSuccessful shouldBe true
           eventually {
             Get(RouteNames.GetAdministratorIds(threadId, administratorId)) ~> queryController.getAdministratorIds ~> check {

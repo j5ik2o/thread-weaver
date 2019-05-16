@@ -56,7 +56,7 @@ trait ThreadCommandServiceImpl extends ThreadCommandService with ThreadValidator
           .via(createThreadUseCase.execute)
           .via(createThreadPresenter.response)
           .runWith(Sink.head)
-      }.valueOr(errorResponse(CreateThreadResponse(true, "", _)))
+      }.valueOr(errorResponse(CreateThreadResponse(false, "", _)))
 
   override def destroyThread(in: DestroyThreadRequest): Future[DestroyThreadResponse] =
     validateGrpcRequest(in)
@@ -66,7 +66,7 @@ trait ThreadCommandServiceImpl extends ThreadCommandService with ThreadValidator
           .via(destroyThreadUseCase.execute)
           .via(destroyThreadPresenter.response)
           .runWith(Sink.head)
-      }.valueOr(errorResponse(DestroyThreadResponse(true, "", _)))
+      }.valueOr(errorResponse(DestroyThreadResponse(false, "", _)))
 
   override def joinAdministratorIds(in: JoinAdministratorIdsRequest): Future[JoinAdministratorIdsResponse] =
     validateGrpcRequest(in)
@@ -76,7 +76,7 @@ trait ThreadCommandServiceImpl extends ThreadCommandService with ThreadValidator
           .via(joinAdministratorIdsUseCase.execute)
           .via(joinAdministratorIdsPresenter.response)
           .runWith(Sink.head)
-      }.valueOr(errorResponse(JoinAdministratorIdsResponse(true, "", _)))
+      }.valueOr(errorResponse(JoinAdministratorIdsResponse(false, "", _)))
 
   override def leaveAdministratorIds(in: LeaveAdministratorIdsRequest): Future[LeaveAdministratorIdsResponse] =
     validateGrpcRequest(in)
@@ -86,7 +86,7 @@ trait ThreadCommandServiceImpl extends ThreadCommandService with ThreadValidator
           .via(leaveAdministratorIdsUseCase.execute)
           .via(leaveAdministratorIdsPresenter.response)
           .runWith(Sink.head)
-      }.valueOr(errorResponse(LeaveAdministratorIdsResponse(true, "", _)))
+      }.valueOr(errorResponse(LeaveAdministratorIdsResponse(false, "", _)))
 
   override def joinMemberIds(in: JoinMemberIdsRequest): Future[JoinMemberIdsResponse] =
     validateGrpcRequest(in)
@@ -96,7 +96,7 @@ trait ThreadCommandServiceImpl extends ThreadCommandService with ThreadValidator
           .via(joinMemberIdsUseCase.execute)
           .via(joinMemberIdsPresenter.response)
           .runWith(Sink.head)
-      }.valueOr(errorResponse(JoinMemberIdsResponse(true, "", _)))
+      }.valueOr(errorResponse(JoinMemberIdsResponse(false, "", _)))
 
   override def leaveMemberIds(in: LeaveMemberIdsRequest): Future[LeaveMemberIdsResponse] =
     validateGrpcRequest(in)
@@ -106,7 +106,7 @@ trait ThreadCommandServiceImpl extends ThreadCommandService with ThreadValidator
           .via(leaveMemberIdsUseCase.execute)
           .via(leaveMemberIdsPresenter.response)
           .runWith(Sink.head)
-      }.valueOr(errorResponse(LeaveMemberIdsResponse(true, "", _)))
+      }.valueOr(errorResponse(LeaveMemberIdsResponse(false, "", _)))
 
   override def addMessages(in: AddMessagesRequest): Future[AddMessagesResponse] =
     validateGrpcRequest(in)
@@ -116,7 +116,7 @@ trait ThreadCommandServiceImpl extends ThreadCommandService with ThreadValidator
           .via(addMessagesUseCase.execute)
           .via(addMessagesPresenter.response)
           .runWith(Sink.head)
-      }.valueOr(errorResponse(AddMessagesResponse(true, Seq.empty, _)))
+      }.valueOr(errorResponse(AddMessagesResponse(false, Seq.empty, _)))
 
   override def removeMessages(in: RemoveMessagesRequest): Future[RemoveMessagesResponse] =
     validateGrpcRequest(in)
@@ -126,6 +126,6 @@ trait ThreadCommandServiceImpl extends ThreadCommandService with ThreadValidator
           .via(removeMessagesUseCase.execute)
           .via(removeMessagesPresenter.response)
           .runWith(Sink.head)
-      }.valueOr(errorResponse(RemoveMessagesResponse(true, Seq.empty, _)))
+      }.valueOr(errorResponse(RemoveMessagesResponse(false, Seq.empty, _)))
 
 }

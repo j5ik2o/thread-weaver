@@ -4,7 +4,7 @@ option java_multiple_files = true;
 option java_package = "com.github.j5ik2o.threadWeaver.adaptor.grpc.model";
 
 message CreateThreadRequest {
-    string creator_id = 1;
+    string account_id = 1;
     bool has_parent_id = 2;
     string parent_id = 3;
     string title = 4;
@@ -22,8 +22,8 @@ message CreateThreadResponse {
 }
 
 message DestroyThreadRequest {
-    string thread_id = 1;
-    string destroyer_id = 2;
+    string account_id = 1;
+    string thread_id = 2;
     int64 create_at = 254;
 }
 
@@ -34,8 +34,8 @@ message DestroyThreadResponse {
 }
 
 message JoinAdministratorIdsRequest {
-    string thread_id = 1;
-    string adder_id = 2;
+    string account_id = 1;
+    string thread_id = 2;
     repeated string account_ids = 3;
     int64 create_at = 254;
 }
@@ -47,8 +47,8 @@ message JoinAdministratorIdsResponse {
 }
 
 message LeaveAdministratorIdsRequest {
-    string thread_id = 1;
-    string remover_id = 2;
+    string account_id = 1;
+    string thread_id = 2;
     repeated string account_ids = 3;
     int64 create_at = 254;
 }
@@ -60,8 +60,8 @@ message LeaveAdministratorIdsResponse {
 }
 
 message JoinMemberIdsRequest {
-    string thread_id = 1;
-    string adder_id = 2;
+    string account_id = 1;
+    string thread_id = 2;
     repeated string account_ids = 3;
     int64 create_at = 254;
 }
@@ -73,8 +73,8 @@ message JoinMemberIdsResponse {
 }
 
 message LeaveMemberIdsRequest {
-    string thread_id = 1;
-    string remover_id = 2;
+    string account_id = 1;
+    string thread_id = 2;
     repeated string account_ids = 3;
     int64 create_at = 254;
 }
@@ -93,8 +93,8 @@ message Message {
 }
 
 message AddMessagesRequest {
-    string thread_id = 1;
-    string sender_id = 2;
+    string account_id = 1;
+    string thread_id = 2;
     repeated Message messages = 3;
     int64 create_at = 254;
 }
@@ -106,8 +106,8 @@ message AddMessagesResponse {
 }
 
 message RemoveMessagesRequest {
-    string thread_id = 1;
-    string sender_id = 2;
+    string account_id = 1;
+    string thread_id = 2;
     repeated string message_ids = 3;
     int64 create_at = 254;
 }
@@ -119,8 +119,8 @@ message RemoveMessagesResponse {
 }
 
 message GetThreadRequest {
+    string account_id = 2;
     string thread_id = 1;
-    string sender_id = 2;
 }
 
 message GetThreadBody {
@@ -143,6 +143,10 @@ message GetThreadResponse {
 
 message GetThreadsRequest {
     string account_id = 1;
+    bool has_offset = 2;
+    int64 offset = 3;
+    bool has_limit = 4;
+    int64 limit = 5;
     int64 create_at = 254;
 }
 
@@ -151,3 +155,30 @@ message GetThreadsResponse {
     repeated GetThreadBody messages = 2;
     repeated string error_messages = 3;
 }
+
+message GetMessagesRequest {
+    string account_id = 1;
+    string thread_id = 2;
+    bool has_offset = 3;
+    int64 offset = 4;
+    bool has_limit = 5;
+    int64 limit = 6;
+    int64 create_at = 254;
+}
+
+message GetMessageBody {
+    string id = 1;
+    string sender_id = 2;
+    string type = 3;
+    string body = 4;
+    int64 createdAt = 254;
+    int64 updatedAt = 255;
+}
+
+message GetMessagesResponse {
+    bool is_successful = 1;
+    repeated GetMessageBody messages = 2;
+    repeated string error_messages = 3;
+}
+
+

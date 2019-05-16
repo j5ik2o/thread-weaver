@@ -87,7 +87,7 @@ class ThreadReadModelUpdaterOnDynamoDBSpec
 
   override protected lazy val dynamoDBPort: Int = PersistentThreadAggregateOnDynamoDBSpec.dbPort
 
-  override protected def beforeAll(): Unit = {
+  override def beforeAll: Unit = {
     super.beforeAll()
     createJournalTable()
     createSnapshotTable()
