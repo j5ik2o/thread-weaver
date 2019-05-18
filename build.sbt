@@ -118,6 +118,13 @@ val `flyway` = (project in file("tools/flyway"))
 lazy val `api-client` = (project in file("api-client"))
   .dependsOn(`contract-grpc-proto-interface`, `contract-http-proto-interface`)
   .enablePlugins(AkkaGrpcPlugin)
+  .settings(baseSettings)
+  .settings(
+    name := "thread-weaver-api-client",
+    libraryDependencies ++= Seq(
+      "de.heikoseeberger" %% "akka-http-circe" % "1.25.2"
+    )
+  ).dependsOn(`infrastructure`)
 
 val interface = (project in file("modules/interface"))
   .enablePlugins(AkkaGrpcPlugin)
@@ -156,8 +163,8 @@ val interface = (project in file("modules/interface"))
       "commons-io" % "commons-io" % "2.4" % Test,
       "com.github.j5ik2o" %% "reactive-aws-dynamodb-core" % "1.1.0" % Test,
       "com.github.j5ik2o" %% "reactive-aws-dynamodb-test" % "1.1.0" % Test,
-      "com.github.j5ik2o" %% "scalatestplus-db" % "1.0.8" % Test
-
+      "com.github.j5ik2o" %% "scalatestplus-db" % "1.0.8" % Test,
+      "io.kamon"           %% "kamon-akka-http-2.5"           % "1.1.2"
     ),
     // sbt-dao-generator
     // JDBCのドライバークラス名を指定します(必須)
