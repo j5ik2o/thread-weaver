@@ -16,22 +16,20 @@ import akka.stream.ActorMaterializer
 import com.github.everpeace.healthchecks.k8s._
 import com.github.j5ik2o.akka.persistence.dynamodb.query.scaladsl.DynamoDBReadJournal
 import com.github.j5ik2o.threadWeaver.adaptor.DISettings
-import com.github.j5ik2o.threadWeaver.adaptor.grpc.service.{ ThreadCommandService, ThreadCommandServiceHandler }
 import com.github.j5ik2o.threadWeaver.adaptor.http.routes.Routes
 import com.github.j5ik2o.threadWeaver.api.config.EnvironmentURLStreamHandlerFactory
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{ Config, ConfigFactory }
 import kamon.Kamon
 import kamon.datadog.DatadogAgentReporter
 import kamon.jmx.collector.KamonJmxMetricCollector
 import kamon.system.SystemMetrics
 import org.slf4j.LoggerFactory
-import org.slf4j.bridge.SLF4JBridgeHandler
 import slick.basic.DatabaseConfig
 import slick.jdbc.JdbcProfile
 
 object Main extends App {
 
-  SLF4JBridgeHandler.install()
+//  SLF4JBridgeHandler.install()
   val logger = LoggerFactory.getLogger(getClass)
 
   val envName = sys.env.getOrElse("ENV_NAME", "development")
@@ -40,6 +38,12 @@ object Main extends App {
   URL.setURLStreamHandlerFactory(new EnvironmentURLStreamHandlerFactory)
   System.setProperty("environment", envName)
 
+  val config: Config = ConfigFactory.load()
+
+  implicit val system           = ActorSystem("thread-weaver-api", config)
+  implicit val materializer     = ActorMaterializer()
+  implicit val executionContext = system.dispatcher
+
   if (envName == "development")
     Kamon.addReporter(LogReporter)
   else
@@ -47,14 +51,9 @@ object Main extends App {
 
   SystemMetrics.startCollecting()
 
-  val config                    = ConfigFactory.load()
-  implicit val system           = ActorSystem("thread-weaver-api", config)
-  implicit val materializer     = ActorMaterializer()
-  implicit val executionContext = system.dispatcher
-
   KamonJmxMetricCollector()
 
-  implicit val cluster = Cluster(system)
+  implicit val cluster: Cluster = Cluster(system)
 
   AkkaManagement(system).start()
   ClusterBootstrap(system).start()
@@ -82,11 +81,8 @@ object Main extends App {
   val session = design.newSession
   session.start
 
-  val cmdService = session.build[ThreadCommandService]
-  ThreadCommandServiceHandler(cmdService)
-
   val routes = session
-      .build[Routes].root ~ readinessProbe(akkaHealthCheck).toRoute ~ livenessProbe(akkaHealthCheck).toRoute
+    .build[Routes].root ~ readinessProbe(akkaHealthCheck).toRoute ~ livenessProbe(akkaHealthCheck).toRoute
 
   val bindingFuture = Http().bindAndHandle(routes, host, port).map { serverBinding =>
     system.log.info(s"Server online at ${serverBinding.localAddress}")

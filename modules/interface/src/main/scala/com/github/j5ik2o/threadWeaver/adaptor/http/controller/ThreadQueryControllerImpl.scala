@@ -9,20 +9,19 @@ import com.github.j5ik2o.threadWeaver.adaptor.http.json._
 import com.github.j5ik2o.threadWeaver.adaptor.http.rejections.{ NotFoundRejection, RejectionHandlers }
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.generic.auto._
-import kamon.context.Context
 import wvlet.airframe._
 
 trait ThreadQueryControllerImpl extends ThreadQueryController with ThreadValidateDirectives with MetricsDirectives {
 
   private val threadDas: ThreadDas = bind[ThreadDas]
 
-  override def toRoutes(implicit context: Context): Route = handleRejections(RejectionHandlers.default) {
+  override def toRoutes: Route = handleRejections(RejectionHandlers.default) {
     pathPrefix("v1") {
       getThread ~ getThreads ~ getAdministratorIds ~ getMemberIds ~ getMessages
     }
   }
 
-  override private[controller] def getThread(implicit context: Context) = traceName(context)("get-thread") {
+  override private[controller] def getThread: Route =
     path("threads" / Segment) { threadIdString =>
       get {
         extractExecutionContext { implicit ec =>
@@ -57,9 +56,8 @@ trait ThreadQueryControllerImpl extends ThreadQueryController with ThreadValidat
         }
       }
     }
-  }
 
-  override private[controller] def getThreads(implicit context: Context): Route = traceName(context)("get-threads") {
+  override private[controller] def getThreads: Route =
     path("threads") {
       get {
         extractExecutionContext { implicit ec =>
@@ -90,29 +88,26 @@ trait ThreadQueryControllerImpl extends ThreadQueryController with ThreadValidat
         }
       }
     }
-  }
 
-  override private[controller] def getAdministratorIds(implicit context: Context): Route =
-    traceName(context)("get-administrator-ids") {
-      path("threads" / Segment / "administrator-ids") { threadIdString =>
-        get {
-          extractExecutionContext { implicit ec =>
-            extractMaterializer { implicit mat =>
-              validateThreadId(threadIdString) { threadId =>
-                parameters(('account_id, 'offset.as[Long].?, 'limit.as[Long].?)) {
-                  case (accountIdValue, offset, limit) =>
-                    validateAccountId(accountIdValue) { accountId =>
-                      onSuccess(
-                        threadDas
-                          .getAdministratorsByThreadIdSource(accountId, threadId, offset, limit)
-                          .map { record =>
-                            record.accountId
-                          }.runWith(Sink.seq[String]).map(_.toSeq)
-                      ) { response =>
-                        complete(GetThreadAdministratorIdsResponseJson(response))
-                      }
+  override private[controller] def getAdministratorIds: Route =
+    path("threads" / Segment / "administrator-ids") { threadIdString =>
+      get {
+        extractExecutionContext { implicit ec =>
+          extractMaterializer { implicit mat =>
+            validateThreadId(threadIdString) { threadId =>
+              parameters(('account_id, 'offset.as[Long].?, 'limit.as[Long].?)) {
+                case (accountIdValue, offset, limit) =>
+                  validateAccountId(accountIdValue) { accountId =>
+                    onSuccess(
+                      threadDas
+                        .getAdministratorsByThreadIdSource(accountId, threadId, offset, limit)
+                        .map { record =>
+                          record.accountId
+                        }.runWith(Sink.seq[String]).map(_.toSeq)
+                    ) { response =>
+                      complete(GetThreadAdministratorIdsResponseJson(response))
                     }
-                }
+                  }
               }
             }
           }
@@ -120,27 +115,25 @@ trait ThreadQueryControllerImpl extends ThreadQueryController with ThreadValidat
       }
     }
 
-  override private[controller] def getMemberIds(implicit context: Context) =
-    traceName(context)("get-member-ids") {
-      path("threads" / Segment / "member-ids") { threadIdString =>
-        get {
-          extractExecutionContext { implicit ec =>
-            extractMaterializer { implicit mat =>
-              validateThreadId(threadIdString) { threadId =>
-                parameters(('account_id, 'offset.as[Long].?, 'limit.as[Long].?)) {
-                  case (accountIdValue, offset, limit) =>
-                    validateAccountId(accountIdValue) { accountId =>
-                      onSuccess(
-                        threadDas
-                          .getMembersByThreadIdSource(accountId, threadId, offset, limit)
-                          .map { record =>
-                            record.accountId
-                          }.runWith(Sink.seq[String]).map(_.toSeq)
-                      ) { response =>
-                        complete(GetThreadMemberIdsResponseJson(response))
-                      }
+  override private[controller] def getMemberIds: Route =
+    path("threads" / Segment / "member-ids") { threadIdString =>
+      get {
+        extractExecutionContext { implicit ec =>
+          extractMaterializer { implicit mat =>
+            validateThreadId(threadIdString) { threadId =>
+              parameters(('account_id, 'offset.as[Long].?, 'limit.as[Long].?)) {
+                case (accountIdValue, offset, limit) =>
+                  validateAccountId(accountIdValue) { accountId =>
+                    onSuccess(
+                      threadDas
+                        .getMembersByThreadIdSource(accountId, threadId, offset, limit)
+                        .map { record =>
+                          record.accountId
+                        }.runWith(Sink.seq[String]).map(_.toSeq)
+                    ) { response =>
+                      complete(GetThreadMemberIdsResponseJson(response))
                     }
-                }
+                  }
               }
             }
           }
@@ -148,7 +141,7 @@ trait ThreadQueryControllerImpl extends ThreadQueryController with ThreadValidat
       }
     }
 
-  override private[controller] def getMessages(implicit context: Context): Route = traceName(context)("get-messages") {
+  override private[controller] def getMessages: Route =
     path("threads" / Segment / "messages") { threadIdString =>
       get {
         extractExecutionContext { implicit ec =>
@@ -181,5 +174,5 @@ trait ThreadQueryControllerImpl extends ThreadQueryController with ThreadValidat
         }
       }
     }
-  }
+
 }

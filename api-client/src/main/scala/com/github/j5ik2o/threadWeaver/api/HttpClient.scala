@@ -1,16 +1,17 @@
 package com.github.j5ik2o.threadWeaver.api
 
+import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{ HttpRequest, HttpResponse }
 import akka.http.scaladsl.settings.ConnectionPoolSettings
-import akka.stream.scaladsl.{ Flow, Keep, Sink, Source }
+import akka.stream.scaladsl.{ Flow, Keep, Sink, Source, SourceQueueWithComplete }
 import akka.stream.{ ActorMaterializer, OverflowStrategy, QueueOfferResult }
 
 import scala.concurrent.{ Future, Promise }
 import scala.util.{ Failure, Success, Try }
 
-class HttpClient(host: String, port: Int, https: Boolean = false, queueSize: Int = 10)(implicit system: ActorSystem) {
+class HttpClient(queueSize: Int = 10)(implicit system: ActorSystem) {
 
   import system.dispatcher
 
@@ -18,17 +19,11 @@ class HttpClient(host: String, port: Int, https: Boolean = false, queueSize: Int
 
   private val settings: ConnectionPoolSettings = ConnectionPoolSettings(system)
 
-  private val poolClientFlow: Flow[
-    (HttpRequest, Promise[HttpResponse]),
-    (Try[HttpResponse], Promise[HttpResponse]),
-    Http.HostConnectionPool
-  ] =
-    if (!https)
-      Http().cachedHostConnectionPool[Promise[HttpResponse]](host, port, settings)
-    else
-      Http().cachedHostConnectionPoolHttps[Promise[HttpResponse]](host, port, settings = settings)
+  private val poolClientFlow
+      : Flow[(HttpRequest, Promise[HttpResponse]), (Try[HttpResponse], Promise[HttpResponse]), NotUsed] =
+    Http().superPool[Promise[HttpResponse]](settings = settings)
 
-  private val queue =
+  private val queue: SourceQueueWithComplete[(HttpRequest, Promise[HttpResponse])] =
     Source
       .queue[(HttpRequest, Promise[HttpResponse])](queueSize, OverflowStrategy.dropNew)
       .via(poolClientFlow)
