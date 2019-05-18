@@ -45,7 +45,7 @@ object ThreadValidateDirectives {
         value: CreateThreadRequestJson
     ): ValidationResult[CreateThread] = {
       (
-        validateAccountId(value.creatorId),
+        validateAccountId(value.accountId),
         validateThreadIdOpt(value.parentThreadId),
         validateThreadTitle(value.title),
         validateThreadRemarks(value.remarks),
@@ -75,7 +75,7 @@ object ThreadValidateDirectives {
         value: (ThreadId, DestroyThreadRequestJson)
     ): ValidationResult[DestroyThread] = {
       (
-        validateAccountId(value._2.destroyerId),
+        validateAccountId(value._2.accountId),
         validateInstant(value._2.createAt)
       ).mapN {
         case (destroyerId, createdAt) =>
@@ -95,7 +95,7 @@ object ThreadValidateDirectives {
         value: (ThreadId, JoinAdministratorIdsRequestJson)
     ): ValidationResult[JoinAdministratorIds] = {
       (
-        validateAccountId(value._2.adderId),
+        validateAccountId(value._2.accountId),
         validateAdministratorIds(value._2.accountIds),
         validateInstant(value._2.createAt)
       ).mapN {
@@ -111,7 +111,7 @@ object ThreadValidateDirectives {
         value: (ThreadId, LeaveAdministratorIdsRequestJson)
     ): ValidationResult[LeaveAdministratorIds] = {
       (
-        validateAccountId(value._2.removerId),
+        validateAccountId(value._2.accountId),
         validateAdministratorIds(value._2.administratorIds),
         validateInstant(value._2.createAt)
       ).mapN {
@@ -125,7 +125,7 @@ object ThreadValidateDirectives {
       extends Validator[(ThreadId, JoinMemberIdsRequestJson), JoinMemberIds] {
     override def validate(value: (ThreadId, JoinMemberIdsRequestJson)): ValidationResult[JoinMemberIds] = {
       (
-        validateAccountId(value._2.adderId),
+        validateAccountId(value._2.accountId),
         validateMemberIds(value._2.accountIds),
         validateInstant(value._2.createAt)
       ).mapN {
@@ -139,7 +139,7 @@ object ThreadValidateDirectives {
       extends Validator[(ThreadId, LeaveMemberIdsRequestJson), LeaveMemberIds] {
     override def validate(value: (ThreadId, LeaveMemberIdsRequestJson)): ValidationResult[LeaveMemberIds] = {
       (
-        validateAccountId(value._2.removerId),
+        validateAccountId(value._2.accountId),
         validateMemberIds(value._2.accountIds),
         validateInstant(value._2.createAt)
       ).mapN {
@@ -154,7 +154,7 @@ object ThreadValidateDirectives {
       (
         value._2.messages
           .map { v =>
-            validateTextMessage(v.replyMessageId, v.toAccountIds, v.text, value._2.senderId)
+            validateTextMessage(v.replyMessageId, v.toAccountIds, v.text, value._2.accountId)
           }.toList.sequence,
         validateInstant(value._2.createAt)
       ).mapN {
@@ -168,7 +168,7 @@ object ThreadValidateDirectives {
       extends Validator[(ThreadId, RemoveMessagesRequestJson), RemoveMessages] {
     override def validate(value: (ThreadId, RemoveMessagesRequestJson)): ValidationResult[RemoveMessages] = {
       (
-        validateAccountId(value._2.senderId),
+        validateAccountId(value._2.accountId),
         validateMessageIds(value._2.messageIds),
         validateInstant(value._2.createAt)
       ).mapN {
