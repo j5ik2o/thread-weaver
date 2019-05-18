@@ -6,18 +6,17 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ ActorSystem, Props }
 import akka.cluster.ClusterEvent.ClusterDomainEvent
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
-import akka.cluster.{ Cluster, ClusterEvent, MemberStatus }
+import akka.cluster.{ Cluster, ClusterEvent }
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
 import akka.management.cluster.bootstrap.ClusterBootstrap
 import akka.management.scaladsl.AkkaManagement
 import akka.persistence.query.PersistenceQuery
 import akka.stream.ActorMaterializer
-import cats.syntax.validated._
-import com.github.everpeace.healthchecks._
 import com.github.everpeace.healthchecks.k8s._
 import com.github.j5ik2o.akka.persistence.dynamodb.query.scaladsl.DynamoDBReadJournal
 import com.github.j5ik2o.threadWeaver.adaptor.DISettings
+import com.github.j5ik2o.threadWeaver.adaptor.grpc.service.{ ThreadCommandService, ThreadCommandServiceHandler }
 import com.github.j5ik2o.threadWeaver.adaptor.http.routes.Routes
 import com.github.j5ik2o.threadWeaver.api.config.EnvironmentURLStreamHandlerFactory
 import com.typesafe.config.ConfigFactory
@@ -29,27 +28,6 @@ import org.slf4j.LoggerFactory
 import org.slf4j.bridge.SLF4JBridgeHandler
 import slick.basic.DatabaseConfig
 import slick.jdbc.JdbcProfile
-
-import scala.concurrent.Future
-
-object HealthCheck {
-
-  def akka(host: String, port: Int)(implicit system: ActorSystem): HealthCheck = {
-    asyncHealthCheck("akka-cluster") {
-      import system.dispatcher
-      Future {
-        val cluster = Cluster(system)
-        val status  = cluster.selfMember.status
-        val result  = status == MemberStatus.Up || status == MemberStatus.WeaklyUp
-        if (result)
-          healthy
-        else
-          "Not Found".invalidNel
-
-      }
-    }
-  }
-}
 
 object Main extends App {
 
@@ -103,6 +81,9 @@ object Main extends App {
     DISettings.design(host, port, system.toTyped, clusterSharding, materializer, readJournal, profile, db)
   val session = design.newSession
   session.start
+
+  val cmdService = session.build[ThreadCommandService]
+  ThreadCommandServiceHandler(cmdService)
 
   val routes = session
       .build[Routes].root ~ readinessProbe(akkaHealthCheck).toRoute ~ livenessProbe(akkaHealthCheck).toRoute

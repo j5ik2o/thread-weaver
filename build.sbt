@@ -45,9 +45,16 @@ val `contract-use-case` = (project in file("contracts/contract-use-case"))
   )
   .dependsOn(`domain`)
 
-lazy val `grpc-proto` = (project in file("modules/grpc-proto"))
+lazy val `contract-grpc-proto-interface` = (project in file("contracts/contract-grpc-proto-interface"))
   .enablePlugins(AkkaGrpcPlugin)
   .settings(
+    name := "thread-weaver-contract-grpc-proto-interface",
+  )
+
+val `contract-http-proto-interface` = (project in file("contracts/contract-http-proto-interface"))
+  .settings(baseSettings)
+  .settings(
+    name := "thread-weaver-contract-http-proto-interface",
   )
 
 val `contract-interface` = (project in file("contracts/contract-interface"))
@@ -65,7 +72,7 @@ val `contract-interface` = (project in file("contracts/contract-interface"))
       "io.swagger.core.v3" % "swagger-jaxrs2" % swaggerVersion
     )
   )
-  .dependsOn(`contract-use-case`, `grpc-proto`)
+  .dependsOn(`contract-use-case`, `contract-grpc-proto-interface`,`contract-http-proto-interface`)
 
 val `use-case` = (project in file("modules/use-case"))
   .settings(baseSettings)
@@ -109,7 +116,7 @@ val `flyway` = (project in file("tools/flyway"))
   )
 
 lazy val `api-client` = (project in file("api-client"))
-  .dependsOn(`grpc-proto`)
+  .dependsOn(`contract-grpc-proto-interface`, `contract-http-proto-interface`)
   .enablePlugins(AkkaGrpcPlugin)
 
 val interface = (project in file("modules/interface"))
@@ -325,4 +332,13 @@ val root = (project in file("."))
   .settings(baseSettings)
   .settings(
     name := "thread-weaver"
-  ).aggregate(`domain`, `use-case`, `interface`, `infrastructure`, `api-server`, `grpc-proto`, `api-client`)
+  ).aggregate(
+  `domain`,
+  `use-case`,
+  `interface`,
+  `infrastructure`,
+  `contract-grpc-proto-interface`,
+  `contract-http-proto-interface`,
+  `api-client`,
+    `api-server`
+)
