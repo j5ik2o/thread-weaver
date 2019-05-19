@@ -7,13 +7,12 @@ import io.swagger.v3.oas.annotations.media.{ Content, Schema }
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.{ Operation, Parameter }
 import javax.ws.rs.{ Consumes, GET, Path, Produces }
-import kamon.context.Context
 
 @Path("/v1")
 @Produces(Array("application/json"))
 trait ThreadQueryController {
 
-  def toRoutes(implicit context: Context): Route
+  def toRoutes: Route
 
   @GET
   @Path("/threads/{thread_id}")
@@ -31,6 +30,16 @@ trait ThreadQueryController {
         schema = new Schema(
           `type` = "string"
         )
+      ),
+      new Parameter(
+        name = "account_id",
+        required = true,
+        in = ParameterIn.QUERY,
+        description = "account_id",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "string"
+        )
       )
     ),
     responses = Array(
@@ -43,7 +52,7 @@ trait ThreadQueryController {
       new ApiResponse(responseCode = "500", description = "Internal server error")
     )
   )
-  private[controller] def getThread(implicit context: Context): Route
+  private[controller] def getThread: Route
 
   @GET
   @Path("/threads")
@@ -52,6 +61,16 @@ trait ThreadQueryController {
     summary = "Get messages from thread",
     description = "Get messages request",
     parameters = Array(
+      new Parameter(
+        name = "account_id",
+        required = true,
+        in = ParameterIn.QUERY,
+        description = "account_id",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "string"
+        )
+      ),
       new Parameter(
         name = "offset",
         required = false,
@@ -84,7 +103,7 @@ trait ThreadQueryController {
       new ApiResponse(responseCode = "500", description = "Internal server error")
     )
   )
-  private[controller] def getThreads(implicit context: Context): Route
+  private[controller] def getThreads: Route
 
   @GET
   @Path("/threads/{thread_id}/administrator-ids")
@@ -93,6 +112,16 @@ trait ThreadQueryController {
     summary = "Get administrator-ids from thread",
     description = "Get administrator-ids request",
     parameters = Array(
+      new Parameter(
+        name = "account_id",
+        required = true,
+        in = ParameterIn.QUERY,
+        description = "account_id",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "string"
+        )
+      ),
       new Parameter(
         name = "thread_id",
         required = true,
@@ -136,7 +165,7 @@ trait ThreadQueryController {
       new ApiResponse(responseCode = "500", description = "Internal server error")
     )
   )
-  private[controller] def getAdministratorIds(implicit context: Context): Route
+  private[controller] def getAdministratorIds: Route
 
   @GET
   @Path("/threads/{thread_id}/member-ids")
@@ -145,6 +174,16 @@ trait ThreadQueryController {
     summary = "Get member-ids from thread",
     description = "Get member-ids request",
     parameters = Array(
+      new Parameter(
+        name = "account_id",
+        required = true,
+        in = ParameterIn.QUERY,
+        description = "account_id",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "string"
+        )
+      ),
       new Parameter(
         name = "thread_id",
         required = true,
@@ -187,7 +226,7 @@ trait ThreadQueryController {
       new ApiResponse(responseCode = "500", description = "Internal server error")
     )
   )
-  private[controller] def getMemberIds(implicit context: Context): Route
+  private[controller] def getMemberIds: Route
 
   @GET
   @Path("/threads/{thread_id}/messages")
@@ -196,6 +235,16 @@ trait ThreadQueryController {
     summary = "Get messages from thread",
     description = "Get messages request",
     parameters = Array(
+      new Parameter(
+        name = "account_id",
+        required = true,
+        in = ParameterIn.QUERY,
+        description = "account_id",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "string"
+        )
+      ),
       new Parameter(
         name = "thread_id",
         required = true,
@@ -238,6 +287,6 @@ trait ThreadQueryController {
       new ApiResponse(responseCode = "500", description = "Internal server error")
     )
   )
-  private[controller] def getMessages(implicit context: Context): Route
+  private[controller] def getMessages: Route
 
 }

@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.github.j5ik2o.threadWeaver.adaptor.grpc.service";
+option java_outer_classname = "ThreadCommandProto";
+
+package thread;
+
+import "thread/model.proto";
+
+service ThreadCommandService {
+    rpc CreateThread (CreateThreadRequest) returns (CreateThreadResponse) {
+    }
+    rpc DestroyThread (DestroyThreadRequest) returns (DestroyThreadResponse) {
+    }
+    rpc JoinAdministratorIds (JoinAdministratorIdsRequest) returns (JoinAdministratorIdsResponse) {
+    }
+    rpc LeaveAdministratorIds (LeaveAdministratorIdsRequest) returns (LeaveAdministratorIdsResponse) {
+    }
+    rpc JoinMemberIds (JoinMemberIdsRequest) returns (JoinMemberIdsResponse) {
+    }
+    rpc LeaveMemberIds (LeaveMemberIdsRequest) returns (LeaveMemberIdsResponse) {
+    }
+    rpc AddMessages (AddMessagesRequest) returns (AddMessagesResponse) {
+    }
+    rpc RemoveMessages (RemoveMessagesRequest) returns (RemoveMessagesResponse) {
+    }
+}
+
+

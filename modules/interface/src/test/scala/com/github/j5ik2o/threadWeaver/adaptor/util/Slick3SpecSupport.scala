@@ -28,7 +28,7 @@ trait Slick3SpecSupport extends BeforeAndAfter with BeforeAndAfterAll with Scala
     dbConfig.db.run(DBIO.sequence(actions).transactionally)
   }
 
-  override protected def beforeAll(): Unit = {
+  override def beforeAll: Unit = {
     super.beforeAll()
     val config = ConfigFactory.parseString(s"""
                                               |slick {
@@ -46,7 +46,7 @@ trait Slick3SpecSupport extends BeforeAndAfter with BeforeAndAfterAll with Scala
     _profile = dbConfig.profile
   }
 
-  override protected def afterAll(): Unit = {
+  override def afterAll: Unit = {
     dbConfig.db.shutdown
     super.afterAll()
   }

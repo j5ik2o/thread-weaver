@@ -6,21 +6,19 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ ActorSystem, Props }
 import akka.cluster.ClusterEvent.ClusterDomainEvent
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
-import akka.cluster.{ Cluster, ClusterEvent, MemberStatus }
+import akka.cluster.{ Cluster, ClusterEvent }
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
 import akka.management.cluster.bootstrap.ClusterBootstrap
 import akka.management.scaladsl.AkkaManagement
 import akka.persistence.query.PersistenceQuery
 import akka.stream.ActorMaterializer
-import cats.syntax.validated._
-import com.github.everpeace.healthchecks._
 import com.github.everpeace.healthchecks.k8s._
 import com.github.j5ik2o.akka.persistence.dynamodb.query.scaladsl.DynamoDBReadJournal
 import com.github.j5ik2o.threadWeaver.adaptor.DISettings
 import com.github.j5ik2o.threadWeaver.adaptor.http.routes.Routes
 import com.github.j5ik2o.threadWeaver.api.config.EnvironmentURLStreamHandlerFactory
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{ Config, ConfigFactory }
 import kamon.Kamon
 import kamon.datadog.DatadogAgentReporter
 import kamon.jmx.collector.KamonJmxMetricCollector
@@ -30,37 +28,30 @@ import org.slf4j.bridge.SLF4JBridgeHandler
 import slick.basic.DatabaseConfig
 import slick.jdbc.JdbcProfile
 
-import scala.concurrent.Future
+object LocalMain1 extends Main(18080, 8558)
+object LocalMain2 extends Main(18081, 8559)
+object LocalMain3 extends Main(18082, 8560)
 
-object HealthCheck {
+object ProductMain extends Main()
 
-  def akka(host: String, port: Int)(implicit system: ActorSystem): HealthCheck = {
-    asyncHealthCheck("akka-cluster") {
-      import system.dispatcher
-      Future {
-        val cluster = Cluster(system)
-        val status  = cluster.selfMember.status
-        val result  = status == MemberStatus.Up || status == MemberStatus.WeaklyUp
-        if (result)
-          healthy
-        else
-          "Not Found".invalidNel
-
-      }
-    }
-  }
-}
-
-object Main extends App {
-
+class Main(httpPort: Int = 18080, managementPort: Int = 8558) extends App {
   SLF4JBridgeHandler.install()
-  val logger = LoggerFactory.getLogger(getClass)
+  implicit val logger = LoggerFactory.getLogger(getClass)
 
   val envName = sys.env.getOrElse("ENV_NAME", "development")
   logger.info(s"ENV_NAME = $envName")
 
   URL.setURLStreamHandlerFactory(new EnvironmentURLStreamHandlerFactory)
   System.setProperty("environment", envName)
+
+  val config: Config = ConfigFactory.parseString(s"""
+                                                    |thread-weaver.api.port = $httpPort
+                                                    |akka.management.http.port = $managementPort
+    """.stripMargin).withFallback(ConfigFactory.load())
+
+  implicit val system           = ActorSystem("thread-weaver-api", config)
+  implicit val materializer     = ActorMaterializer()
+  implicit val executionContext = system.dispatcher
 
   if (envName == "development")
     Kamon.addReporter(LogReporter)
@@ -69,14 +60,9 @@ object Main extends App {
 
   SystemMetrics.startCollecting()
 
-  val config                    = ConfigFactory.load()
-  implicit val system           = ActorSystem("thread-weaver-api", config)
-  implicit val materializer     = ActorMaterializer()
-  implicit val executionContext = system.dispatcher
-
   KamonJmxMetricCollector()
 
-  implicit val cluster = Cluster(system)
+  implicit val cluster: Cluster = Cluster(system)
 
   AkkaManagement(system).start()
   ClusterBootstrap(system).start()
@@ -86,6 +72,10 @@ object Main extends App {
     ClusterEvent.InitialStateAsEvents,
     classOf[ClusterDomainEvent]
   )
+
+  Cluster(system).registerOnMemberUp({
+    logger.info("Cluster member is up!")
+  })
 
   val readJournal = PersistenceQuery(system).readJournalFor[DynamoDBReadJournal](DynamoDBReadJournal.Identifier)
   val dbConfig    = DatabaseConfig.forConfig[JdbcProfile]("slick", config)
@@ -105,16 +95,12 @@ object Main extends App {
   session.start
 
   val routes = session
-      .build[Routes].root ~ readinessProbe(akkaHealthCheck).toRoute ~ livenessProbe(akkaHealthCheck).toRoute
+    .build[Routes].root ~ readinessProbe(akkaHealthCheck).toRoute ~ livenessProbe(akkaHealthCheck).toRoute
 
   val bindingFuture = Http().bindAndHandle(routes, host, port).map { serverBinding =>
     system.log.info(s"Server online at ${serverBinding.localAddress}")
     serverBinding
   }
-
-  Cluster(system).registerOnMemberUp({
-    logger.info("Cluster member is up!")
-  })
 
   sys.addShutdownHook {
     SystemMetrics.stopCollecting()

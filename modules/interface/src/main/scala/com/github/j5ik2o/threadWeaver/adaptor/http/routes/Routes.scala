@@ -19,7 +19,7 @@ class Routes(
     mat: Materializer
 ) extends MetricsDirectives {
 
-  def root: Route = apiMetrics { implicit kamonContext =>
+  def root: Route =
     cors() {
       RouteLogging.default.httpLogRequestResult {
         pathEndOrSingleSlash {
@@ -32,13 +32,12 @@ class Routes(
         swaggerDocService.routes ~ threadCommandController.toRoutes ~ threadQueryController.toRoutes
       }
     }
-  }
 
   def index(): Route = complete(
     HttpResponse(
       entity = HttpEntity(
         ContentTypes.`text/html(UTF-8)`,
-        """<span>Wellcome to Thread Weaver API</span><br/><a href="http://localhost:18080/swagger/index.html">"""
+        """<span>Wellcome to Thread Weaver API</span><br/><a href="http://localhost:18080/swagger/index.html">swagger</a>"""
       )
     )
   )
