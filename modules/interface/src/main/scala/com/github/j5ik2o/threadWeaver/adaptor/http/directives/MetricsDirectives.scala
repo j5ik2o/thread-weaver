@@ -14,12 +14,14 @@ trait MetricsDirectives {
   val TraceName = Key.local[String]("traceName", "undefined")
   val Tags      = Key.local[Map[String, String]]("tags", Map.empty)
 
-  def traceName(context: Context)(traceName: String, tags: Map[String, String] = Map.empty): Directive0 =
-    mapRequest { request =>
+  def traceName(context: Context)(traceName: String, tags: Map[String, String] = Map.empty): Directive0 = {
+    Directive[Unit] { inner => ctx =>
       val newContext = context.withKey(TraceName, traceName).withKey(Tags, tags)
-      Kamon.storeContext(newContext)
-      request
+      Kamon.withContext(newContext) {
+        inner(())(ctx)
+      }
     }
+  }
 
   val applicationName: String = "thread-weaver"
 

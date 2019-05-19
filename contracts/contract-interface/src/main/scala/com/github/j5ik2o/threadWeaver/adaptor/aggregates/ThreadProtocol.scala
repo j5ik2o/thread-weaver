@@ -3,6 +3,7 @@ package com.github.j5ik2o.threadWeaver.adaptor.aggregates
 import java.time.Instant
 
 import akka.actor.typed.ActorRef
+import cats.Id
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdaterProtocol
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
 import com.github.j5ik2o.threadWeaver.domain.model.threads._
@@ -33,12 +34,21 @@ object ThreadProtocol {
     def senderId: AccountId
   }
 
+  trait HasReplyTo[M[_], A] { this: CommandRequest =>
+    def replyTo: M[ActorRef[A]]
+
+    def withReplyTo(value: M[ActorRef[A]]): CommandRequest
+
+  }
+
   trait ToEvent { this: CommandRequest =>
     def toEvent: Event
   }
   sealed trait CommandResponse extends CommandMessage {
     def requestId: ULID
   }
+  trait CommandSuccessResponse extends CommandResponse
+  trait CommandFailureResponse extends CommandResponse
 
 //  final case class AddSubscribers(
 //      id: ULID,
@@ -74,16 +84,21 @@ object ThreadProtocol {
       createAt: Instant,
       replyTo: Option[ActorRef[CreateThreadResponse]] = None
   ) extends CommandRequest
-      with ToEvent {
+      with ToEvent
+      with HasReplyTo[Option, CreateThreadResponse] {
     override def senderId: AccountId = creatorId
     override def toEvent: Event =
       ThreadCreated(ULID(), threadId, creatorId, parentThreadId, title, remarks, administratorIds, memberIds, createAt)
+    override def withReplyTo(value: Option[ActorRef[CreateThreadResponse]]): CreateThread =
+      copy(replyTo = value)
   }
   sealed trait CreateThreadResponse extends CommandResponse
   final case class CreateThreadSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
       extends CreateThreadResponse
+      with CommandSuccessResponse
   final case class CreateThreadFailed(id: ULID, requestId: ULID, threadId: ThreadId, message: String, createAt: Instant)
       extends CreateThreadResponse
+      with CommandFailureResponse
   final case class ThreadCreated(
       id: ULID,
       threadId: ThreadId,
@@ -100,6 +115,30 @@ object ThreadProtocol {
       CreateThread(ULID(), threadId, creatorId, parentThreadId, title, remarks, administratorIds, memberIds, createdAt)
   }
 
+  final case class ExistsThread(
+      id: ULID,
+      threadId: ThreadId,
+      senderId: AccountId,
+      createAt: Instant,
+      replyTo: ActorRef[ExistsThreadResponse]
+  ) extends CommandRequest
+      with HasReplyTo[Id, ExistsThreadResponse] {
+    override def withReplyTo(value: ActorRef[ExistsThreadResponse]): ExistsThread =
+      copy(replyTo = value)
+  }
+  sealed trait ExistsThreadResponse extends CommandResponse
+  final case class ExistsThreadSucceeded(
+      id: ULID,
+      requestId: ULID,
+      threadId: ThreadId,
+      exists: Boolean,
+      createAt: Instant
+  ) extends ExistsThreadResponse
+      with CommandSuccessResponse
+  final case class ExistsThreadFailed(id: ULID, requestId: ULID, threadId: ThreadId, message: String, createAt: Instant)
+      extends ExistsThreadResponse
+      with CommandFailureResponse
+
   // --- スレッドの破棄
   final case class DestroyThread(
       id: ULID,
@@ -108,13 +147,17 @@ object ThreadProtocol {
       createAt: Instant,
       replyTo: Option[ActorRef[DestroyThreadResponse]] = None
   ) extends CommandRequest
-      with ToEvent {
+      with ToEvent
+      with HasReplyTo[Option, DestroyThreadResponse] {
     override def senderId: AccountId = destroyerId
     override def toEvent: Event      = ThreadDestroyed(ULID(), threadId, destroyerId, createAt)
+    override def withReplyTo(value: Option[ActorRef[DestroyThreadResponse]]): DestroyThread =
+      copy(replyTo = value)
   }
   sealed trait DestroyThreadResponse extends CommandResponse
   final case class DestroyThreadSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
       extends DestroyThreadResponse
+      with CommandSuccessResponse
   final case class DestroyThreadFailed(
       id: ULID,
       requestId: ULID,
@@ -122,6 +165,7 @@ object ThreadProtocol {
       message: String,
       createAt: Instant
   ) extends DestroyThreadResponse
+      with CommandFailureResponse
   final case class ThreadDestroyed(id: ULID, threadId: ThreadId, destroyerId: AccountId, createdAt: Instant)
       extends Event
       with ToCommandRequest {
@@ -137,13 +181,17 @@ object ThreadProtocol {
       createAt: Instant,
       replyTo: Option[ActorRef[JoinAdministratorIdsResponse]] = None
   ) extends CommandRequest
-      with ToEvent {
+      with ToEvent
+      with HasReplyTo[Option, JoinAdministratorIdsResponse] {
     override def senderId: AccountId = adderId
     override def toEvent: Event      = AdministratorIdsJoined(ULID(), threadId, adderId, administratorIds, createAt)
+    override def withReplyTo(value: Option[ActorRef[JoinAdministratorIdsResponse]]): JoinAdministratorIds =
+      copy(replyTo = value)
   }
-  sealed trait JoinAdministratorIdsResponse extends CommandResponse
+  sealed trait JoinAdministratorIdsResponse extends CommandResponse with CommandSuccessResponse
   final case class JoinAdministratorIdsSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
       extends JoinAdministratorIdsResponse
+      with CommandFailureResponse
   final case class JoinAdministratorIdsFailed(
       id: ULID,
       requestId: ULID,
@@ -172,14 +220,17 @@ object ThreadProtocol {
       createAt: Instant,
       replyTo: Option[ActorRef[LeaveAdministratorIdsResponse]] = None
   ) extends CommandRequest
-      with ToEvent {
+      with ToEvent
+      with HasReplyTo[Option, LeaveAdministratorIdsResponse] {
     override def senderId: AccountId = removerId
     override def toEvent: Event      = AdministratorIdsLeft(ULID(), threadId, removerId, administratorIds, createAt)
-
+    override def withReplyTo(value: Option[ActorRef[LeaveAdministratorIdsResponse]]): LeaveAdministratorIds =
+      copy(replyTo = value)
   }
   sealed trait LeaveAdministratorIdsResponse extends CommandResponse
   final case class LeaveAdministratorIdsSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
       extends LeaveAdministratorIdsResponse
+      with CommandSuccessResponse
   final case class LeaveAdministratorIdsFailed(
       id: ULID,
       requestId: ULID,
@@ -187,6 +238,7 @@ object ThreadProtocol {
       message: String,
       createAt: Instant
   ) extends LeaveAdministratorIdsResponse
+      with CommandFailureResponse
   final case class AdministratorIdsLeft(
       id: ULID,
       threadId: ThreadId,
@@ -207,6 +259,10 @@ object ThreadProtocol {
       createAt: Instant,
       replyTo: ActorRef[GetAdministratorIdsResponse]
   ) extends CommandRequest
+      with HasReplyTo[Id, GetAdministratorIdsResponse] {
+    override def withReplyTo(value: Id[ActorRef[GetAdministratorIdsResponse]]): GetAdministratorIds =
+      copy(replyTo = value)
+  }
   trait GetAdministratorIdsResponse extends CommandResponse
   final case class GetAdministratorIdsSucceeded(
       id: ULID,
@@ -215,6 +271,7 @@ object ThreadProtocol {
       administratorIds: AdministratorIds,
       createAt: Instant
   ) extends GetAdministratorIdsResponse
+      with CommandSuccessResponse
   final case class GetAdministratorIdsFailed(
       id: ULID,
       requestId: ULID,
@@ -222,6 +279,7 @@ object ThreadProtocol {
       message: String,
       createAt: Instant
   ) extends GetAdministratorIdsResponse
+      with CommandFailureResponse
 
   // --- メンバーの追加
   final case class JoinMemberIds(
@@ -232,13 +290,17 @@ object ThreadProtocol {
       createAt: Instant,
       replyTo: Option[ActorRef[JoinMemberIdsResponse]] = None
   ) extends CommandRequest
-      with ToEvent {
+      with ToEvent
+      with HasReplyTo[Option, JoinMemberIdsResponse] {
     override def senderId: AccountId = adderId
     override def toEvent: Event      = MemberIdsAdded(ULID(), threadId, adderId, memberIds, createAt)
+    override def withReplyTo(value: Option[ActorRef[JoinMemberIdsResponse]]): JoinMemberIds =
+      copy(replyTo = value)
   }
   sealed trait JoinMemberIdsResponse extends CommandResponse
   final case class JoinMemberIdsSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
       extends JoinMemberIdsResponse
+      with CommandSuccessResponse
   final case class JoinMemberIdsFailed(
       id: ULID,
       requestId: ULID,
@@ -246,6 +308,7 @@ object ThreadProtocol {
       message: String,
       createAt: Instant
   ) extends JoinMemberIdsResponse
+      with CommandFailureResponse
   final case class MemberIdsAdded(
       id: ULID,
       threadId: ThreadId,
@@ -266,13 +329,17 @@ object ThreadProtocol {
       createAt: Instant,
       replyTo: Option[ActorRef[LeaveMemberIdsResponse]] = None
   ) extends CommandRequest
-      with ToEvent {
+      with ToEvent
+      with HasReplyTo[Option, LeaveMemberIdsResponse] {
     override def senderId: AccountId = removerId
     override def toEvent: Event      = MemberIdsLeft(ULID(), threadId, senderId, memberIds, createAt)
+    override def withReplyTo(value: Option[ActorRef[LeaveMemberIdsResponse]]): LeaveMemberIds =
+      copy(replyTo = value)
   }
   sealed trait LeaveMemberIdsResponse extends CommandResponse
   final case class LeaveMemberIdsSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
       extends LeaveMemberIdsResponse
+      with CommandSuccessResponse
   final case class LeaveMemberIdsFailed(
       id: ULID,
       requestId: ULID,
@@ -280,6 +347,7 @@ object ThreadProtocol {
       message: String,
       createAt: Instant
   ) extends LeaveMemberIdsResponse
+      with CommandFailureResponse
   final case class MemberIdsLeft(
       id: ULID,
       threadId: ThreadId,
@@ -299,6 +367,10 @@ object ThreadProtocol {
       createAt: Instant,
       replyTo: ActorRef[GetMemberIdsResponse]
   ) extends CommandRequest
+      with HasReplyTo[Id, GetMemberIdsResponse] {
+    override def withReplyTo(value: ActorRef[GetMemberIdsResponse]): GetMemberIds =
+      copy(replyTo = value)
+  }
   trait GetMemberIdsResponse extends CommandResponse
   final case class GetMemberIdsSucceeded(
       id: ULID,
@@ -318,9 +390,12 @@ object ThreadProtocol {
       createAt: Instant,
       replyTo: Option[ActorRef[AddMessagesResponse]] = None
   ) extends CommandRequest
-      with ToEvent {
+      with ToEvent
+      with HasReplyTo[Option, AddMessagesResponse] {
     override def senderId: AccountId = messages.breachEncapsulationOfValues.head.senderId
     override def toEvent: Event      = MessagesAdded(ULID(), threadId, messages, createAt)
+    override def withReplyTo(value: Option[ActorRef[AddMessagesResponse]]): AddMessages =
+      copy(replyTo = value)
   }
   sealed trait AddMessagesResponse extends CommandResponse
   final case class AddMessagesSucceeded(
@@ -330,8 +405,10 @@ object ThreadProtocol {
       messageIds: MessageIds,
       createAt: Instant
   ) extends AddMessagesResponse
+      with CommandSuccessResponse
   final case class AddMessagesFailed(id: ULID, requestId: ULID, threadId: ThreadId, message: String, createAt: Instant)
       extends AddMessagesResponse
+      with CommandFailureResponse
   final case class MessagesAdded(
       id: ULID,
       threadId: ThreadId,
@@ -351,9 +428,12 @@ object ThreadProtocol {
       createAt: Instant,
       replyTo: Option[ActorRef[RemoveMessagesResponse]] = None
   ) extends CommandRequest
-      with ToEvent {
+      with ToEvent
+      with HasReplyTo[Option, RemoveMessagesResponse] {
     override def senderId: AccountId = removerId
     override def toEvent: Event      = MessagesRemoved(ULID(), threadId, removerId, messageIds, createAt)
+    override def withReplyTo(value: Option[ActorRef[RemoveMessagesResponse]]): CommandRequest =
+      copy(replyTo = value)
   }
   sealed trait RemoveMessagesResponse extends CommandResponse
   final case class RemoveMessagesSucceeded(
@@ -363,6 +443,7 @@ object ThreadProtocol {
       messageIds: MessageIds,
       createAt: Instant
   ) extends RemoveMessagesResponse
+      with CommandSuccessResponse
   final case class RemoveMessagesFailed(
       id: ULID,
       requestId: ULID,
@@ -370,6 +451,7 @@ object ThreadProtocol {
       message: String,
       createAt: Instant
   ) extends RemoveMessagesResponse
+      with CommandFailureResponse
   final case class MessagesRemoved(
       id: ULID,
       threadId: ThreadId,
@@ -389,6 +471,10 @@ object ThreadProtocol {
       createAt: Instant,
       replyTo: ActorRef[GetMessagesResponse]
   ) extends CommandRequest
+      with HasReplyTo[Id, GetMessagesResponse] {
+    override def withReplyTo(value: Id[ActorRef[GetMessagesResponse]]): CommandRequest =
+      copy(replyTo = value)
+  }
   trait GetMessagesResponse extends CommandResponse
   final case class GetMessagesSucceeded(
       id: ULID,

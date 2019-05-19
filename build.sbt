@@ -45,9 +45,16 @@ val `contract-use-case` = (project in file("contracts/contract-use-case"))
   )
   .dependsOn(`domain`)
 
-lazy val `grpc-proto` = (project in file("modules/grpc-proto"))
+lazy val `contract-grpc-proto-interface` = (project in file("contracts/contract-grpc-proto-interface"))
   .enablePlugins(AkkaGrpcPlugin)
   .settings(
+    name := "thread-weaver-contract-grpc-proto-interface",
+  )
+
+val `contract-http-proto-interface` = (project in file("contracts/contract-http-proto-interface"))
+  .settings(baseSettings)
+  .settings(
+    name := "thread-weaver-contract-http-proto-interface",
   )
 
 val `contract-interface` = (project in file("contracts/contract-interface"))
@@ -65,7 +72,7 @@ val `contract-interface` = (project in file("contracts/contract-interface"))
       "io.swagger.core.v3" % "swagger-jaxrs2" % swaggerVersion
     )
   )
-  .dependsOn(`contract-use-case`, `grpc-proto`)
+  .dependsOn(`contract-use-case`, `contract-grpc-proto-interface`,`contract-http-proto-interface`)
 
 val `use-case` = (project in file("modules/use-case"))
   .settings(baseSettings)
@@ -109,8 +116,15 @@ val `flyway` = (project in file("tools/flyway"))
   )
 
 lazy val `api-client` = (project in file("api-client"))
-  .dependsOn(`grpc-proto`)
+  .dependsOn(`contract-grpc-proto-interface`, `contract-http-proto-interface`)
   .enablePlugins(AkkaGrpcPlugin)
+  .settings(baseSettings)
+  .settings(
+    name := "thread-weaver-api-client",
+    libraryDependencies ++= Seq(
+      "de.heikoseeberger" %% "akka-http-circe" % "1.25.2"
+    )
+  ).dependsOn(`infrastructure`)
 
 val interface = (project in file("modules/interface"))
   .enablePlugins(AkkaGrpcPlugin)
@@ -149,8 +163,8 @@ val interface = (project in file("modules/interface"))
       "commons-io" % "commons-io" % "2.4" % Test,
       "com.github.j5ik2o" %% "reactive-aws-dynamodb-core" % "1.1.0" % Test,
       "com.github.j5ik2o" %% "reactive-aws-dynamodb-test" % "1.1.0" % Test,
-      "com.github.j5ik2o" %% "scalatestplus-db" % "1.0.8" % Test
-
+      "com.github.j5ik2o" %% "scalatestplus-db" % "1.0.8" % Test,
+      "io.kamon"           %% "kamon-akka-http-2.5"           % "1.1.2"
     ),
     // sbt-dao-generator
     // JDBCのドライバークラス名を指定します(必須)
@@ -274,6 +288,57 @@ val `api-server` = (project in file("api-server"))
     )
   ).dependsOn(`interface`)
 
+val dynamoDBLocalVersion = "1.11.477"
+val sqlite4javaVersion   = "1.0.392"
+
+lazy val `local-dynamodb` = (project in file("tools/local-dynamodb"))
+  .settings(baseSettings)
+  .settings(
+    name := "thread-weaver-local-dynamodb",
+    libraryDependencies ++= Seq(
+      "com.amazonaws"            % "DynamoDBLocal"               % dynamoDBLocalVersion,
+      "com.almworks.sqlite4java" % "sqlite4java"                 % sqlite4javaVersion,
+      "com.almworks.sqlite4java" % "sqlite4java-win32-x86"       % sqlite4javaVersion,
+      "com.almworks.sqlite4java" % "sqlite4java-win32-x64"       % sqlite4javaVersion,
+      "com.almworks.sqlite4java" % "libsqlite4java-osx"          % sqlite4javaVersion,
+      "com.almworks.sqlite4java" % "libsqlite4java-linux-i386"   % sqlite4javaVersion,
+      "com.almworks.sqlite4java" % "libsqlite4java-linux-amd64"  % sqlite4javaVersion,
+      "com.github.j5ik2o" %% "reactive-aws-dynamodb-core" % "1.1.0"
+    )
+  )
+
+lazy val `local-mysql` = (project in file("tools/local-mysql"))
+  .enablePlugins(FlywayPlugin)
+  .settings(baseSettings)
+  .settings(
+    name := "thread-weaver-local-mysql",
+    libraryDependencies ++= Seq("mysql" % "mysql-connector-java" % "5.1.42"),
+    wixMySQLVersion := com.wix.mysql.distribution.Version.v5_6_21,
+    wixMySQLUserName := Some(dbUser),
+    wixMySQLPassword := Some(dbPassword),
+    wixMySQLSchemaName := dbName,
+    wixMySQLPort := Some(3306),
+    wixMySQLDownloadPath := Some(sys.env("HOME") + "/.wixMySQL/downloads"),
+    wixMySQLTimeout := Some((30 seconds) * sys.env.getOrElse("SBT_TEST_TIME_FACTOR", "1").toDouble),
+    flywayDriver := dbDriver,
+    flywayUrl := s"jdbc:mysql://localhost:3306/$dbName?useSSL=false",
+    flywayUser := dbUser,
+    flywayPassword := dbPassword,
+    flywaySchemas := Seq(dbName),
+    flywayLocations := Seq(
+      s"filesystem:${(baseDirectory in flyway).value}/src/test/resources/db-migration/",
+      s"filesystem:${(baseDirectory in flyway).value}/src/test/resources/db-migration/test",
+      s"filesystem:${baseDirectory.value}/src/main/resources/dummy-migration"
+    ),
+    flywayPlaceholderReplacement := true,
+    flywayPlaceholders := Map(
+      "engineName"                 -> "InnoDB",
+      "idSequenceNumberEngineName" -> "MyISAM"
+    ),
+    run := (flywayMigrate dependsOn wixMySQLStart).value
+  )
+
+
 val gatlingVersion                 = "2.2.3"
 val awsSdkVersion = "1.11.169"
 
@@ -325,4 +390,13 @@ val root = (project in file("."))
   .settings(baseSettings)
   .settings(
     name := "thread-weaver"
-  ).aggregate(`domain`, `use-case`, `interface`, `infrastructure`, `api-server`, `grpc-proto`, `api-client`)
+  ).aggregate(
+  `domain`,
+  `use-case`,
+  `interface`,
+  `infrastructure`,
+  `contract-grpc-proto-interface`,
+  `contract-http-proto-interface`,
+  `api-client`,
+    `api-server`
+)

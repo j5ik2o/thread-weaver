@@ -1,0 +1,184 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.github.j5ik2o.threadWeaver.adaptor.grpc.model";
+
+message CreateThreadRequest {
+    string account_id = 1;
+    bool has_parent_id = 2;
+    string parent_id = 3;
+    string title = 4;
+    bool has_remarks = 5;
+    string remarks = 6;
+    repeated string administrator_ids = 7;
+    repeated string member_ids = 8;
+    int64 create_at = 254;
+}
+
+message CreateThreadResponse {
+    bool is_successful = 1;
+    string thread_id = 2;
+    repeated string error_messages = 3;
+}
+
+message DestroyThreadRequest {
+    string account_id = 1;
+    string thread_id = 2;
+    int64 create_at = 254;
+}
+
+message DestroyThreadResponse {
+    bool is_successful = 1;
+    string thread_id = 2;
+    repeated string error_messages = 3;
+}
+
+message JoinAdministratorIdsRequest {
+    string account_id = 1;
+    string thread_id = 2;
+    repeated string account_ids = 3;
+    int64 create_at = 254;
+}
+
+message JoinAdministratorIdsResponse {
+    bool is_successful = 1;
+    string thread_id = 2;
+    repeated string error_messages = 3;
+}
+
+message LeaveAdministratorIdsRequest {
+    string account_id = 1;
+    string thread_id = 2;
+    repeated string account_ids = 3;
+    int64 create_at = 254;
+}
+
+message LeaveAdministratorIdsResponse {
+    bool is_successful = 1;
+    string thread_id = 2;
+    repeated string error_messages = 3;
+}
+
+message JoinMemberIdsRequest {
+    string account_id = 1;
+    string thread_id = 2;
+    repeated string account_ids = 3;
+    int64 create_at = 254;
+}
+
+message JoinMemberIdsResponse {
+    bool is_successful = 1;
+    string thread_id = 2;
+    repeated string error_messages = 3;
+}
+
+message LeaveMemberIdsRequest {
+    string account_id = 1;
+    string thread_id = 2;
+    repeated string account_ids = 3;
+    int64 create_at = 254;
+}
+
+message LeaveMemberIdsResponse {
+    bool is_successful = 1;
+    string thread_id = 2;
+    repeated string error_messages = 3;
+}
+
+message Message {
+    bool has_reply_message_id = 1;
+    string reply_message_id = 2;
+    repeated string to_account_ids = 3;
+    string text = 4;
+}
+
+message AddMessagesRequest {
+    string account_id = 1;
+    string thread_id = 2;
+    repeated Message messages = 3;
+    int64 create_at = 254;
+}
+
+message AddMessagesResponse {
+    bool is_successful = 1;
+    repeated string message_ids = 2;
+    repeated string error_messages = 3;
+}
+
+message RemoveMessagesRequest {
+    string account_id = 1;
+    string thread_id = 2;
+    repeated string message_ids = 3;
+    int64 create_at = 254;
+}
+
+message RemoveMessagesResponse {
+    bool is_successful = 1;
+    repeated string message_ids = 2;
+    repeated string error_messages = 3;
+}
+
+message GetThreadRequest {
+    string account_id = 2;
+    string thread_id = 1;
+}
+
+message GetThreadBody {
+    string id = 1;
+    string creator_id = 2;
+    bool has_parent_id = 3;
+    string parent_id = 4;
+    string title = 5;
+    bool has_remarks = 6;
+    string remarks = 7;
+    int64 createdAt = 254;
+    int64 updatedAt = 255;
+}
+
+message GetThreadResponse {
+    bool is_successful = 1;
+    GetThreadBody message = 2;
+    repeated string error_messages = 3;
+}
+
+message GetThreadsRequest {
+    string account_id = 1;
+    bool has_offset = 2;
+    int64 offset = 3;
+    bool has_limit = 4;
+    int64 limit = 5;
+    int64 create_at = 254;
+}
+
+message GetThreadsResponse {
+    bool is_successful = 1;
+    repeated GetThreadBody messages = 2;
+    repeated string error_messages = 3;
+}
+
+message GetMessagesRequest {
+    string account_id = 1;
+    string thread_id = 2;
+    bool has_offset = 3;
+    int64 offset = 4;
+    bool has_limit = 5;
+    int64 limit = 6;
+    int64 create_at = 254;
+}
+
+message GetMessageBody {
+    string id = 1;
+    string sender_id = 2;
+    string type = 3;
+    string body = 4;
+    int64 createdAt = 254;
+    int64 updatedAt = 255;
+}
+
+message GetMessagesResponse {
+    bool is_successful = 1;
+    repeated GetMessageBody messages = 2;
+    repeated string error_messages = 3;
+}
+
+

@@ -9,12 +9,8 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.persistence.query.PersistenceQuery
 import akka.persistence.query.journal.leveldb.scaladsl.LeveldbReadJournal
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol._
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.{
-  ActorSpecSupport,
-  PersistenceCleanup,
-  PersistentThreadAggregate,
-  ThreadProtocol
-}
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.{ PersistentThreadAggregate, TypedActorSpecSupport }
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.{ PersistenceCleanup, ThreadProtocol }
 import com.github.j5ik2o.threadWeaver.adaptor.dao.jdbc.ThreadMessageComponent
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdaterProtocol.Start
 import com.github.j5ik2o.threadWeaver.adaptor.util.{ FlywayWithMySQLSpecSupport, Slick3SpecSupport }
@@ -51,7 +47,7 @@ class ThreadReadModelUpdaterOnLevelDBSpec
         )
     )
     with FreeSpecLike
-    with ActorSpecSupport
+    with TypedActorSpecSupport
     with PersistenceCleanup
     with FlywayWithMySQLSpecSupport
     with Slick3SpecSupport {
@@ -65,13 +61,13 @@ class ThreadReadModelUpdaterOnLevelDBSpec
 
   var readJournal: LeveldbReadJournal = _
 
-  override protected def beforeAll(): Unit = {
+  override def beforeAll: Unit = {
     deleteStorageLocations()
     super.beforeAll()
     readJournal = PersistenceQuery(system.toUntyped).readJournalFor[LeveldbReadJournal](LeveldbReadJournal.Identifier)
   }
 
-  override protected def afterAll(): Unit = {
+  override def afterAll: Unit = {
     deleteStorageLocations()
     super.afterAll()
   }

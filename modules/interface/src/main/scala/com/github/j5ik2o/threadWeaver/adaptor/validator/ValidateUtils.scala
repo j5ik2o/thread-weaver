@@ -47,7 +47,7 @@ object ValidateUtils {
 
   def validateAdministratorIds(values: Seq[String]): ValidationResult[AdministratorIds] = {
     if (values.isEmpty)
-      AdministratorIdsError("values is empty").invalidNel
+      AdministratorIdsError("administrator-ids is empty").invalidNel
     else {
       val result = values.map(validateAccountId).toList.sequence
       result.map(v => AdministratorIds(v.head, v.tail))
