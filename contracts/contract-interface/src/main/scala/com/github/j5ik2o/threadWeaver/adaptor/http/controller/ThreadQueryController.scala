@@ -30,6 +30,16 @@ trait ThreadQueryController {
         schema = new Schema(
           `type` = "string"
         )
+      ),
+      new Parameter(
+        name = "account_id",
+        required = true,
+        in = ParameterIn.QUERY,
+        description = "account_id",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "string"
+        )
       )
     ),
     responses = Array(
@@ -51,6 +61,16 @@ trait ThreadQueryController {
     summary = "Get messages from thread",
     description = "Get messages request",
     parameters = Array(
+      new Parameter(
+        name = "account_id",
+        required = true,
+        in = ParameterIn.QUERY,
+        description = "account_id",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "string"
+        )
+      ),
       new Parameter(
         name = "offset",
         required = false,
@@ -92,6 +112,16 @@ trait ThreadQueryController {
     summary = "Get administrator-ids from thread",
     description = "Get administrator-ids request",
     parameters = Array(
+      new Parameter(
+        name = "account_id",
+        required = true,
+        in = ParameterIn.QUERY,
+        description = "account_id",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "string"
+        )
+      ),
       new Parameter(
         name = "thread_id",
         required = true,
@@ -145,6 +175,16 @@ trait ThreadQueryController {
     description = "Get member-ids request",
     parameters = Array(
       new Parameter(
+        name = "account_id",
+        required = true,
+        in = ParameterIn.QUERY,
+        description = "account_id",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "string"
+        )
+      ),
+      new Parameter(
         name = "thread_id",
         required = true,
         in = ParameterIn.PATH,
@@ -195,6 +235,16 @@ trait ThreadQueryController {
     summary = "Get messages from thread",
     description = "Get messages request",
     parameters = Array(
+      new Parameter(
+        name = "account_id",
+        required = true,
+        in = ParameterIn.QUERY,
+        description = "account_id",
+        allowEmptyValue = false,
+        schema = new Schema(
+          `type` = "string"
+        )
+      ),
       new Parameter(
         name = "thread_id",
         required = true,

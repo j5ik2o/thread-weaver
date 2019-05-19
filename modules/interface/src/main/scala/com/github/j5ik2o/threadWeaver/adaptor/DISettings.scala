@@ -46,7 +46,7 @@ trait DISettings {
   private[adaptor] def designOfSwagger(host: String, port: Int): Design =
     newDesign
       .bind[SwaggerDocService].toInstance(
-        new SwaggerDocService(host, port, Set(classOf[ThreadCommandController]))
+        new SwaggerDocService(host, port, Set(classOf[ThreadCommandController], classOf[ThreadQueryController]))
       )
 
   private[adaptor] def designOfRestPresenters: Design =
