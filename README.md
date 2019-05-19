@@ -38,6 +38,47 @@ CQRS+ESを採用。実装には以下のakkaのツールキットを利用して
 - [ ] Thread用コントローラの実装(クエリ側)
 - [ ] Sagaの実装
 
+## ローカルでの動作確認
+
+```sh
+# terminal 1
+$ sbt
+> local-dynamodb/run
+```
+
+```sh
+# terminal 2
+$ sbt
+> local-mysql/run
+```
+
+```sh
+# terminal 3
+$ sbt
+> api-server/runMain com.github.j5ik2o.threadWeaver.api.LocalMain1
+```
+
+```sh
+# terminal 4
+$ sbt
+> api-server/runMain com.github.j5ik2o.threadWeaver.api.LocalMain2
+```
+
+```sh
+# terminal 5
+$ sbt
+> api-server/runMain com.github.j5ik2o.threadWeaver.api.LocalMain3
+```
+
+```sh
+# terminal 6
+$ curl -X POST "http://127.0.0.1:18080/v1/threads/create" -H "accept: application/json" -H "Content-Type: application/json" -d "{\"accountId\":\"01DB5QXD4NP0XQTV92K42B3XBF\",\"title\":\"string\",\"remarks\":\"string\",\"administratorIds\":[\"01DB5QXD4NP0XQTV92K42B3XBF\"],\"memberIds\":[\"01DB5QXD4NP0XQTV92K42B3XBF\"],\"createAt\":10000}"
+{"threadId":"01DB6VK6E7PTQQFYJ6NMMEMTEB","error_messages":[]}%
+
+$ curl -X GET "http://127.0.0.1:18080/v1/threads/01DB6VK6E7PTQQFYJ6NMMEMTEB?account_id=01DB5QXD4NP0XQTV92K42B3XBF" -H "accept: application/json"
+{"result":{"id":"01DB6VK6E7PTQQFYJ6NMMEMTEB","creatorId":"01DB5QXD4NP0XQTV92K42B3XBF","parentThreadId":null,"title":"string","remarks":"string","createdAt":10000,"updatedAt":10000},"error_messages":[]}%
+```
+
 ## デプロイ方法
 
 minikubeにデプロイします。
