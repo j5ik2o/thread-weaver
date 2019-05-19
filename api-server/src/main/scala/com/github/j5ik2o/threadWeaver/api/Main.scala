@@ -24,13 +24,19 @@ import kamon.datadog.DatadogAgentReporter
 import kamon.jmx.collector.KamonJmxMetricCollector
 import kamon.system.SystemMetrics
 import org.slf4j.LoggerFactory
+import org.slf4j.bridge.SLF4JBridgeHandler
 import slick.basic.DatabaseConfig
 import slick.jdbc.JdbcProfile
 
-object Main extends App {
+object LocalMain1 extends Main(18080, 8558)
+object LocalMain2 extends Main(18081, 8559)
+object LocalMain3 extends Main(18082, 8560)
 
-//  SLF4JBridgeHandler.install()
-  val logger = LoggerFactory.getLogger(getClass)
+object ProductMain extends Main()
+
+class Main(httpPort: Int = 18080, managementPort: Int = 8558) extends App {
+  SLF4JBridgeHandler.install()
+  implicit val logger = LoggerFactory.getLogger(getClass)
 
   val envName = sys.env.getOrElse("ENV_NAME", "development")
   logger.info(s"ENV_NAME = $envName")
@@ -38,7 +44,10 @@ object Main extends App {
   URL.setURLStreamHandlerFactory(new EnvironmentURLStreamHandlerFactory)
   System.setProperty("environment", envName)
 
-  val config: Config = ConfigFactory.load()
+  val config: Config = ConfigFactory.parseString(s"""
+                                                    |thread-weaver.api.port = $httpPort
+                                                    |akka.management.http.port = $managementPort
+    """.stripMargin).withFallback(ConfigFactory.load())
 
   implicit val system           = ActorSystem("thread-weaver-api", config)
   implicit val materializer     = ActorMaterializer()
@@ -64,6 +73,10 @@ object Main extends App {
     classOf[ClusterDomainEvent]
   )
 
+  Cluster(system).registerOnMemberUp({
+    logger.info("Cluster member is up!")
+  })
+
   val readJournal = PersistenceQuery(system).readJournalFor[DynamoDBReadJournal](DynamoDBReadJournal.Identifier)
   val dbConfig    = DatabaseConfig.forConfig[JdbcProfile]("slick", config)
   val profile     = dbConfig.profile
@@ -88,10 +101,6 @@ object Main extends App {
     system.log.info(s"Server online at ${serverBinding.localAddress}")
     serverBinding
   }
-
-  Cluster(system).registerOnMemberUp({
-    logger.info("Cluster member is up!")
-  })
 
   sys.addShutdownHook {
     SystemMetrics.stopCollecting()

@@ -288,6 +288,57 @@ val `api-server` = (project in file("api-server"))
     )
   ).dependsOn(`interface`)
 
+val dynamoDBLocalVersion = "1.11.477"
+val sqlite4javaVersion   = "1.0.392"
+
+lazy val `local-dynamodb` = (project in file("tools/local-dynamodb"))
+  .settings(baseSettings)
+  .settings(
+    name := "thread-weaver-local-dynamodb",
+    libraryDependencies ++= Seq(
+      "com.amazonaws"            % "DynamoDBLocal"               % dynamoDBLocalVersion,
+      "com.almworks.sqlite4java" % "sqlite4java"                 % sqlite4javaVersion,
+      "com.almworks.sqlite4java" % "sqlite4java-win32-x86"       % sqlite4javaVersion,
+      "com.almworks.sqlite4java" % "sqlite4java-win32-x64"       % sqlite4javaVersion,
+      "com.almworks.sqlite4java" % "libsqlite4java-osx"          % sqlite4javaVersion,
+      "com.almworks.sqlite4java" % "libsqlite4java-linux-i386"   % sqlite4javaVersion,
+      "com.almworks.sqlite4java" % "libsqlite4java-linux-amd64"  % sqlite4javaVersion,
+      "com.github.j5ik2o" %% "reactive-aws-dynamodb-core" % "1.1.0"
+    )
+  )
+
+lazy val `local-mysql` = (project in file("tools/local-mysql"))
+  .enablePlugins(FlywayPlugin)
+  .settings(baseSettings)
+  .settings(
+    name := "thread-weaver-local-mysql",
+    libraryDependencies ++= Seq("mysql" % "mysql-connector-java" % "5.1.42"),
+    wixMySQLVersion := com.wix.mysql.distribution.Version.v5_6_21,
+    wixMySQLUserName := Some(dbUser),
+    wixMySQLPassword := Some(dbPassword),
+    wixMySQLSchemaName := dbName,
+    wixMySQLPort := Some(3306),
+    wixMySQLDownloadPath := Some(sys.env("HOME") + "/.wixMySQL/downloads"),
+    wixMySQLTimeout := Some((30 seconds) * sys.env.getOrElse("SBT_TEST_TIME_FACTOR", "1").toDouble),
+    flywayDriver := dbDriver,
+    flywayUrl := s"jdbc:mysql://localhost:3306/$dbName?useSSL=false",
+    flywayUser := dbUser,
+    flywayPassword := dbPassword,
+    flywaySchemas := Seq(dbName),
+    flywayLocations := Seq(
+      s"filesystem:${(baseDirectory in flyway).value}/src/test/resources/db-migration/",
+      s"filesystem:${(baseDirectory in flyway).value}/src/test/resources/db-migration/test",
+      s"filesystem:${baseDirectory.value}/src/main/resources/dummy-migration"
+    ),
+    flywayPlaceholderReplacement := true,
+    flywayPlaceholders := Map(
+      "engineName"                 -> "InnoDB",
+      "idSequenceNumberEngineName" -> "MyISAM"
+    ),
+    run := (flywayMigrate dependsOn wixMySQLStart).value
+  )
+
+
 val gatlingVersion                 = "2.2.3"
 val awsSdkVersion = "1.11.169"
 

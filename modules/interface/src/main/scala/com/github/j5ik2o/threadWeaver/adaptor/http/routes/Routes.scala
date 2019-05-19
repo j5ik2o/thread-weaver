@@ -37,7 +37,7 @@ class Routes(
     HttpResponse(
       entity = HttpEntity(
         ContentTypes.`text/html(UTF-8)`,
-        """<span>Wellcome to Thread Weaver API</span><br/><a href="http://localhost:18080/swagger/index.html">"""
+        """<span>Wellcome to Thread Weaver API</span><br/><a href="http://localhost:18080/swagger/index.html">swagger</a>"""
       )
     )
   )
