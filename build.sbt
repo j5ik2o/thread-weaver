@@ -255,8 +255,9 @@ val `api-server` = (project in file("api-server"))
   .settings(dockerCommonSettings)
   .settings(
     name := "thread-weaver-api",
+    mainClass in (Compile, run) := Some("com.github.j5ik2o.threadWeaver.api.Main"),
     mainClass in reStart := Some("com.github.j5ik2o.threadWeaver.api.Main"),
-    dockerBaseImage := "openjdk:8",
+    dockerEntrypoint := Seq("/opt/docker/bin/main"),
     dockerUsername := Some("j5ik2o"),
     fork in run := true,
     javaAgents += "org.aspectj" % "aspectjweaver" % "1.8.13",

@@ -1,7 +1,5 @@
 package com.github.j5ik2o.threadWeaver.api
 
-import java.net.URL
-
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ ActorSystem, Props }
 import akka.cluster.ClusterEvent.ClusterDomainEvent
@@ -17,7 +15,6 @@ import com.github.everpeace.healthchecks.k8s._
 import com.github.j5ik2o.akka.persistence.dynamodb.query.scaladsl.DynamoDBReadJournal
 import com.github.j5ik2o.threadWeaver.adaptor.DISettings
 import com.github.j5ik2o.threadWeaver.adaptor.http.routes.Routes
-import com.github.j5ik2o.threadWeaver.api.config.EnvironmentURLStreamHandlerFactory
 import com.typesafe.config.{ Config, ConfigFactory }
 import kamon.Kamon
 import kamon.datadog.DatadogAgentReporter
@@ -28,21 +25,16 @@ import org.slf4j.bridge.SLF4JBridgeHandler
 import slick.basic.DatabaseConfig
 import slick.jdbc.JdbcProfile
 
-object LocalMain1 extends Main(18080, 8558)
-object LocalMain2 extends Main(18081, 8559)
-object LocalMain3 extends Main(18082, 8560)
+object Main       extends Bootstrap(18080, 8558)
+object LocalMain2 extends Bootstrap(18081, 8559)
+object LocalMain3 extends Bootstrap(18082, 8560)
 
-object ProductMain extends Main()
-
-class Main(httpPort: Int = 18080, managementPort: Int = 8558) extends App {
+class Bootstrap(httpPort: Int = 18080, managementPort: Int = 8558) extends App {
   SLF4JBridgeHandler.install()
   implicit val logger = LoggerFactory.getLogger(getClass)
 
   val envName = sys.env.getOrElse("ENV_NAME", "development")
   logger.info(s"ENV_NAME = $envName")
-
-  URL.setURLStreamHandlerFactory(new EnvironmentURLStreamHandlerFactory)
-  System.setProperty("environment", envName)
 
   val config: Config = ConfigFactory.parseString(s"""
                                                     |thread-weaver.api.port = $httpPort
@@ -95,7 +87,7 @@ class Main(httpPort: Int = 18080, managementPort: Int = 8558) extends App {
   session.start
 
   val routes = session
-    .build[Routes].root ~ readinessProbe(akkaHealthCheck).toRoute ~ livenessProbe(akkaHealthCheck).toRoute
+      .build[Routes].root ~ readinessProbe(akkaHealthCheck).toRoute ~ livenessProbe(akkaHealthCheck).toRoute
 
   val bindingFuture = Http().bindAndHandle(routes, host, port).map { serverBinding =>
     system.log.info(s"Server online at ${serverBinding.localAddress}")
