@@ -21,13 +21,13 @@ object Settings {
   lazy val dockerCommonSettings = Seq(
     dockerBaseImage := "adoptopenjdk/openjdk8:x86_64-alpine-jdk8u191-b12",
     maintainer in Docker := "Junichi Kato <j5ik2o@gmail.com>",
-    packageName in Docker := s"j5ik2o/${name.value}",
     dockerUpdateLatest := true,
     bashScriptExtraDefines ++= Seq(
       "addJava -Xms${JVM_HEAP_MIN:-1024m}",
       "addJava -Xmx${JVM_HEAP_MAX:-1024m}",
       "addJava -XX:MaxMetaspaceSize=${JVM_META_MAX:-512M}",
-      "addJava ${JVM_GC_OPTIONS:--XX:+UseG1GC}"
+      "addJava ${JVM_GC_OPTIONS:--XX:+UseG1GC}",
+      "addJava -Dconfig.resource=${CONFIG_FILE_PATH:-application.conf}"
     )
   )
 
