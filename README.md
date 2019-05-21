@@ -55,19 +55,19 @@ $ sbt
 ```sh
 # terminal 3
 $ sbt
-> api-server/runMain com.github.j5ik2o.threadWeaver.api.LocalMain1
+> api-server/runMain com.github.j5ik2o.threadWeaver.api.Bootstrap -h 18080 -m 8558
 ```
 
 ```sh
 # terminal 4
 $ sbt
-> api-server/runMain com.github.j5ik2o.threadWeaver.api.LocalMain2
+> api-server/runMain com.github.j5ik2o.threadWeaver.api.Bootstrap -h 18081 -m 8559
 ```
 
 ```sh
 # terminal 5
 $ sbt
-> api-server/runMain com.github.j5ik2o.threadWeaver.api.LocalMain3
+> api-server/runMain com.github.j5ik2o.threadWeaver.api.Bootstrap -h 18082 -m 8560
 ```
 
 ```sh
