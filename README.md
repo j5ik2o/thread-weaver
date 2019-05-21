@@ -54,20 +54,20 @@ $ sbt
 
 ```sh
 # terminal 3
-$ sbt
-> api-server/runMain com.github.j5ik2o.threadWeaver.api.Bootstrap -h 18080 -m 8558
+$ THREAD_WEAVER_HTTP_PORT=18080 THREAD_WEAVER_MANAGEMENT_PORT=8558 sbt
+> api-server/runMain com.github.j5ik2o.threadWeaver.api.Bootstrap
 ```
 
 ```sh
 # terminal 4
-$ sbt
-> api-server/runMain com.github.j5ik2o.threadWeaver.api.Bootstrap -h 18081 -m 8559
+$ THREAD_WEAVER_HTTP_PORT=18081 THREAD_WEAVER_MANAGEMENT_PORT=8559 sbt
+> api-server/runMain com.github.j5ik2o.threadWeaver.api.Bootstrap
 ```
 
 ```sh
 # terminal 5
-$ sbt
-> api-server/runMain com.github.j5ik2o.threadWeaver.api.Bootstrap -h 18082 -m 8560
+$ THREAD_WEAVER_HTTP_PORT=18082 THREAD_WEAVER_MANAGEMENT_PORT=8560 sbt
+> api-server/runMain com.github.j5ik2o.threadWeaver.api.Bootstrap
 ```
 
 ```sh
