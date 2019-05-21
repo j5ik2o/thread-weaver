@@ -17,10 +17,10 @@ import software.amazon.awssdk.services.dynamodb.{ DynamoDbAsyncClient => JavaDyn
 import software.amazon.awssdk.services.dynamodb.model._
 
 import scala.concurrent.Await
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 import scala.util.control.NonFatal
 
-@SuppressWarnings(Array("org.wartremover.warts.Null"))
+@SuppressWarnings(Array("org.wartremover.warts.Null", "org.wartremover.warts.Var"))
 object Main extends App with DynamoDBCreator {
   val logger                       = LoggerFactory.getLogger(getClass)
   val sqlite4javaLibraryPath: File = new File("./native-libs")
@@ -29,6 +29,17 @@ object Main extends App with DynamoDBCreator {
   val secretAccessKey: String      = "x"
   val dynamoDBPort: Int            = 8000
   val dynamoDBEndpoint: String     = s"http://127.0.0.1:$dynamoDBPort"
+  val waitIntervalForDynamoDBLocal = 1 seconds
+
+  lazy val javaClient: JavaDynamoDbAsyncClient = JavaDynamoDbAsyncClient
+    .builder()
+    .credentialsProvider(
+      StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKeyId, secretAccessKey))
+    )
+    .endpointOverride(URI.create(dynamoDBEndpoint))
+    .build()
+
+  lazy val scalaClient: DynamoDbAsyncClient = DynamoDbAsyncClient(javaClient)
 
   val dynamoDBProxyServer: DynamoDBProxyServer = {
     System.setProperty("sqlite4java.library.path", sqlite4javaLibraryPath.toString)
@@ -47,18 +58,40 @@ object Main extends App with DynamoDBCreator {
     )
   }
 
+  def waitDynamoDBLocal(): Unit = {
+    var isWaken: Boolean = false
+    while (!isWaken) {
+      try {
+        Await.result(scalaClient.listTables(), Duration.Inf)
+        isWaken = true
+      } catch {
+        case _: Exception =>
+          logger.info("waiting...")
+          Thread.sleep(waitIntervalForDynamoDBLocal.toMillis)
+      }
+    }
+  }
+
   try {
     dynamoDBProxyServer.start()
+    waitDynamoDBLocal()
     logger.info("dynmodb local started")
+  } catch {
+    case NonFatal(ex) =>
+      logger.error("occurred dynamodb start error", ex)
+  }
+
+  try {
     createJournalTable()
     createSnapshotTable()
   } catch {
     case NonFatal(ex) =>
-      logger.error("occurred error", ex)
+      logger.error("occurred create table error", ex)
   }
 
   sys.addShutdownHook {
     dynamoDBProxyServer.stop()
+    javaClient.close()
     logger.info("dynamodb local stopped")
   }
 
@@ -70,15 +103,7 @@ trait DynamoDBCreator {
   def accessKeyId: String
   def secretAccessKey: String
 
-  lazy val javaClient: JavaDynamoDbAsyncClient = JavaDynamoDbAsyncClient
-    .builder()
-    .credentialsProvider(
-      StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKeyId, secretAccessKey))
-    )
-    .endpointOverride(URI.create(dynamoDBEndpoint))
-    .build()
-
-  lazy val scalaClient: DynamoDbAsyncClient = DynamoDbAsyncClient(javaClient)
+  def scalaClient: DynamoDbAsyncClient
 
   def createSnapshotTable(): Unit = {
     logger.debug("createSnapshotTable: start")
