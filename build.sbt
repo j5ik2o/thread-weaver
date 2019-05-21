@@ -254,7 +254,7 @@ val `api-server` = (project in file("api-server"))
   .settings(baseSettings)
   .settings(dockerCommonSettings)
   .settings(
-    name := "thread-weaver-api",
+    name := "thread-weaver-api-server",
     mainClass in (Compile, run) := Some("com.github.j5ik2o.threadWeaver.api.Main"),
     mainClass in reStart := Some("com.github.j5ik2o.threadWeaver.api.Main"),
     dockerEntrypoint := Seq("/opt/docker/bin/main"),
@@ -276,6 +276,7 @@ val `api-server` = (project in file("api-server"))
       "-Dcom.sun.management.jmxremote.authenticate=false"
     ),
     libraryDependencies ++= Seq(
+      "com.github.scopt" %% "scopt" % "4.0.0-RC2",
       "com.lightbend.akka.management" %% "akka-management" % akkaManagementVersion,
       "com.lightbend.akka.management" %% "akka-management-cluster-http" % akkaManagementVersion,
       "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % akkaManagementVersion,

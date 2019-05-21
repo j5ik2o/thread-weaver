@@ -25,29 +25,24 @@ import org.slf4j.bridge.SLF4JBridgeHandler
 import slick.basic.DatabaseConfig
 import slick.jdbc.JdbcProfile
 
-object Main       extends Bootstrap(18080, 8558)
-object LocalMain2 extends Bootstrap(18081, 8559)
-object LocalMain3 extends Bootstrap(18082, 8560)
+import scala.concurrent.ExecutionContextExecutor
 
-class Bootstrap(httpPort: Int = 18080, managementPort: Int = 8558) extends App {
+object Main extends App {
+
   SLF4JBridgeHandler.install()
+
   implicit val logger = LoggerFactory.getLogger(getClass)
 
   val envName = sys.env.getOrElse("ENV_NAME", "development")
   logger.info(s"ENV_NAME = $envName")
 
-  val config: Config = ConfigFactory.parseString(s"""
-                                                    |thread-weaver.api.port = $httpPort
-                                                    |akka.management.http.port = $managementPort
-    """.stripMargin).withFallback(ConfigFactory.load())
+  val config: Config = ConfigFactory.load()
 
-  implicit val system           = ActorSystem("thread-weaver-api", config)
-  implicit val materializer     = ActorMaterializer()
-  implicit val executionContext = system.dispatcher
+  implicit val system: ActorSystem                        = ActorSystem("thread-weaver-api-server", config)
+  implicit val materializer: ActorMaterializer            = ActorMaterializer()
+  implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
-  if (envName == "development")
-    Kamon.addReporter(LogReporter)
-  else
+  if (envName.toLowerCase != "development")
     Kamon.addReporter(new DatadogAgentReporter())
 
   SystemMetrics.startCollecting()
@@ -76,8 +71,8 @@ class Bootstrap(httpPort: Int = 18080, managementPort: Int = 8558) extends App {
 
   val clusterSharding = ClusterSharding(system.toTyped)
 
-  val host = config.getString("thread-weaver.api.host")
-  val port = config.getInt("thread-weaver.api.port")
+  val host = config.getString("thread-weaver.api-server.host")
+  val port = config.getInt("thread-weaver.api-server.http.port")
 
   val akkaHealthCheck = HealthCheck.akka(host, port)
 
