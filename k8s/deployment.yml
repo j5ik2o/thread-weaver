@@ -1,12 +1,12 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: simple-cluster
+  name: thread-weaver-api-server
 spec:
   replicas: 5
   selector:
     matchLabels:
-      app: thread-weaver-api
+      app: thread-weaver-api-server
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -15,12 +15,12 @@ spec:
   template:
     metadata:
       labels:
-        app: thread-weaver-api
+        app: thread-weaver-api-server
     spec:
       containers:
-      - image: j5ik2o/thread-weaver-api:1.0.0-SNAPSHOT
+      - image: j5ik2o/thread-weaver-api-server:1.0.0-SNAPSHOT
         imagePullPolicy: IfNotPresent
-        name: thread-weaver-api
+        name: thread-weaver-api-server
         env:
           - name: HOSTNAME
             valueFrom:

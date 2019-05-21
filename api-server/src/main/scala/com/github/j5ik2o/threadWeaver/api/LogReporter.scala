@@ -5,8 +5,8 @@ import kamon.MetricReporter
 import kamon.metric.PeriodSnapshot
 import org.slf4j.LoggerFactory
 
-object LogReporter extends MetricReporter {
-  val logger = LoggerFactory.getLogger("log-reporter")
+class LogReporter extends MetricReporter {
+  private val logger = LoggerFactory.getLogger("log-reporter")
 
   override def reportPeriodSnapshot(snapshot: PeriodSnapshot): Unit = {
     logger.info(snapshot.toString)
