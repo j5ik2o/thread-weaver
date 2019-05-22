@@ -27,7 +27,8 @@ object Settings {
       "addJava -Xmx${JVM_HEAP_MAX:-1024m}",
       "addJava -XX:MaxMetaspaceSize=${JVM_META_MAX:-512M}",
       "addJava ${JVM_GC_OPTIONS:--XX:+UseG1GC}",
-      "addJava -Dconfig.resource=${CONFIG_FILE_PATH:-application.conf}"
+      "addJava -Dconfig.resource=${CONFIG_RESOURCE:-application.conf}",
+      "addJava -Dakka.remote.startup-timeout=60s"
     )
   )
 
@@ -127,7 +128,8 @@ object Settings {
       "io.swagger.core.v3"         % "swagger-core"            % "2.0.8",
       "io.swagger.core.v3"         % "swagger-models"          % "2.0.8",
       "io.swagger.core.v3"         % "swagger-annotations"     % "2.0.8",
-      "com.fasterxml.jackson.core" % "jackson-annotations"     % "2.9.8"
+      "com.fasterxml.jackson.core" % "jackson-annotations"     % "2.9.8",
+      "io.kamon"                   %% "kamon-akka-http-2.5"    % "1.1.2"
     ),
     parallelExecution in Test := false,
     fork := true,

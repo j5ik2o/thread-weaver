@@ -1,11 +1,9 @@
 #!/bin/sh
 
-minikube start
 eval $(minikube docker-env)
-sbt docker:publishLocal
-# create serviceAccount and role
-kubectl create -f k8s/rbac.yml
-# create deployment
-kubectl create -f k8s/deployment.yml
-# create service
-kubectl create -f k8s/service.yml
+
+sbt -Dmysql.host=$(minikube ip) -Dmysql.port=30306 'migrate/run'
+sbt api-server/docker:publishLocal
+helm install ./k8s/mysql --namespace thread-weaver
+helm install ./k8s/dynamodb --namespace thread-weaver
+helm install ./k8s/thread-weaver-api-server --namespace thread-weaver
