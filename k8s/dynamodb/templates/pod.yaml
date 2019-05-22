@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ template "name" . }}
+  labels:
+    app: {{ template "name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  containers:
+    - name: {{ template "name" . }}
+      image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+      ports:
+        - name: internal-port
+          containerPort: {{ .Values.service.internalPort }}

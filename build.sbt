@@ -257,7 +257,7 @@ val `api-server` = (project in file("api-server"))
     name := "thread-weaver-api-server",
     mainClass in (Compile, run) := Some("com.github.j5ik2o.threadWeaver.api.Main"),
     mainClass in reStart := Some("com.github.j5ik2o.threadWeaver.api.Main"),
-    dockerEntrypoint := Seq("/opt/docker/bin/main"),
+    dockerEntrypoint := Seq("/opt/docker/bin/thread-weaver-api-server"),
     dockerUsername := Some("j5ik2o"),
     fork in run := true,
     javaAgents += "org.aspectj" % "aspectjweaver" % "1.8.13",
@@ -277,6 +277,10 @@ val `api-server` = (project in file("api-server"))
     ),
     libraryDependencies ++= Seq(
       "com.github.scopt" %% "scopt" % "4.0.0-RC2",
+      "net.logstash.logback" % "logstash-logback-encoder" % "4.11" excludeAll (
+        ExclusionRule(organization = "com.fasterxml.jackson.core", name = "jackson-core"),
+        ExclusionRule(organization = "com.fasterxml.jackson.core", name = "jackson-databind")
+      ),
       "com.lightbend.akka.management" %% "akka-management" % akkaManagementVersion,
       "com.lightbend.akka.management" %% "akka-management-cluster-http" % akkaManagementVersion,
       "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % akkaManagementVersion,
@@ -338,6 +342,34 @@ lazy val `local-mysql` = (project in file("tools/local-mysql"))
       "idSequenceNumberEngineName" -> "MyISAM"
     ),
     run := (flywayMigrate dependsOn wixMySQLStart).value
+  )
+
+lazy val migrate = (project in file("migrate"))
+  .enablePlugins(FlywayPlugin)
+  .settings(baseSettings)
+  .settings(
+    name := "thread-weaver-migrate",
+    libraryDependencies ++= Seq("mysql" % "mysql-connector-java" % "5.1.42"),
+    flywayDriver := dbDriver,
+    flywayUrl := s"jdbc:mysql://${
+      scala.util.Properties
+        .propOrNone("mysql.host")
+        .getOrElse("localhost")
+    }:${scala.util.Properties.propOrNone("mysql.port").getOrElse("3306")}/${scala.util.Properties.propOrNone("mysql.dbName").getOrElse(dbName)}?useSSL=false",
+    flywayUser := scala.util.Properties.propOrNone("mysql.user").getOrElse(dbUser),
+    flywayPassword := scala.util.Properties.propOrNone("mysql.password").getOrElse(dbPassword),
+    flywaySchemas := scala.util.Properties.propOrNone("mysql.schemas").map(_.split(",").toSeq).getOrElse(Seq(scala.util.Properties.propOrNone("mysql.dbName").getOrElse(dbName))),
+    flywayLocations := {
+      Seq(
+        s"filesystem:${(baseDirectory in flyway).value}/src/test/resources/rdb-migration/",
+        s"filesystem:${(baseDirectory in flyway).value}/src/test/resources/rdb-migration/test")
+    },
+    flywayPlaceholderReplacement := true,
+    flywayPlaceholders := Map(
+      "engineName" -> "InnoDB",
+      "idSequenceNumberEngineName" -> "MyISAM"
+    ),
+    run := flywayMigrate.value
   )
 
 

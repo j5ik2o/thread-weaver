@@ -1,11 +1,11 @@
 kind: Service
 apiVersion: v1
 metadata:
-  name: thread-weaver-api
+  name: thread-weaver-api-server
 spec:
   type: NodePort
   selector:
-    app: thread-weaver-api
+    app: thread-weaver-api-server
   ports:
   - protocol: TCP
     name: management
@@ -13,5 +13,5 @@ spec:
     targetPort: management
   - protocol: TCP
     name: api
-    port: 8080
+    port: 18080
     targetPort: api

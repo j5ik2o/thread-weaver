@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: thread-weaver-api-server
 spec:
-  replicas: 5
+  replicas: 3
   selector:
     matchLabels:
       app: thread-weaver-api-server
@@ -22,6 +22,8 @@ spec:
         imagePullPolicy: IfNotPresent
         name: thread-weaver-api-server
         env:
+          - name: AWS_REGION
+            value: "ap-northeast-1"
           - name: HOSTNAME
             valueFrom:
               fieldRef:
@@ -29,22 +31,26 @@ spec:
                 fieldPath: status.podIP
           - name: ENV_NAME
             value: "production"
+          - name: CONFIG_RESOURCE
+            value: "production.conf"
+          - name: THREAD_WEAVER_SLICK_URL
+            value: "jdbc:mysql://mysql:3306/tw?useSSL=false"
         ports:
         - name: remoting
           containerPort: 2551
         - name: api
-          containerPort: 8080
+          containerPort: 18080
         - name: management
           containerPort: 8558
-        livenessProbe:
-          httpGet:
-            path: /live
-            port: 18080
-          initialDelaySeconds: 3
-          periodSeconds: 3
-        readinessProbe:
-          httpGet:
-            path: /ready
-            port: 18080
-          initialDelaySeconds: 3
-          periodSeconds: 3
+#        livenessProbe:
+#          httpGet:
+#            path: /live
+#            port: 18080
+#          initialDelaySeconds: 10
+#          periodSeconds: 5
+#        readinessProbe:
+#          httpGet:
+#            path: /ready
+#            port: 18080
+#          initialDelaySeconds: 10
+#          periodSeconds: 5

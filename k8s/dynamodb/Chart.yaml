@@ -1,0 +1,4 @@
+apiVersion: v1
+description: dynamodb
+name: dynamodb
+version: 0.1.0

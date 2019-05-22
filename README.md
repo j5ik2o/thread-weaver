@@ -38,6 +38,15 @@ CQRS+ESを採用。実装には以下のakkaのツールキットを利用して
 - [ ] Thread用コントローラの実装(クエリ側)
 - [ ] Sagaの実装
 
+## セットアップ
+
+```sh
+$ brew install hyperkit
+$ curl -LO https://storage.googleapis.com/minikube/releases/latest/docker-machine-driver-hyperkit \
+&& sudo install -o root -g wheel -m 4755 docker-machine-driver-hyperkit /usr/local/bin/
+```
+　
+
 ## ローカルでの動作確認
 
 ```sh
@@ -84,12 +93,14 @@ $ curl -X GET "http://127.0.0.1:18080/v1/threads/01DB6VK6E7PTQQFYJ6NMMEMTEB?acco
 minikubeにデプロイします。
 
 ```sh
-$ minikube start
+$ minikube start --vm-driver hyperkit --cpus 6 --memory 4096 --disk-size 60g
 $ eval $(minikube docker-env)
-$ sbt docker:publishLocal
-$ kubectl create -f k8s/rbac.yml
-$ kubectl create -f k8s/deployment.yml
-$ kubectl create -f k8s/service.yml
+$ sbt api-server/docker:publishLocal
+$ kubectl create namespace thread-weaver
+$ kubectl create serviceaccount thread-weaver
+$ kubectl create -f k8s/rbac.yml --namespace thread-weaver
+$ kubectl create -f k8s/deployment.yml --namespace thread-weaver
+$ kubectl create -f k8s/service.yml --namespace thread-weaver
 ```
 
 ## 動作確認方法
@@ -98,10 +109,11 @@ $ kubectl create -f k8s/service.yml
 
 ```sh
 $ KUBE_IP=$(minikube ip)
-$ MANAGEMENT_PORT=$(kubectl get svc thread-weaver-api -ojsonpath="{.spec.ports[?(@.name==\"management\")].nodePort}")
+$ MANAGEMENT_PORT=$(kubectl get svc thread-weaver-api-server -n thread-weaver -ojsonpath="{.spec.ports[?(@.name==\"management\")].nodePort}")
 $ curl http://$KUBE_IP:$MANAGEMENT_PORT/cluster/members | jq
-$ API_PORT=$(kubectl get svc thread-weaver-api -ojsonpath="{.spec.ports[?(@.name==\"api\")].nodePort}")
+$ API_PORT=$(kubectl get svc thread-weaver-api-server -n thread-weaver -ojsonpath="{.spec.ports[?(@.name==\"api\")].nodePort}")
 $ curl http://$KUBE_IP:$API_PORT/
+$ curl -X POST "http://$KUBE_IP:$API_PORT/v1/threads/create" -H "accept: application/json" -H "Content-Type: application/json" -d "{\"accountId\":\"01DB5QXD4NP0XQTV92K42B3XBF\",\"title\":\"string\",\"remarks\":\"string\",\"administratorIds\":[\"01DB5QXD4NP0XQTV92K42B3XBF\"],\"memberIds\":[\"01DB5QXD4NP0XQTV92K42B3XBF\"],\"createAt\":10000}"
 ```
 
 ### sbtでの動作確認

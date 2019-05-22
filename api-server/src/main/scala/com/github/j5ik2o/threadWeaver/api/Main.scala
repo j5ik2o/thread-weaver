@@ -1,10 +1,8 @@
 package com.github.j5ik2o.threadWeaver.api
 
+import akka.actor.ActorSystem
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.{ ActorSystem, Props }
-import akka.cluster.ClusterEvent.ClusterDomainEvent
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
-import akka.cluster.{ Cluster, ClusterEvent }
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
 import akka.management.cluster.bootstrap.ClusterBootstrap
@@ -16,10 +14,6 @@ import com.github.j5ik2o.akka.persistence.dynamodb.query.scaladsl.DynamoDBReadJo
 import com.github.j5ik2o.threadWeaver.adaptor.DISettings
 import com.github.j5ik2o.threadWeaver.adaptor.http.routes.Routes
 import com.typesafe.config.{ Config, ConfigFactory }
-import kamon.Kamon
-import kamon.datadog.DatadogAgentReporter
-import kamon.jmx.collector.KamonJmxMetricCollector
-import kamon.system.SystemMetrics
 import org.slf4j.LoggerFactory
 import org.slf4j.bridge.SLF4JBridgeHandler
 import slick.basic.DatabaseConfig
@@ -33,8 +27,9 @@ object Main extends App {
 
   implicit val logger = LoggerFactory.getLogger(getClass)
 
-  val envName = sys.env.getOrElse("ENV_NAME", "development")
-  logger.info(s"ENV_NAME = $envName")
+  val envName        = sys.env.getOrElse("ENV_NAME", "development")
+  val configResource = sys.env.get("CONFIG_RESOURCE")
+  logger.info(s"ENV_NAME = $envName, configResource = $configResource")
 
   val config: Config = ConfigFactory.load()
 
@@ -42,27 +37,24 @@ object Main extends App {
   implicit val materializer: ActorMaterializer            = ActorMaterializer()
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
-  if (envName.toLowerCase != "development")
-    Kamon.addReporter(new DatadogAgentReporter())
+//  if (envName.toLowerCase != "development")
+//    Kamon.addReporter(new DatadogAgentReporter())
 
-  SystemMetrics.startCollecting()
-
-  KamonJmxMetricCollector()
-
-  implicit val cluster: Cluster = Cluster(system)
+//  SystemMetrics.startCollecting()
+//  KamonJmxMetricCollector()
 
   AkkaManagement(system).start()
   ClusterBootstrap(system).start()
 
-  cluster.subscribe(
-    system.actorOf(Props[ClusterWatcher]),
-    ClusterEvent.InitialStateAsEvents,
-    classOf[ClusterDomainEvent]
-  )
-
-  Cluster(system).registerOnMemberUp({
-    logger.info("Cluster member is up!")
-  })
+//  cluster.subscribe(
+//    system.actorOf(Props[ClusterWatcher]),
+//    ClusterEvent.InitialStateAsEvents,
+//    classOf[ClusterDomainEvent]
+//  )
+//
+//  Cluster(system).registerOnMemberUp({
+//    logger.info("Cluster member is up!")
+//  })
 
   val readJournal = PersistenceQuery(system).readJournalFor[DynamoDBReadJournal](DynamoDBReadJournal.Identifier)
   val dbConfig    = DatabaseConfig.forConfig[JdbcProfile]("slick", config)
@@ -90,9 +82,9 @@ object Main extends App {
   }
 
   sys.addShutdownHook {
-    SystemMetrics.stopCollecting()
-    Kamon.stopAllReporters()
-    Kamon.scheduler().shutdown()
+//    SystemMetrics.stopCollecting()
+//    Kamon.stopAllReporters()
+//    Kamon.scheduler().shutdown()
     session.shutdown
     bindingFuture
       .flatMap(_.unbind())

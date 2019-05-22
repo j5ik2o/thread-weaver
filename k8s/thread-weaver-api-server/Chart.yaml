@@ -1,0 +1,4 @@
+apiVersion: v1
+description: thread-weaver-api-server
+name: thread-weaver-api-server
+version: 0.1.0
