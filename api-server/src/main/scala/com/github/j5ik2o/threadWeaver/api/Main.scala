@@ -1,7 +1,9 @@
 package com.github.j5ik2o.threadWeaver.api
 
-import akka.actor.ActorSystem
+import akka.actor.{ ActorSystem, Props }
 import akka.actor.typed.scaladsl.adapter._
+import akka.cluster.ClusterEvent.ClusterDomainEvent
+import akka.cluster.{ Cluster, ClusterEvent }
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
@@ -20,6 +22,7 @@ import slick.basic.DatabaseConfig
 import slick.jdbc.JdbcProfile
 
 import scala.concurrent.ExecutionContextExecutor
+import scala.concurrent.duration._
 
 object Main extends App {
 
@@ -36,7 +39,8 @@ object Main extends App {
   implicit val system: ActorSystem                        = ActorSystem("thread-weaver-api-server", config)
   implicit val materializer: ActorMaterializer            = ActorMaterializer()
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
-
+  implicit val cluster                                    = Cluster(system)
+  logger.info(s"Started [$system], cluster.selfAddress = ${cluster.selfAddress}")
 //  if (envName.toLowerCase != "development")
 //    Kamon.addReporter(new DatadogAgentReporter())
 
@@ -46,15 +50,11 @@ object Main extends App {
   AkkaManagement(system).start()
   ClusterBootstrap(system).start()
 
-//  cluster.subscribe(
-//    system.actorOf(Props[ClusterWatcher]),
-//    ClusterEvent.InitialStateAsEvents,
-//    classOf[ClusterDomainEvent]
-//  )
-//
-//  Cluster(system).registerOnMemberUp({
-//    logger.info("Cluster member is up!")
-//  })
+  cluster.subscribe(
+    system.actorOf(Props[ClusterWatcher]),
+    ClusterEvent.InitialStateAsEvents,
+    classOf[ClusterDomainEvent]
+  )
 
   val readJournal = PersistenceQuery(system).readJournalFor[DynamoDBReadJournal](DynamoDBReadJournal.Identifier)
   val dbConfig    = DatabaseConfig.forConfig[JdbcProfile]("slick", config)
@@ -69,7 +69,7 @@ object Main extends App {
   val akkaHealthCheck = HealthCheck.akka(host, port)
 
   val design =
-    DISettings.design(host, port, system.toTyped, clusterSharding, materializer, readJournal, profile, db)
+    DISettings.design(host, port, system.toTyped, clusterSharding, materializer, readJournal, profile, db, 15 seconds)
   val session = design.newSession
   session.start
 
@@ -80,6 +80,10 @@ object Main extends App {
     system.log.info(s"Server online at ${serverBinding.localAddress}")
     serverBinding
   }
+
+  Cluster(system).registerOnMemberUp({
+    logger.info("Cluster member is up!")
+  })
 
   sys.addShutdownHook {
 //    SystemMetrics.stopCollecting()

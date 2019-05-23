@@ -42,15 +42,13 @@ spec:
           containerPort: 18080
         - name: management
           containerPort: 8558
-#        livenessProbe:
-#          httpGet:
-#            path: /live
-#            port: 18080
-#          initialDelaySeconds: 10
-#          periodSeconds: 5
 #        readinessProbe:
-#          httpGet:
-#            path: /ready
+#          tcpSocket:
 #            port: 18080
-#          initialDelaySeconds: 10
-#          periodSeconds: 5
+#            initialDelaySeconds: 60
+#            periodSeconds: 30
+#        livenessProbe:
+#          tcpSocket:
+#            port: 18080
+#            initialDelaySeconds: 60
+#            periodSeconds: 30

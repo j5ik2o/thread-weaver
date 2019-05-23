@@ -9,6 +9,7 @@ import akka.testkit.TestKit
 import com.github.j5ik2o.threadWeaver.adaptor.{ DISettings, DITestSettings }
 import org.scalatest.{ BeforeAndAfterAll, TestSuite }
 import wvlet.airframe.{ Design, Session }
+import scala.concurrent.duration._
 
 trait ServiceSpec extends BeforeAndAfterAll {
   this: TestSuite =>
@@ -23,7 +24,8 @@ trait ServiceSpec extends BeforeAndAfterAll {
   def session: Session          = _session
 
   def design: Design =
-    com.github.j5ik2o.threadWeaver.useCase.DISettings.design
+    com.github.j5ik2o.threadWeaver.useCase.DISettings
+      .design(3 seconds)
       .add(DISettings.designOfActorSystem(typedActorSystem, materializer))
       .add(
         DISettings.designOfReadJournal(
