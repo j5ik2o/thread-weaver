@@ -1,0 +1,35 @@
+{
+  "TableName": "Journal",
+  "AttributeDefinitions": [
+    {
+      "AttributeName": "pkey",
+      "AttributeType": "S"
+    },
+    {
+      "AttributeName": "persistence-id",
+      "AttributeType": "S"
+    },
+    {
+      "AttributeName": "sequence-nr",
+      "AttributeType": "N"
+    },
+    {
+      "AttributeName": "tags",
+      "AttributeType": "S"
+    }
+  ],
+  "KeySchema": [
+    {
+      "KeyType": "HASH",
+      "AttributeName": "pkey"
+    },
+    {
+      "KeyType": "RANGE",
+      "AttributeName": "sequence-nr"
+    }
+  ],
+  "ProvisionedThroughput": {
+    "WriteCapacityUnits": 10,
+    "ReadCapacityUnits": 10
+  }
+}

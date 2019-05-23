@@ -311,7 +311,7 @@ lazy val `local-dynamodb` = (project in file("tools/local-dynamodb"))
       "com.almworks.sqlite4java" % "libsqlite4java-linux-amd64"  % sqlite4javaVersion,
       "com.github.j5ik2o" %% "reactive-aws-dynamodb-core" % "1.1.0"
     )
-  )
+  ).dependsOn(`migrate-dynamodb`)
 
 lazy val `local-mysql` = (project in file("tools/local-mysql"))
   .enablePlugins(FlywayPlugin)
@@ -344,11 +344,11 @@ lazy val `local-mysql` = (project in file("tools/local-mysql"))
     run := (flywayMigrate dependsOn wixMySQLStart).value
   )
 
-lazy val migrate = (project in file("migrate"))
+lazy val `migrate-mysql` = (project in file("tools/migrate-mysql"))
   .enablePlugins(FlywayPlugin)
   .settings(baseSettings)
   .settings(
-    name := "thread-weaver-migrate",
+    name := "thread-weaver-migrate-mysql",
     libraryDependencies ++= Seq("mysql" % "mysql-connector-java" % "5.1.42"),
     flywayDriver := dbDriver,
     flywayUrl := s"jdbc:mysql://${
@@ -361,8 +361,8 @@ lazy val migrate = (project in file("migrate"))
     flywaySchemas := scala.util.Properties.propOrNone("mysql.schemas").map(_.split(",").toSeq).getOrElse(Seq(scala.util.Properties.propOrNone("mysql.dbName").getOrElse(dbName))),
     flywayLocations := {
       Seq(
-        s"filesystem:${(baseDirectory in flyway).value}/src/test/resources/rdb-migration/",
-        s"filesystem:${(baseDirectory in flyway).value}/src/test/resources/rdb-migration/test")
+        s"filesystem:${(baseDirectory in flyway).value}/src/test/resources/db-migration/",
+        s"filesystem:${(baseDirectory in flyway).value}/src/test/resources/db-migration/test")
     },
     flywayPlaceholderReplacement := true,
     flywayPlaceholders := Map(
@@ -372,6 +372,14 @@ lazy val migrate = (project in file("migrate"))
     run := flywayMigrate.value
   )
 
+lazy val `migrate-dynamodb` = (project in file("tools/migrate-dynamodb"))
+  .settings(baseSettings)
+  .settings(
+    name := "thread-weaver-migrate-dynamodb",
+    libraryDependencies ++= Seq(
+      "com.github.j5ik2o" %% "reactive-aws-dynamodb-core" % "1.1.0"
+    )
+  )
 
 val gatlingVersion                 = "2.2.3"
 val awsSdkVersion = "1.11.169"

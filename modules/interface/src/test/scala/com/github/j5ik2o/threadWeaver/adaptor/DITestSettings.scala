@@ -19,6 +19,8 @@ import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUp
 import slick.jdbc.JdbcProfile
 import wvlet.airframe.{ newDesign, Design }
 
+import scala.concurrent.duration.FiniteDuration
+
 object DITestSettings extends DISettings {
 
   private[adaptor] def designOfLocalReadModelUpdater: Design =
@@ -59,9 +61,11 @@ object DITestSettings extends DISettings {
       materializer: Materializer,
       readJournal: ReadJournalType,
       profile: JdbcProfile,
-      db: JdbcProfile#Backend#Database
+      db: JdbcProfile#Backend#Database,
+      aggregateAskTimeout: FiniteDuration
   ): Design =
-    com.github.j5ik2o.threadWeaver.useCase.DISettings.design
+    com.github.j5ik2o.threadWeaver.useCase.DISettings
+      .design(aggregateAskTimeout)
       .add(designOfSwagger(host, port))
       .add(designOfActorSystem(system, materializer))
       .add(designOfReadJournal(readJournal))
