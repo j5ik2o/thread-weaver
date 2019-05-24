@@ -8,7 +8,7 @@ image:
   pullPolicy: IfNotPresent
 service:
   name: dynamodb
-  type: LoadBalancer
+  type: NodePort
   externalPort: 8000
   externalNodePort: 32000
   internalPort: 8000
