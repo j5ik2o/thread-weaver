@@ -1,12 +1,15 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: thread-weaver-api-server
+  name: {{ template "name" . }}
+  chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+  release: {{ .Release.Name }}
+  heritage: {{ .Release.Service }}
 spec:
-  replicas: 3
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: thread-weaver-api-server
+      app: {{ template "name" . }}
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -15,12 +18,12 @@ spec:
   template:
     metadata:
       labels:
-        app: thread-weaver-api-server
+        app: {{ template "name" . }}
     spec:
       containers:
-      - image: j5ik2o/thread-weaver-api-server:1.0.0-SNAPSHOT
+      - image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: IfNotPresent
-        name: thread-weaver-api-server
+        name: {{ template "name" . }}
         env:
           - name: AWS_REGION
             value: "ap-northeast-1"
@@ -33,6 +36,12 @@ spec:
             value: "production"
           - name: CONFIG_RESOURCE
             value: "production.conf"
+          - name: JVM_HEAP_MIN
+            value: {{.Values.jvmHeapMin | quote}}
+          - name: JVM_HEAP_MAX
+            value: {{.Values.jvmHeapMax | quote}}
+          - name: JVM_META_MAX
+            value: {{.Values.jvmMetaMax | quote}}
           - name: THREAD_WEAVER_SLICK_URL
             value: "jdbc:mysql://mysql:3306/tw?useSSL=false"
         ports:
