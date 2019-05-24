@@ -2,9 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ template "name" . }}
-  chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
-  release: {{ .Release.Name }}
-  heritage: {{ .Release.Service }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:

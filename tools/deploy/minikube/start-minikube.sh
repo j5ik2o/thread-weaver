@@ -7,4 +7,4 @@ do
     esac
 done
 
-minikube start ${DRIVER} --kubernetes-version v1.12.8 --cpus 8 --memory 4000 --disk-size 30g
+minikube start ${DRIVER} --kubernetes-version v1.12.8 --cpus 8 --memory 10000 --disk-size 30g
