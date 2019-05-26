@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-API_HOST=$(minikube ip)
+cd $(dirname $0)
+
+API_HOST=$(kubectl get svc thread-weaver-api-server -n thread-weaver -ojsonpath="{.status.loadBalancer.ingress[0].hostname}")
 API_PORT=$(kubectl get svc thread-weaver-api-server -n thread-weaver -ojsonpath="{.spec.ports[?(@.name==\"api\")].port}")
 
 ACCOUNT_ID=01DB5QXD4NP0XQTV92K42B3XBF
@@ -11,4 +13,3 @@ THREAD_ID=$(curl -v -X POST "http://$API_HOST:$API_PORT/v1/threads/create" -H "a
 echo "THREAD_ID=$THREAD_ID"
 sleep 3
 curl -v -X GET "http://$API_HOST:$API_PORT/v1/threads/${THREAD_ID}?account_id=${ACCOUNT_ID}" -H "accept: application/json"
-

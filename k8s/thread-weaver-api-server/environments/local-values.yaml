@@ -27,3 +27,5 @@ resources:
 db:
   url: jdbc:mysql://mysql:3306/tw?useSSL=false
   user: tw
+  maxPoolSize: 32
+  minIdleSize: 32

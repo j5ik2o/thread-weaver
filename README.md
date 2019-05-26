@@ -121,3 +121,19 @@ $ curl -X POST "http://$KUBE_IP:$API_PORT/v1/threads/create" -H "accept: applica
 ```sh
 $ sbt api/run
 ```
+
+### ECRへのpush 
+
+```sh
+$ AWS_DEFUALT_PROFILE=xxxxx sbt api-server/ecr:push
+```
+
+### Auroa接続確認
+
+```sh
+$ cd eks/terraform
+# viなどでaurora_public_access を trueにする
+$ terraform plan
+$ terraform apply
+$ mysql -u thread_weaver -p -h $AURORA_ENDPOINT thread_weaver
+```
