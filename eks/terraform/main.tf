@@ -103,7 +103,6 @@ resource "aws_route_table_association" "private" {
   subnet_id      = "${element(aws_subnet.private-subnet.*.id, count.index)}"
 }
 
-# Public Route Table
 resource "aws_route_table" "public" {
   vpc_id = "${aws_vpc.main.id}"
 
@@ -122,50 +121,4 @@ resource "aws_route_table_association" "public" {
   count          = "${aws_subnet.public-subnet.count}"
   route_table_id = "${aws_route_table.public.id}"
   subnet_id      = "${element(aws_subnet.public-subnet.*.id, count.index)}"
-}
-
-resource "aws_dynamodb_table" "journal-table" {
-  name           = "Journal"
-  billing_mode   = "PROVISIONED"
-  read_capacity  = 20
-  write_capacity = 20
-  hash_key       = "pkey"
-  range_key      = "sequence-nr"
-
-  attribute {
-    name = "pkey"
-    type = "S"
-  }
-
-  attribute {
-    name = "persistence-id"
-    type = "S"
-  }
-
-  attribute {
-    name = "sequence-nr"
-    type = "N"
-  }
-
-  attribute {
-    name = "tags"
-    type = "S"
-  }
-
-  global_secondary_index {
-    name               = "TagsIndex"
-    hash_key           = "tags"
-    write_capacity     = 10
-    read_capacity      = 10
-    projection_type    = "ALL"
-  }
-
-  global_secondary_index {
-    name               = "GetJournalRowsIndex"
-    hash_key           = "persistence-id"
-    range_key          = "sequence-nr"
-    write_capacity     = 10
-    read_capacity      = 10
-    projection_type    = "ALL"
-  }
 }

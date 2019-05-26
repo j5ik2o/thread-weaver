@@ -1,3 +1,10 @@
 #!/usr/bin/env bash
 
-AWS_PROFILE=cw-test eksctl delete cluster --name j5ik2o-eks --region ap-northeast-1
+if [[ -e ./env.sh ]]; then
+    echo "env.sh is not found."
+    exit 1
+fi
+
+source ./env.sh
+
+eksctl delete cluster --name ${CLUSTER_NAME} --region ${AWS_REGION}

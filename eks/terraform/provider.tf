@@ -1,4 +1,4 @@
 provider "aws" {
-  region = "ap-northeast-1"
-  profile = "cw-test"
+  region = "${var.aws_region}"
+  profile = "${var.aws_profile}"
 }

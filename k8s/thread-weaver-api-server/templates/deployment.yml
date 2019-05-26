@@ -48,6 +48,10 @@ spec:
               secretKeyRef:
                 name: thread-weaver-app-secrets
                 key: mysql.password
+          - name: THREAD_WEAVER_SLICK_MAX_POOL_SIZE
+            value: {{.Values.db.maxPoolSize | quote}}
+          - name: THREAD_WEAVER_SLICK_MIN_IDLE_SIZE
+            value: {{.Values.db.minIdleSize | quote}}
         ports:
         - name: remoting
           containerPort: 2551
