@@ -74,7 +74,7 @@ object Main extends App {
   session.start
 
   val routes = session
-      .build[Routes].root ~ readinessProbe(akkaHealthCheck).toRoute ~ livenessProbe(akkaHealthCheck).toRoute
+    .build[Routes].root ~ readinessProbe(akkaHealthCheck).toRoute ~ livenessProbe(akkaHealthCheck).toRoute
 
   val bindingFuture = Http().bindAndHandle(routes, host, port).map { serverBinding =>
     system.log.info(s"Server online at ${serverBinding.localAddress}")
