@@ -7,14 +7,14 @@ if [[ $# == 0 ]]; then
   exit 1
 fi
 
-while getopts e:c:t:n:p:f:h OPT
+while getopts e: OPT
 do
-    case $OPT in
+    case ${OPT} in
         "e") ENV_NAME="$OPTARG" ;;
     esac
 done
 
-pushd ../../k8s
+pushd ../../../charts
 
 helm install ./mysql --namespace thread-weaver -f ./mysql/environments/${ENV_NAME}-values.yaml
 helm install ./dynamodb --namespace thread-weaver -f ./dynamodb/environments/${ENV_NAME}-values.yaml

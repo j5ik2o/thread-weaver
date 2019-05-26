@@ -122,6 +122,11 @@ $ curl -X POST "http://$KUBE_IP:$API_PORT/v1/threads/create" -H "accept: applica
 $ sbt api/run
 ```
 
+## EKS
+
+### AWS環境の構築
+
+
 ### ECRへのpush 
 
 ```sh
