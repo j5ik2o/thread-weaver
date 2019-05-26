@@ -6,14 +6,14 @@ if [[ $# == 0 ]]; then
   exit 1
 fi
 
-while getopts e:c:t:n:p:f:h OPT
+while getopts e: OPT
 do
-    case $OPT in
+    case ${OPT} in
         "e") ENV_NAME="$OPTARG" ;;
     esac
 done
 
-pushd ../../k8s
+pushd ../../charts
 
 helm install ./thread-weaver-api-server --namespace thread-weaver -f ./thread-weaver-api-server/environments/${ENV_NAME}-values.yaml
 
