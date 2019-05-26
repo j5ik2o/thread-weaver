@@ -2,24 +2,24 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ template "name" . }}
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: http
   labels:
     app: {{ template "name" . }}
     chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
+  selector:
+    app: {{ template "name" . }}
   type: {{ .Values.service.type }}
   ports:
-    - port: {{ .Values.service.externalPort }}
-      targetPort: {{ .Values.service.internalPort }}
-      {{ if eq .Values.service.type "NodePort" }}nodePort: {{ .Values.service.externalNodePort }}{{ end }}
-      protocol: TCP
-      name: {{ .Values.service.name }}
+    - protocol: TCP
+      name: api
+      port: 8080
+      targetPort: api
     - protocol: TCP
       name: management
       port: 8558
       targetPort: management
-  selector:
-    app: {{ template "name" . }}
-    release: {{ .Release.Name }}
 
