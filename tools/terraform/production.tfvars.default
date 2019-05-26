@@ -1,0 +1,2 @@
+aws_profile = "xxxxx"
+aurora_db_master_password = "xxxxx"
