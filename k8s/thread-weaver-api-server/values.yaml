@@ -1,6 +1,8 @@
 # Default values for astraea-elasticmq.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+envName: development
+configResource: application.conf
 jvmHeapMin: 1500m
 jvmHeapMax: 1500m
 jvmMetaMax: 500m
@@ -15,6 +17,9 @@ service:
   externalPort: 18080
   externalNodePort: 38080
   internalPort: 18080
+db:
+ url: jdbc:mysql://mysql:3306/tw?useSSL=false
+ user: tw
 resources:
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little

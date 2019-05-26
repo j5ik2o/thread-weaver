@@ -30,9 +30,9 @@ spec:
                 apiVersion: v1
                 fieldPath: status.podIP
           - name: ENV_NAME
-            value: "production"
+            value: {{.Values.envName | quote}}
           - name: CONFIG_RESOURCE
-            value: "production.conf"
+            value: {{.Values.configResource | quote}}
           - name: JVM_HEAP_MIN
             value: {{.Values.jvmHeapMin | quote}}
           - name: JVM_HEAP_MAX
@@ -40,7 +40,14 @@ spec:
           - name: JVM_META_MAX
             value: {{.Values.jvmMetaMax | quote}}
           - name: THREAD_WEAVER_SLICK_URL
-            value: "jdbc:mysql://mysql:3306/tw?useSSL=false"
+            value: {{.Values.db.url | quote}}
+          - name: THREAD_WEAVER_SLICK_USER
+            value: {{.Values.db.user | quote}}
+          - name: THREAD_WEAVER_SLICK_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: thread-weaver-app-secrets
+                key: mysql.password
         ports:
         - name: remoting
           containerPort: 2551
