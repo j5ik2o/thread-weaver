@@ -10,10 +10,10 @@ replicaCount: 3
 image:
   repository: 738575627980.dkr.ecr.ap-northeast-1.amazonaws.com/j5ik2o/thread-weaver-api-server
   tag: latest
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
 service:
-  name: thread-weaver-api-server
-  type: NodePort
+  name: api
+  type: LoadBalancer
   externalPort: 18080
   externalNodePort: 30080
   internalPort: 18080
