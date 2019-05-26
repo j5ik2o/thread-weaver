@@ -7,24 +7,51 @@ VM_NAME=microk8s
 CPUS=8
 MEM=8G
 DISK=40G
+K8S_VERSION=1.14/stable
 
-function get_ip {
-    ultipass info mircok8s-vm | grep IPv4 | sed 's/IPv4\://' | xargs
+root_exec() {
+	multipass exec ${VM_NAME} -- sudo sh -c "$@"
 }
 
-# multipass launch --name ${VM_NAME} --mem ${MEM} --disk ${DISK} --cpus ${CPUS}
-slepp 3
+do_exec() {
+	multipass exec ${VM_NAME} -- "$@"
+}
 
-multipass exec ${VM_NAME} -- sudo snap install microk8s --classic
-multipass exec ${VM_NAME} -- sudo iptables -P FORWARD ACCEPT
-#multipass exec ${VM_NAME} -- /snap/bin/microk8s.status
-#multipass exec ${VM_NAME} -- /snap/bin/microk8s.enable dns dashboard metrics-server registry
+install_microk8s() {
+    root_exec "snap install microk8s --classic --channel=${K8S_VERSION}"
+    root_exec 'iptables -P FORWARD ACCEPT'
+    root_exec 'while [ ! $(/snap/bin/microk8s.status > /dev/null; echo $?) -eq 0 ]; do echo -n .; sleep 1; done'
+    root_exec '/snap/bin/microk8s.enable dns dashboard metrics-server registry'
+    root_exec '/snap/bin/microk8s.kubectl cluster-info'
+}
 
-#multipass exec ${VM_NAME} -- sudo snap install kubectl --classic
-#multipass exec ${VM_NAME} -- sudo apt-get install docker.io
-#multipass exec ${VM_NAME} -- sudo addgroup --system docker
-#multipass exec ${VM_NAME} -- sudo adduser multipass docker
-#multipass exec ${VM_NAME} -- newgrp docker
+install_kubectl() {
+    root_exec 'snap install kubectl --classic'
+    root_exec '/snap/bin/microk8s.config > /home/multipass/.kube/kubeconfig'
+}
 
-#multipass exec ${VM_NAME} -- sh -c '/snap/bin/microk8s.config > /home/multipass/.kube/kubeconfig'
-#multipass exec ${VM_NAME} -- /snap/bin/microk8s.config > ./microk8s-kubeconfig
+
+install_docker() {
+    root_exec 'apt-get -y update'
+    root_exec 'apt-get install -y docker.io'
+    root_exec 'addgroup --system docker'
+    root_exec 'adduser multipass docker'
+    root_exec 'newgrp docker'
+
+    CONFIG="{ "insecure-registries" : ["$(get_ip):32000"] }"
+    root_exec "echo ${CONFIG} > /etc/docker/daemon.json"
+}
+
+function get_ip() {
+    multipass info ${VM_NAME} | grep IPv4 | sed 's/IPv4\://' | xargs
+}
+
+multipass launch --name ${VM_NAME} --mem ${MEM} --disk ${DISK} --cpus ${CPUS}
+sleep 1
+install_microk8s
+install_kubectl
+# install_docker
+
+do_exec '/snap/bin/microk8s.config' > ./microk8s-kubeconfig
+
+
