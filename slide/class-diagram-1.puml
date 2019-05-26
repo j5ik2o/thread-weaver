@@ -1,0 +1,61 @@
+@startuml
+
+enum WorkState {
+    BeforeWork
+    InWork
+    InBreak
+}
+
+class Room {
+    + type Result[A] = Either[RoomError, A]
+    - id: WorkerId
+    - state: WorkerState
+    
+    + enter(workerId: WorkerId): Result[Room]
+    + leave(workerId: WorkerId): Result[Room]
+    + enterOrLeave(workerId: WorkerId): Result[Room]
+    
+    + fixForNew(workerId: WorkerId, time: LocalDateTime): Result[Room]
+    + fixForDelete(workerId: WorkerId, time: LocalDateTime): Result[Room]
+    + fixForUpdate(workerId: WorkerId, from: LocalDateTime, to: LocalDateTime): Result[Room]
+}
+
+abstract class RoomEvent {
+    + id: RoomEventId
+    + workerId: WorkerId
+    + state: EnteredOnLeft
+    + createAt: LocalDateTime
+}
+
+class RoomEntered extends RoomEvent
+class RoomLeft extends RoomEvent
+class RoomFixForNew extends RoomEvent {
+    + approved: Boolean
+    + approvalId: ApprovalId
+}
+class RoomFixForUpdate extends RoomEvent {
+    + approved: Boolean
+    + approvalId: ApprovalId
+}
+class RoomFixForDelete extends RoomEvent {
+    + approved: Boolean
+    + approvalId: ApprovalId
+}
+
+class RoomRepository {
+}
+
+class WorkRecordDto {
+    + id: WorkerId
+    + day: LocalDate
+    + entries: Map[LocalDateTime, WorkState]
+    + totalTime(): Long
+    + baseTime(): Long
+    + baseDays(): Long
+    + paidHolidays(): Long
+}
+
+Room -- WorkState
+Room --- RoomRepository
+
+@enduml
