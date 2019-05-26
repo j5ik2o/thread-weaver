@@ -1,0 +1,33 @@
+@startuml
+
+enum NonWorkState {
+    Applied
+    Approved
+    Denied
+}
+
+class NonWorkDays {
+    + type Result[A] = Either[NonWorkDaysError, A]
+    - id: WorkerId
+    - entries: Map[LocalDate, NonWorkState]
+    + apply(workerId: WorkerId, day: LocalDate): Result[NonWorkDays]
+    + approve(workerId: WorkerId, day: LocalDate): Result[NonWorkDays]
+    + deny(workerId: WorkerId, day: LocalDate): Result[NonWorkDays]
+    + getState(workerId: WorkerId, day: LocalDate): Option[NonWorkState]
+}
+
+class NonWorkDaysRepository {
+}
+
+NonWorkDays -- NonWorkState
+NonWorkDays --- NonWorkDaysRepository
+
+abstract class RoomEvent {
+    + id: RoomEventId
+    + workerId: WorkerId
+    + state: EnteredOnLeft
+    + createAt: LocalDateTime
+}
+
+
+@enduml
