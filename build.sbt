@@ -249,10 +249,13 @@ val interface = (project in file("modules/interface"))
   .configs(MultiJvm)
   .dependsOn(`contract-interface`, `use-case`, `infrastructure`)
 
+
+
 val `api-server` = (project in file("api-server"))
-  .enablePlugins(AshScriptPlugin, JavaAgent)
+  .enablePlugins(AshScriptPlugin, JavaAgent, EcrPlugin)
   .settings(baseSettings)
   .settings(dockerCommonSettings)
+  .settings(ecrSettings)
   .settings(
     name := "thread-weaver-api-server",
     mainClass in (Compile, run) := Some("com.github.j5ik2o.threadWeaver.api.Main"),
