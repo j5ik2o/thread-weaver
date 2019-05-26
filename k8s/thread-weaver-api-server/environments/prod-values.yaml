@@ -1,13 +1,15 @@
 # Default values for astraea-elasticmq.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+envName: production
+configResource: production.conf
 jvmHeapMin: 1500m
 jvmHeapMax: 1500m
 jvmMetaMax: 500m
 replicaCount: 3
 image:
-  repository: j5ik2o/thread-weaver-api-server
-  tag: 1.0.0-SNAPSHOT
+  repository: 738575627980.dkr.ecr.ap-northeast-1.amazonaws.com/j5ik2o/thread-weaver-api-server
+  tag: latest
   pullPolicy: IfNotPresent
 service:
   name: thread-weaver-api-server
@@ -22,3 +24,6 @@ resources:
   limits:
     cpu: 2
     memory: 4Gi
+db:
+  url: jdbc:mysql://j5ik2o-eks-thread-weaver-aurora-cluster.cluster-ctywrcabnmgr.ap-northeast-1.rds.amazonaws.com:3306/thread_weaver?useSSL=false
+  user: thread_weaver
