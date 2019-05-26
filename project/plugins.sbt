@@ -38,3 +38,5 @@ addSbtPlugin("jp.co.septeni-original" % "sbt-dao-generator" % "1.0.8")
 addSbtPlugin("com.chatwork" % "sbt-wix-embedded-mysql" % "1.0.9")
 
 addSbtPlugin("com.lightbend.akka.grpc" % "sbt-akka-grpc" % "0.6.1")
+
+addSbtPlugin("com.mintbeans" % "sbt-ecr" % "0.14.1")

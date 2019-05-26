@@ -1,10 +1,12 @@
-import sbt._
-import sbt.Keys._
+import com.amazonaws.regions.{ Region, Regions }
 import com.typesafe.sbt.SbtNativePackager.autoImport._
 import com.typesafe.sbt.packager.archetypes.scripts.BashStartScriptPlugin.autoImport._
 import com.typesafe.sbt.packager.docker.DockerPlugin.autoImport._
 import org.scalafmt.sbt.ScalafmtPlugin.autoImport._
 import org.scalastyle.sbt.ScalastylePlugin.autoImport._
+import sbt.Keys._
+import sbt._
+import sbtecr.EcrPlugin.autoImport._
 import wartremover.WartRemover.autoImport._
 
 object Settings {
@@ -17,6 +19,14 @@ object Settings {
   val slickVersion          = "3.2.3"
 
   val compileScalaStyle = taskKey[Unit]("compileScalaStyle")
+
+  val ecrSettings = Seq(
+    region in Ecr := Region.getRegion(Regions.AP_NORTHEAST_1),
+    repositoryName in Ecr := "j5ik2o/thread-weaver-api-server",
+    repositoryTags in Ecr ++= Seq(version.value),
+    localDockerImage in Ecr := "j5ik2o/" + (packageName in Docker).value + ":" + (version in Docker).value,
+    push in Ecr := ((push in Ecr) dependsOn (publishLocal in Docker, login in Ecr)).value
+  )
 
   lazy val dockerCommonSettings = Seq(
     dockerBaseImage := "adoptopenjdk/openjdk8:x86_64-alpine-jdk8u191-b12",
