@@ -10,7 +10,6 @@ variable "prefix" {
 }
 
 variable "vpc_id" {
-  default = "vpc-028bfe2f820c1e562"
 }
 
 variable "public_subnets_availability_zones" {
