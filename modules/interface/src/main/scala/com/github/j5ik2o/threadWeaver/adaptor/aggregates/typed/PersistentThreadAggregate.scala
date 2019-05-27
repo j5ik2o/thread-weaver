@@ -6,7 +6,7 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ ActorRef, Behavior, PostStop }
 import akka.persistence.typed.scaladsl.{ Effect, EventSourcedBehavior }
 import akka.persistence.typed.{ PersistenceId, RecoveryCompleted }
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol._
+import ThreadProtocol._
 import com.github.j5ik2o.threadWeaver.domain.model.threads.{ Messages, Thread, ThreadId }
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 

@@ -4,7 +4,7 @@ import java.time.Instant
 
 import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
 import akka.actor.typed.ActorSystem
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol._
+import ThreadProtocol._
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.PersistenceCleanup
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
 import com.github.j5ik2o.threadWeaver.domain.model.threads._

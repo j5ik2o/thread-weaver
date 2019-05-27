@@ -4,7 +4,7 @@ import java.time.Instant
 
 import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
 import akka.actor.typed.ActorRef
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{ DestroyThreadResponse, _ }
+import ThreadProtocol.{ DestroyThreadResponse, _ }
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
 import com.github.j5ik2o.threadWeaver.domain.model.threads._
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID

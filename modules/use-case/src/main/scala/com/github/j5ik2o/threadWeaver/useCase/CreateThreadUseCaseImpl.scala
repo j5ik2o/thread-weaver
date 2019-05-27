@@ -6,7 +6,7 @@ import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.stream.scaladsl.Flow
 import akka.util.Timeout
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol._
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol._
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 import com.github.j5ik2o.threadWeaver.useCase.ThreadWeaverProtocol.{
   CreateThread => UCreateThread,

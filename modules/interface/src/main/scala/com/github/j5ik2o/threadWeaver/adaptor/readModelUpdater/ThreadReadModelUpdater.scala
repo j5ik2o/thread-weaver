@@ -10,7 +10,7 @@ import akka.persistence.query.scaladsl._
 import akka.stream.scaladsl.{ Flow, Keep, RestartSource, Sink, Source }
 import akka.stream.typed.scaladsl.ActorMaterializer
 import akka.stream.{ Attributes, KillSwitch, KillSwitches }
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol.{
   CommandRequest => _,
   Message => _,
   Stop => _,

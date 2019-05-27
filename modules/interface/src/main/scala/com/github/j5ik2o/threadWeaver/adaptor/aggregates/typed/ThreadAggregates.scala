@@ -2,7 +2,7 @@ package com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed
 
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ ActorRef, Behavior }
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{ CommandRequest, Message }
+import ThreadProtocol.{ CommandRequest, Message }
 import com.github.j5ik2o.threadWeaver.domain.model.threads.ThreadId
 
 object ThreadAggregates {

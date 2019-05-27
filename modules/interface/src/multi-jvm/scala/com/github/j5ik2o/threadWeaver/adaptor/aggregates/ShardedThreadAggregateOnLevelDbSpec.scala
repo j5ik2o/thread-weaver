@@ -11,7 +11,7 @@ import akka.persistence.Persistence
 import akka.persistence.journal.leveldb.{ SharedLeveldbJournal, SharedLeveldbStore }
 import akka.remote.testkit.MultiNodeSpec
 import akka.testkit.ImplicitSender
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol.{
   CreateThread,
   CreateThreadFailed,
   CreateThreadResponse,

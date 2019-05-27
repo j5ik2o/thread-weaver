@@ -1,7 +1,7 @@
 package com.github.j5ik2o.threadWeaver.useCase
 
 import akka.actor.typed.ActorSystem
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.ThreadActorRefOfCommand
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol.ThreadActorRefOfCommand
 import wvlet.airframe._
 import scala.concurrent.duration._
 

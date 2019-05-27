@@ -4,8 +4,8 @@ import java.time.Instant
 
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ ActorRef, Behavior }
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{ Started, Stopped }
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol.{ Started, Stopped }
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdaterProtocol
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 

@@ -4,7 +4,7 @@ import java.time.Instant
 
 import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors }
 import akka.actor.typed.{ ActorRef, Behavior, PostStop, Signal }
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol._
+import ThreadProtocol._
 import com.github.j5ik2o.threadWeaver.domain.model.threads.{ Messages, Thread, ThreadId }
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 
