@@ -1,6 +1,5 @@
-
 resource "aws_dynamodb_table" "journal-table" {
-  name           = "Journal"
+  name           = "tw-journal"
   billing_mode   = "PROVISIONED"
   read_capacity  = 20
   write_capacity = 20
@@ -28,25 +27,25 @@ resource "aws_dynamodb_table" "journal-table" {
   }
 
   global_secondary_index {
-    name               = "TagsIndex"
-    hash_key           = "tags"
-    write_capacity     = 10
-    read_capacity      = 10
-    projection_type    = "ALL"
+    name            = "TagsIndex"
+    hash_key        = "tags"
+    write_capacity  = 10
+    read_capacity   = 10
+    projection_type = "ALL"
   }
 
   global_secondary_index {
-    name               = "GetJournalRowsIndex"
-    hash_key           = "persistence-id"
-    range_key          = "sequence-nr"
-    write_capacity     = 10
-    read_capacity      = 10
-    projection_type    = "ALL"
+    name            = "GetJournalRowsIndex"
+    hash_key        = "persistence-id"
+    range_key       = "sequence-nr"
+    write_capacity  = 10
+    read_capacity   = 10
+    projection_type = "ALL"
   }
 }
 
 resource "aws_dynamodb_table" "snapshot-table" {
-  name           = "Snapshot"
+  name           = "tw-snapshot"
   billing_mode   = "PROVISIONED"
   read_capacity  = 20
   write_capacity = 20
@@ -62,5 +61,5 @@ resource "aws_dynamodb_table" "snapshot-table" {
     name = "sequence-nr"
     type = "N"
   }
-
 }
+
