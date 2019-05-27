@@ -52,22 +52,136 @@ layout: true
 
 ---
 
-# 最近の発表ネタ
+# アジェンダ
 
-1. [ドメインモデリングの始め方](https://speakerdeck.com/j5ik2o/tomeinmoterinkufalseshi-mefang) - AWS Dev Day Tokyo 2018
-    - ドメインオブジェクトの発見・実装・リファクタリングの方法論をカバー
-1. [Scalaでのドメインモデリングのやり方](https://speakerdeck.com/j5ik2o/scaladefalsedomeinmoderingufalseyarikata) - Scala関西Summit 2018
-    - 1.のスライドと同様の観点だが、より実装技法寄りの議論をカバー
+1. AkkaでのEvent Sourcing
+2. EKS環境の構築とデプロイ
+
+---
+class: impact
+
+# AkkaでのEvent Sourcing
 
 ---
 
-# アジェンダ
+# Event Sourcingとは
 
-- 同じネタはやりません
-    - 過去のネタについて議論したいなら、懇親会で捕まえてください！
+- イベントがあれば現在の状態がわかる
+- 取引もイベントソーシング。モデルとして特別なものではない
+- イベントはイミュータブルな歴史を表現している
+  - 訂正は赤黒訂正(通常伝票は黒インク/訂正は赤インクから由来)
+    - 700番で0001番の受注と取り消し、伝票番号701番で修正後のデータを登録している
+  - gitもイベントソーシング。打ち消しはrevertコミットを追加する
+  
+.center[<img src="images/real-events.png" width="80%">]
 
-1. ドメインイベントを使ったモデリングと実装
-1. 集約を跨がる整合性の問題
+
+---
+
+# ドメインイベントとは
+
+.col-6[
+- 過去にに発生した出来事のこと=イベント
+- ドメインエキスパートが関心を持つイベント=ドメインイベント
+- 一般的には過去形の動詞で表現される
+  - CustomerRelocated
+  - CargoShipped
+]
+.col-6[
+- イベントとコマンドは似ているが、人間が扱う言語としては別モノ
+  - コマンドは拒否されることがある
+  - イベントは既に起こったことを示す
+]  
+.center[<img src="images/event-stream.png" width="80%">]
+
+---
+class: impact
+
+# Event Sourcingシステムを作る
+# 簡易的なチャットアプリケーション
+
+---
+
+# システム要件
+
+- HTTPサーバでコマンドとクエリを受け付ける
+- チャットを開始するときは、スレッドを作成する
+- スレッドへの投稿はメンバーのみ可能
+- スレッドへ投稿するメッセージはテキストのみとする
+- 便宜上、認証・認可は省略する
+
+---
+
+# APIサーバのシステム構成図
+
+.col-6[
+.center[<img src="images/syste-diagram.svg">]
+]
+
+.col-6[
+- コマンドとクエリを分割する
+- コマンドは、クラスターシャーディングされた集約アクターへ送信される
+- 集約アクターはコマンドを受け付けるとドメインイベントをストレージに追記保存する
+- クラスターシャーディングされたRMUは集約アクターと連動して起動し、起動直後に担当する集約IDのドメインイベントを読み込みSQLを実行しリードモデルを作成する
+- クエリは、DAOを使ってリードモデルを読み込んで返す
+- k8sのPodとしてデプロイする
+]
+
+---
+
+# ドメインモデル
+
+.col-6[
+- Account
+    - 本システムの利用者を識別するアカウント情報
+- Thread
+    - Messageを交換するための場を示す
+- Message
+    - 何らかの言語で表現された伝言
+]
+.col-6[
+- Administrator
+    - 当該Threadの管理者
+- Member
+    - 当該Threadの利用者
+]
+.center[<img src="images/domain-class-diagram.png" width="80%">]
+
+---
+
+# ドメインイベント
+
+ThreadEventのサブ型
+
+- ThreadCreated
+- ThreadDestroyed
+- AdministratorIdsJoined
+- AdministratorIdsLeft
+- MemberIdsJoined
+- MemberIdsLeft
+- MessagesAdded 
+- MessagesRemoved
+
+---
+
+# レイヤー構成
+
+.col-6[
+- クリーンアーキテクチャ
+- 共通 
+    - interface-adaptor
+    - infrastructure
+- コマンド側
+    - use-case
+    - domain
+- クエリ側
+    - data access stream
+    - data access object
+] 
+.col-6[
+.center[<img src="images/clean-architecture.jpeg" width="100%">]
+]
+
 
 ---
 

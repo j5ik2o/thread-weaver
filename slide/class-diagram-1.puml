@@ -1,61 +1,37 @@
 @startuml
 
-enum WorkState {
-    BeforeWork
-    InWork
-    InBreak
+class Thread {
+    + type Result[A] = Either[ThreadError, A]
+    + id: ThreadId
+
+    + def joinAdministratorIds(value: AdministratorIds, senderId: AccountId, at: Instant): Result[Thread]
+    + def leaveAdministratorIds(value: AdministratorIds, senderId: AccountId, at: Instant): Result[Thread]
+    + def getAdministratorIds(senderId: AccountId): Result[AdministratorIds]
+
+    + def joinMemberIds(value: MemberIds, senderId: AccountId, at: Instant): Result[Thread]
+    + def leaveMemberIds(value: MemberIds, senderId: AccountId, at: Instant): Result[Thread]
+    + def getMemberIds(senderId: AccountId): Result[MemberIds]
+
+    + def addMessages(values: Messages, at: Instant): Result[Thread]
+    + def removeMessages(values: MessageIds, removerId: AccountId, at: Instant): Result[(Thread, MessageIds)]
+    + def getMessages(senderId: AccountId): Result[Messages]
+
+    + def destroy(senderId: AccountId, at: Instant): Result[Thread]
 }
 
-class Room {
-    + type Result[A] = Either[RoomError, A]
-    - id: WorkerId
-    - state: WorkerState
-    
-    + enter(workerId: WorkerId): Result[Room]
-    + leave(workerId: WorkerId): Result[Room]
-    + enterOrLeave(workerId: WorkerId): Result[Room]
-    
-    + fixForNew(workerId: WorkerId, time: LocalDateTime): Result[Room]
-    + fixForDelete(workerId: WorkerId, time: LocalDateTime): Result[Room]
-    + fixForUpdate(workerId: WorkerId, from: LocalDateTime, to: LocalDateTime): Result[Room]
+abstract class ThreadEvent {
+    + id: ThreadEventId
+    + threadId: ThreadId
+    + createAt: Instant
 }
 
-abstract class RoomEvent {
-    + id: RoomEventId
-    + workerId: WorkerId
-    + state: EnteredOnLeft
-    + createAt: LocalDateTime
-}
-
-class RoomEntered extends RoomEvent
-class RoomLeft extends RoomEvent
-class RoomFixForNew extends RoomEvent {
-    + approved: Boolean
-    + approvalId: ApprovalId
-}
-class RoomFixForUpdate extends RoomEvent {
-    + approved: Boolean
-    + approvalId: ApprovalId
-}
-class RoomFixForDelete extends RoomEvent {
-    + approved: Boolean
-    + approvalId: ApprovalId
-}
-
-class RoomRepository {
-}
-
-class WorkRecordDto {
-    + id: WorkerId
-    + day: LocalDate
-    + entries: Map[LocalDateTime, WorkState]
-    + totalTime(): Long
-    + baseTime(): Long
-    + baseDays(): Long
-    + paidHolidays(): Long
-}
-
-Room -- WorkState
-Room --- RoomRepository
+class ThreadCreated extends ThreadEvent
+class ThreadDestroyed extends ThreadEvent
+class AdministratorIdsJoined extends ThreadEvent
+class AdministratorIdsLeft extends ThreadEvent
+class MemberIdsJoined extends ThreadEvent
+class MemberIdsLeft extends ThreadEvent
+class MessagesAdded extends ThreadEvent
+class MessagesRemoved extends ThreadEvent
 
 @enduml
