@@ -4,7 +4,7 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.ActorSystem
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.stream.Materializer
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol.{
   ThreadActorRefOfCommand,
   ThreadActorRefOfMessage,
   ThreadReadModelUpdaterRef

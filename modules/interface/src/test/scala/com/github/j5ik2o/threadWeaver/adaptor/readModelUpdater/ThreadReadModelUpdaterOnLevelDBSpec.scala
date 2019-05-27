@@ -8,9 +8,13 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
 import akka.persistence.query.PersistenceQuery
 import akka.persistence.query.journal.leveldb.scaladsl.LeveldbReadJournal
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol._
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.{ PersistentThreadAggregate, TypedActorSpecSupport }
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.{ PersistenceCleanup, ThreadProtocol }
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol._
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.{
+  PersistentThreadAggregate,
+  ThreadProtocol,
+  TypedActorSpecSupport
+}
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.PersistenceCleanup
 import com.github.j5ik2o.threadWeaver.adaptor.dao.jdbc.ThreadMessageComponent
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdaterProtocol.Start
 import com.github.j5ik2o.threadWeaver.adaptor.util.{ FlywayWithMySQLSpecSupport, Slick3SpecSupport }

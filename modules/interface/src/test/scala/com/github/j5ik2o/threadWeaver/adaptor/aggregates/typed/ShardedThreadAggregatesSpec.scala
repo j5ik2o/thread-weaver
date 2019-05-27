@@ -7,7 +7,7 @@ import akka.actor.typed.ActorSystem
 import akka.cluster.MemberStatus
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.cluster.typed.{ Cluster, Join }
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol.{ CreateThread, CreateThreadResponse }
+import ThreadProtocol.{ CreateThread, CreateThreadResponse }
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
 import com.github.j5ik2o.threadWeaver.domain.model.threads.{ AdministratorIds, MemberIds, ThreadId, ThreadTitle }
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID

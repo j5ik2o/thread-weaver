@@ -7,13 +7,13 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
 import akka.persistence.query.PersistenceQuery
 import com.github.j5ik2o.akka.persistence.dynamodb.query.scaladsl.DynamoDBReadJournal
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol._
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol._
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.{
   PersistentThreadAggregate,
   PersistentThreadAggregateOnDynamoDBSpec,
+  ThreadProtocol,
   TypedActorSpecSupport
 }
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadProtocol
 import com.github.j5ik2o.threadWeaver.adaptor.dao.jdbc.ThreadMessageComponent
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdaterProtocol.Start
 import com.github.j5ik2o.threadWeaver.adaptor.util.{
