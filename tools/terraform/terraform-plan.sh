@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-terraform plan --var-file=production.tfvar
+terraform plan --var-file=production.tfvars

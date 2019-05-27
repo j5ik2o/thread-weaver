@@ -31,5 +31,8 @@ resource "aws_ecr_repository_policy" "policy" {
     ]
 }
 EOF
-  repository = "${aws_ecr_repository.thread-weaver-api-server.name}"
+
+
+  repository = aws_ecr_repository.thread-weaver-api-server.name
 }
+
