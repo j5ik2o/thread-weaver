@@ -182,6 +182,14 @@ ThreadEventのサブ型
 .center[<img src="images/clean-architecture.jpeg" width="100%">]
 ]
 
+---
+
+# Kubernetes/EKSを学ぶ
+
+- [Kubernetes公式サイト](https://kubernetes.io/ja/docs/home/)
+- [Amazon EKS](https://docs.aws.amazon.com/ja_jp/eks/latest/userguide/what-is-eks.html)
+- [Amazon EKS Workshop](https://eksworkshop.com/)
+
 
 ---
 

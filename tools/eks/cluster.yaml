@@ -20,3 +20,5 @@ nodeGroup:
   - name: default
     instanceType: t2.medium
     desiredCapacity: 3
+    maxSize: 3
+    minSize: 3
