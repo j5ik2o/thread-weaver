@@ -145,7 +145,7 @@ class: impact
 - Member
     - 当該Threadの利用者
 ]
-.center[<img src="images/domain-class-diagram.png" width="80%">]
+.center[<img src="images/domain-models.svg" width="80%">]
 
 ---
 
@@ -153,14 +153,18 @@ class: impact
 
 ThreadEventのサブ型
 
-- ThreadCreated
-- ThreadDestroyed
-- AdministratorIdsJoined
-- AdministratorIdsLeft
-- MemberIdsJoined
-- MemberIdsLeft
-- MessagesAdded 
-- MessagesRemoved
+- スレッドの追加/削除
+    - ThreadCreated
+    - ThreadDestroyed
+- 管理者の追加/削除    
+    - AdministratorIdsJoined
+    - AdministratorIdsLeft
+- メンバーの追加/削除
+    - MemberIdsJoined
+    - MemberIdsLeft
+- メッセージの追加/削除
+    - MessagesAdded 
+    - MessagesRemoved
 
 ---
 
@@ -182,6 +186,37 @@ ThreadEventのサブ型
 .center[<img src="images/clean-architecture.jpeg" width="100%">]
 ]
 
+---
+
+# プロジェクト構成
+
+.center[
+<object type="image/svg+xml" data="images/modules.svg" width="900"></object>
+]
+
+---
+
+```scala
+trait Thread {
+
+  def isAdministratorId(accountId: AccountId): Boolean
+  def isMemberId(accountId: AccountId): Boolean
+
+  def joinAdministratorIds(value: AdministratorIds, senderId: AccountId, at: Instant): Result[Thread]
+  def leaveAdministratorIds(value: AdministratorIds, senderId: AccountId, at: Instant): Result[Thread]
+  def getAdministratorIds(senderId: AccountId): Result[AdministratorIds]
+
+  def joinMemberIds(value: MemberIds, senderId: AccountId, at: Instant): Result[Thread]
+  def leaveMemberIds(value: MemberIds, senderId: AccountId, at: Instant): Result[Thread]
+  def getMemberIds(senderId: AccountId): Result[MemberIds]
+
+  def addMessages(values: Messages, at: Instant): Result[Thread]
+  def removeMessages(values: MessageIds, removerId: AccountId, at: Instant): Result[(Thread, MessageIds)]
+  def getMessages(senderId: AccountId): Result[Messages]
+
+  def destroy(senderId: AccountId, at: Instant): Result[Thread]
+}
+```
 ---
 
 # Kubernetes/EKSを学ぶ

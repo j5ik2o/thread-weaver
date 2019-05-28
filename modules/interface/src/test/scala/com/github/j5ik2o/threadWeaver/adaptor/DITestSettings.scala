@@ -5,9 +5,9 @@ import akka.actor.typed.ActorSystem
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.stream.Materializer
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol.{
-  ThreadActorRefOfCommand,
-  ThreadActorRefOfMessage,
-  ThreadReadModelUpdaterRef
+  ThreadActorRefOfCommandTypeRef,
+  ThreadActorRefOfMessageTypeRef,
+  ThreadReadModelUpdaterTypeRef
 }
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.{
   PersistentThreadAggregate,
@@ -25,7 +25,7 @@ object DITestSettings extends DISettings {
 
   private[adaptor] def designOfLocalReadModelUpdater: Design =
     newDesign
-      .bind[ThreadReadModelUpdaterRef].toProvider[ActorSystem[Nothing], ReadJournalType, JdbcProfile, JdbcProfile#Backend#Database] {
+      .bind[ThreadReadModelUpdaterTypeRef].toProvider[ActorSystem[Nothing], ReadJournalType, JdbcProfile, JdbcProfile#Backend#Database] {
         (actorSystem, readJournal, profile, db) =>
           actorSystem.toUntyped.spawn(
             new ThreadReadModelUpdater(readJournal, profile, db).behavior(),
@@ -35,7 +35,7 @@ object DITestSettings extends DISettings {
 
   private[adaptor] def designOfLocalAggregatesWithPersistence: Design =
     newDesign
-      .bind[ThreadActorRefOfCommand].toProvider[ActorSystem[Nothing], ThreadActorRefOfMessage] {
+      .bind[ThreadActorRefOfCommandTypeRef].toProvider[ActorSystem[Nothing], ThreadActorRefOfMessageTypeRef] {
         (actorSystem, subscriber) =>
           actorSystem.toUntyped.spawn(
             ThreadAggregates.behavior(Seq(subscriber), ThreadAggregate.name)(PersistentThreadAggregate.behavior),
@@ -45,7 +45,7 @@ object DITestSettings extends DISettings {
 
   private[adaptor] def designOfLocalAggregatesWithoutPersistence: Design =
     newDesign
-      .bind[ThreadActorRefOfCommand].toProvider[ActorSystem[Nothing], ThreadActorRefOfMessage] {
+      .bind[ThreadActorRefOfCommandTypeRef].toProvider[ActorSystem[Nothing], ThreadActorRefOfMessageTypeRef] {
         (actorSystem, subscriber) =>
           actorSystem.toUntyped.spawn(
             ThreadAggregates.behavior(Seq(subscriber), ThreadAggregate.name)(ThreadAggregate.behavior),

@@ -1,20 +1,15 @@
 package com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater
-
 import java.time.Instant
 
 import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
-import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
 import akka.persistence.query.PersistenceQuery
 import akka.persistence.query.journal.leveldb.scaladsl.LeveldbReadJournal
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.{ PersistenceCleanup, ThreadCommonProtocol }
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol.Started
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol._
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.{
-  PersistentThreadAggregate,
-  ThreadProtocol,
-  TypedActorSpecSupport
-}
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.PersistenceCleanup
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.{ PersistentThreadAggregate, TypedActorSpecSupport }
 import com.github.j5ik2o.threadWeaver.adaptor.dao.jdbc.ThreadMessageComponent
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdaterProtocol.Start
 import com.github.j5ik2o.threadWeaver.adaptor.util.{ FlywayWithMySQLSpecSupport, Slick3SpecSupport }
@@ -56,8 +51,6 @@ class ThreadReadModelUpdaterOnLevelDBSpec
     with FlywayWithMySQLSpecSupport
     with Slick3SpecSupport {
 
-  override def typedSystem: ActorSystem[Nothing] = system
-
   override implicit def patienceConfig: PatienceConfig =
     PatienceConfig(timeout = scaled(Span(60, Seconds)), interval = scaled(Span(1, Seconds)))
 
@@ -66,13 +59,13 @@ class ThreadReadModelUpdaterOnLevelDBSpec
   var readJournal: LeveldbReadJournal = _
 
   override def beforeAll: Unit = {
-    deleteStorageLocations()
+    deleteStorageLocations(system.toUntyped)
     super.beforeAll()
     readJournal = PersistenceQuery(system.toUntyped).readJournalFor[LeveldbReadJournal](LeveldbReadJournal.Identifier)
   }
 
   override def afterAll: Unit = {
-    deleteStorageLocations()
+    deleteStorageLocations(system.toUntyped)
     super.afterAll()
   }
 
@@ -96,8 +89,8 @@ class ThreadReadModelUpdaterOnLevelDBSpec
         }
       }
 
-      val subscriber = spawn(Behaviors.receiveMessagePartial[ThreadProtocol.Message] {
-        case Started(_, tid, _, _) =>
+      val subscriber = spawn(Behaviors.receiveMessagePartial[ThreadCommonProtocol.Message] {
+        case Started(_, tid, _) =>
           tmc.trmuRef ! Start(ULID(), tid, Instant.now)
           Behaviors.same
       })

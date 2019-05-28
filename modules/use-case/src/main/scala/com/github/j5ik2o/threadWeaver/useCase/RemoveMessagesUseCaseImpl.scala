@@ -19,7 +19,7 @@ import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
 
 class RemoveMessagesUseCaseImpl(
-    threadAggregates: ThreadActorRefOfCommand,
+    threadAggregates: ThreadActorRefOfCommandTypeRef,
     parallelism: Int = 1,
     timeout: Timeout = 3 seconds
 )(

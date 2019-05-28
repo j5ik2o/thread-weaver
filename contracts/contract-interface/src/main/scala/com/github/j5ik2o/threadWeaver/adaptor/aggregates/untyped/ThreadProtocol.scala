@@ -2,25 +2,23 @@ package com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped
 
 import java.time.Instant
 
-import akka.actor.typed.ActorRef
-import cats.Id
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol._
+import akka.actor.ActorRef
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol.Event
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
 import com.github.j5ik2o.threadWeaver.domain.model.threads._
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 
 object ThreadProtocol {
-  sealed trait Message
-  sealed trait Event extends Message {
-    def id: ULID
-    def threadId: ThreadId
-    def createdAt: Instant
-  }
+
+  type ThreadReadModelUpdaterUntypeRef  = ActorRef
+  type ThreadActorRefOfMessageUntypeRef = ActorRef
+  type ThreadActorRefOfCommandUntypeRef = ActorRef
 
   trait ToCommandRequest { this: Event =>
     def toCommandRequest: CommandRequest
   }
-  sealed trait CommandMessage extends Message {
+  sealed trait CommandMessage extends ThreadCommonProtocol.Message {
     def id: ULID
     def threadId: ThreadId
     def createAt: Instant
@@ -76,16 +74,18 @@ object ThreadProtocol {
   ) extends Event
       with ToCommandRequest {
     override def toCommandRequest: CommandRequest =
-      CreateThread(ULID(),
-                   threadId,
-                   creatorId,
-                   parentThreadId,
-                   title,
-                   remarks,
-                   administratorIds,
-                   memberIds,
-                   createdAt,
-                   reply = false)
+      CreateThread(
+        ULID(),
+        threadId,
+        creatorId,
+        parentThreadId,
+        title,
+        remarks,
+        administratorIds,
+        memberIds,
+        createdAt,
+        reply = false
+      )
   }
 
   // --- スレッドの存在確認
@@ -422,4 +422,5 @@ object ThreadProtocol {
   ) extends GetMessagesResponse
   final case class GetMessagesFailed(id: ULID, requestId: ULID, threadId: ThreadId, message: String, createAt: Instant)
       extends GetMessagesResponse
+
 }

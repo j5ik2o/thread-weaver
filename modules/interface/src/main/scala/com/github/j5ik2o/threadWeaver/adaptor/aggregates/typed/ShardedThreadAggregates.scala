@@ -4,7 +4,8 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ ActorRef, Behavior }
 import akka.cluster.sharding.typed.ShardingEnvelope
 import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, Entity, EntityContext, EntityTypeKey }
-import ThreadProtocol.{ CommandRequest, Idle, Message, Stop }
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol.{ CommandRequest, Idle, Stop }
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -14,7 +15,7 @@ object ShardedThreadAggregates {
 
   private def behavior(
       receiveTimeout: FiniteDuration,
-      subscribers: Seq[ActorRef[Message]]
+      subscribers: Seq[ActorRef[ThreadCommonProtocol.Message]]
   ): EntityContext => Behavior[CommandRequest] = { entityContext =>
     Behaviors.setup[CommandRequest] { ctx =>
       val childRef = ctx.spawn(
@@ -38,7 +39,7 @@ object ShardedThreadAggregates {
   def initEntityActor(
       clusterSharding: ClusterSharding,
       receiveTimeout: FiniteDuration,
-      subscribers: Seq[ActorRef[Message]]
+      subscribers: Seq[ActorRef[ThreadCommonProtocol.Message]]
   ): ActorRef[ShardingEnvelope[CommandRequest]] =
     clusterSharding.init(
       Entity(typeKey = ShardedThreadAggregates.TypeKey, createBehavior = behavior(receiveTimeout, subscribers))

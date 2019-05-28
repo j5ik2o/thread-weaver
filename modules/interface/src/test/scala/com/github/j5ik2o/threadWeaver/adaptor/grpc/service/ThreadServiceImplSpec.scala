@@ -1,8 +1,7 @@
 package com.github.j5ik2o.threadWeaver.adaptor.grpc.service
-
 import java.time.Instant
 
-import akka.actor.{ typed, ActorSystem }
+import akka.actor.ActorSystem
 import akka.testkit.TestKit
 import com.github.j5ik2o.threadWeaver.adaptor.DISettings
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.PersistenceCleanup
@@ -14,8 +13,8 @@ import com.github.j5ik2o.threadWeaver.adaptor.util.{
 }
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 import com.typesafe.config.ConfigFactory
-import org.scalatest.{ FreeSpecLike, Matchers }
 import org.scalatest.concurrent.Eventually
+import org.scalatest.{ FreeSpecLike, Matchers }
 import wvlet.airframe.Design
 
 class ThreadServiceImplSpec
@@ -54,8 +53,6 @@ class ThreadServiceImplSpec
     with PersistenceCleanup
     with Matchers {
 
-  override def typedSystem: typed.ActorSystem[Nothing] = typedActorSystem
-
   override val tables: Seq[String] = Seq.empty
 
   var threadCommandService: ThreadCommandService = _
@@ -64,7 +61,7 @@ class ThreadServiceImplSpec
   override def design: Design = super.design.add(DISettings.designOfSlick(dbConfig.profile, dbConfig.db))
 
   override def beforeAll: Unit = {
-    deleteStorageLocations()
+    deleteStorageLocations(system)
     super.beforeAll()
     threadCommandService = session.build[ThreadCommandService]
     threadQueryService = session.build[ThreadQueryService]

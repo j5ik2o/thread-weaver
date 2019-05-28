@@ -4,12 +4,14 @@ import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.adapter._
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.stream.Materializer
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol.{
-  ThreadActorRefOfCommand,
-  ThreadActorRefOfMessage,
-  ThreadReadModelUpdaterRef
-}
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ShardedThreadAggregatesProxy
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol.{
+  ThreadActorRefOfCommandTypeRef,
+  ThreadActorRefOfMessageTypeRef,
+  ThreadReadModelUpdaterTypeRef
+}
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ShardedThreadAggregatesRegion
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ThreadProtocol.ThreadActorRefOfCommandUntypeRef
 import com.github.j5ik2o.threadWeaver.adaptor.grpc.service.{
   ThreadCommandService,
   ThreadCommandServiceImpl,
@@ -84,11 +86,11 @@ trait DISettings {
       clusterSharding: ClusterSharding
   ): Design = {
     newDesign
-      .bind[ThreadReadModelUpdaterRef].toProvider[ActorSystem[Nothing], ReadJournalType, JdbcProfile, JdbcProfile#Backend#Database] {
+      .bind[ThreadReadModelUpdaterTypeRef].toProvider[ActorSystem[Nothing], ReadJournalType, JdbcProfile, JdbcProfile#Backend#Database] {
         (actorSystem, readJournal, profile, db) =>
           actorSystem.toUntyped.spawn(
             new ShardedThreadReadModelUpdaterProxy(readJournal, profile, db).behavior(clusterSharding, 30 seconds),
-            name = "sharded-thread-rmu-proxy"
+            name = "sharded-thread-rmu-proxy-typed"
           )
       }
   }
@@ -97,21 +99,26 @@ trait DISettings {
       clusterSharding: ClusterSharding
   ): Design =
     newDesign
-      .bind[ThreadActorRefOfCommand].toProvider[ActorSystem[Nothing], ThreadActorRefOfMessage] {
+      .bind[ThreadActorRefOfCommandTypeRef].toProvider[ActorSystem[Nothing], ThreadActorRefOfMessageTypeRef] {
         (actorSystem, subscriber) =>
           actorSystem.toUntyped.spawn(
             ShardedThreadAggregatesProxy.behavior(clusterSharding, 30 seconds, Seq(subscriber)),
-            name = "sharded-threads-proxy"
+            name = "sharded-threads-proxy-typed"
           )
+      }
+      .bind[ThreadActorRefOfCommandUntypeRef].toProvider[ActorSystem[Nothing], ThreadActorRefOfMessageTypeRef] {
+        (actorSystem, subscribers) =>
+          ShardedThreadAggregatesRegion.startClusterSharding(Seq(subscribers.toUntyped))(actorSystem.toUntyped)
       }
 
   private[adaptor] def designOfMessageRouters: Design =
     newDesign
-      .bind[ThreadActorRefOfMessage].toProvider[ActorSystem[Nothing], ThreadReadModelUpdaterRef] { (actorSystem, ref) =>
-        actorSystem.toUntyped.spawn(
-          AggregateToRMU.behavior(ref),
-          name = "router"
-        )
+      .bind[ThreadActorRefOfMessageTypeRef].toProvider[ActorSystem[Nothing], ThreadReadModelUpdaterTypeRef] {
+        (actorSystem, ref) =>
+          actorSystem.toUntyped.spawn(
+            AggregateToRMU.behavior(ref),
+            name = "router"
+          )
       }
 
   def design(

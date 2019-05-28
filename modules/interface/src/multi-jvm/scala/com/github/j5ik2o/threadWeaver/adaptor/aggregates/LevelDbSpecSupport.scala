@@ -30,13 +30,13 @@ trait LevelDbSpecSupport extends MultiNodeSpecCallbacks with FreeSpecLike with M
     enterBarrier(from.name + "-joined")
   }
 
-  override protected def atStartup() {
+  override protected def atStartup(): Unit = {
     runOn(controller) {
       storageLocations.foreach(dir => FileUtils.deleteDirectory(dir))
     }
   }
 
-  override protected def afterTermination() {
+  override protected def afterTermination(): Unit = {
     runOn(controller) {
       storageLocations.foreach(dir => FileUtils.deleteDirectory(dir))
     }

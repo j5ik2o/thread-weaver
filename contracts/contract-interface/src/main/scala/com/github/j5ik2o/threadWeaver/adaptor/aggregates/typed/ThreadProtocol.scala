@@ -4,6 +4,8 @@ import java.time.Instant
 
 import akka.actor.typed.ActorRef
 import cats.Id
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol.Event
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdaterProtocol
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
 import com.github.j5ik2o.threadWeaver.domain.model.threads._
@@ -11,21 +13,14 @@ import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 
 object ThreadProtocol {
 
-  type ThreadReadModelUpdaterRef = ActorRef[ThreadReadModelUpdaterProtocol.CommandRequest]
-  type ThreadActorRefOfMessage   = ActorRef[ThreadProtocol.Message]
-  type ThreadActorRefOfCommand   = ActorRef[ThreadProtocol.CommandRequest]
-
-  sealed trait Message
-  sealed trait Event extends Message {
-    def id: ULID
-    def threadId: ThreadId
-    def createdAt: Instant
-  }
+  type ThreadReadModelUpdaterTypeRef  = ActorRef[ThreadReadModelUpdaterProtocol.CommandRequest]
+  type ThreadActorRefOfMessageTypeRef = ActorRef[ThreadCommonProtocol.Message]
+  type ThreadActorRefOfCommandTypeRef = ActorRef[ThreadProtocol.CommandRequest]
 
   trait ToCommandRequest { this: Event =>
     def toCommandRequest: CommandRequest
   }
-  sealed trait CommandMessage extends Message {
+  sealed trait CommandMessage extends ThreadCommonProtocol.Message {
     def id: ULID
     def threadId: ThreadId
     def createAt: Instant
@@ -49,27 +44,6 @@ object ThreadProtocol {
   }
   trait CommandSuccessResponse extends CommandResponse
   trait CommandFailureResponse extends CommandResponse
-
-//  final case class AddSubscribers(
-//      id: ULID,
-//      threadId: ThreadId,
-//      senderId: AccountId,
-//      subscribers: Seq[ActorRef[Message]],
-//      createAt: Instant
-//  ) extends CommandRequest
-//      with ToEvent {
-//    override def toEvent: Event = SubscribersAdded(ULID(), threadId, senderId, subscribers, createAt)
-//  }
-//  final case class SubscribersAdded(
-//      id: ULID,
-//      threadId: ThreadId,
-//      senderId: AccountId,
-//      subscribers: Seq[ActorRef[Message]],
-//      createdAt: Instant
-//  ) extends Event
-//      with ToCommandRequest {
-//    override def toCommandRequest: CommandRequest = AddSubscribers(ULID(), threadId, senderId, subscribers, createdAt)
-//  }
 
   // --- スレッドの生成
   final case class CreateThread(
@@ -501,9 +475,5 @@ object ThreadProtocol {
     override def senderId: AccountId = throw new UnsupportedOperationException
     override def createAt: Instant   = throw new UnsupportedOperationException
   }
-
-  case class Started(id: ULID, threadId: ThreadId, createdAt: Instant, sender: ActorRef[Nothing]) extends Event
-
-  case class Stopped(id: ULID, threadId: ThreadId, createdAt: Instant, sender: ActorRef[Nothing]) extends Event
 
 }

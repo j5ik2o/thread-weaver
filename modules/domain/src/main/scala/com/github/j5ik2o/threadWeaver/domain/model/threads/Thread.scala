@@ -4,12 +4,61 @@ import java.time.Instant
 
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
 import cats.implicits._
+import com.github.j5ik2o.threadWeaver.domain.model.threads.Thread.Result
 
 object Thread {
+  type Result[A] = Either[Exception, A]
   val MessagesLimit = 5000
+
+  def apply(
+      id: ThreadId,
+      creatorId: AccountId,
+      parentThreadId: Option[ThreadId],
+      title: ThreadTitle,
+      remarks: Option[ThreadRemarks],
+      administratorIds: AdministratorIds,
+      memberIds: MemberIds,
+      messages: Messages,
+      createdAt: Instant,
+      updatedAt: Instant,
+      removedAt: Option[Instant] = None
+  ): Thread =
+    ThreadImpl(
+      id,
+      creatorId,
+      parentThreadId,
+      title,
+      remarks,
+      administratorIds,
+      memberIds,
+      messages,
+      createdAt,
+      updatedAt,
+      removedAt
+    )
 }
 
-final case class Thread(
+trait Thread {
+
+  def isAdministratorId(accountId: AccountId): Boolean
+  def isMemberId(accountId: AccountId): Boolean
+
+  def joinAdministratorIds(value: AdministratorIds, senderId: AccountId, at: Instant): Result[Thread]
+  def leaveAdministratorIds(value: AdministratorIds, senderId: AccountId, at: Instant): Result[Thread]
+  def getAdministratorIds(senderId: AccountId): Result[AdministratorIds]
+
+  def joinMemberIds(value: MemberIds, senderId: AccountId, at: Instant): Result[Thread]
+  def leaveMemberIds(value: MemberIds, senderId: AccountId, at: Instant): Result[Thread]
+  def getMemberIds(senderId: AccountId): Result[MemberIds]
+
+  def addMessages(values: Messages, at: Instant): Result[Thread]
+  def removeMessages(values: MessageIds, removerId: AccountId, at: Instant): Result[(Thread, MessageIds)]
+  def getMessages(senderId: AccountId): Result[Messages]
+
+  def destroy(senderId: AccountId, at: Instant): Result[Thread]
+}
+
+final case class ThreadImpl(
     id: ThreadId,
     creatorId: AccountId,
     parentThreadId: Option[ThreadId],
@@ -21,20 +70,24 @@ final case class Thread(
     createdAt: Instant,
     updatedAt: Instant,
     removedAt: Option[Instant] = None
-) {
+) extends Thread {
 
   private def isRemoved: Boolean =
     removedAt.fold(false) { rat =>
       Instant.now.isAfter(rat)
     }
 
-  def isAdministratorId(accountId: AccountId): Boolean =
+  override def isAdministratorId(accountId: AccountId): Boolean =
     administratorIds.contains(accountId)
 
-  def isMemberId(accountId: AccountId): Boolean =
+  override def isMemberId(accountId: AccountId): Boolean =
     memberIds.contains(accountId) || administratorIds.contains(accountId)
 
-  def joinAdministratorIds(value: AdministratorIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
+  override def joinAdministratorIds(
+      value: AdministratorIds,
+      senderId: AccountId,
+      at: Instant
+  ): Either[Exception, Thread] = {
     if (isRemoved)
       Left(new IllegalStateException("already removed thread"))
     else if (!isAdministratorId(senderId))
@@ -43,7 +96,11 @@ final case class Thread(
       Right(copy(administratorIds = administratorIds combine value, updatedAt = at))
   }
 
-  def leaveAdministratorIds(value: AdministratorIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
+  override def leaveAdministratorIds(
+      value: AdministratorIds,
+      senderId: AccountId,
+      at: Instant
+  ): Either[Exception, Thread] = {
     if (isRemoved)
       Left(new IllegalStateException("already removed thread"))
     else if (!isAdministratorId(senderId))
@@ -54,7 +111,7 @@ final case class Thread(
       }
   }
 
-  def getAdministratorIds(senderId: AccountId): Either[Exception, AdministratorIds] = {
+  override def getAdministratorIds(senderId: AccountId): Either[Exception, AdministratorIds] = {
     if (isRemoved)
       Left(new IllegalStateException("already removed the thread"))
     else if (!isMemberId(senderId))
@@ -63,7 +120,7 @@ final case class Thread(
       Right(administratorIds)
   }
 
-  def joinMemberIds(value: MemberIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
+  override def joinMemberIds(value: MemberIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
     if (isRemoved)
       Left(new IllegalStateException("already removed the thread"))
     else if (!isAdministratorId(senderId))
@@ -72,7 +129,7 @@ final case class Thread(
       Right(copy(memberIds = memberIds combine value, updatedAt = at))
   }
 
-  def leaveMemberIds(value: MemberIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
+  override def leaveMemberIds(value: MemberIds, senderId: AccountId, at: Instant): Either[Exception, Thread] = {
     if (isRemoved)
       Left(new IllegalStateException("already removed the thread"))
     else if (!isAdministratorId(senderId))
@@ -81,7 +138,7 @@ final case class Thread(
       Right(copy(memberIds = memberIds.filterNot(value), updatedAt = at))
   }
 
-  def getMemberIds(senderId: AccountId): Either[Exception, MemberIds] = {
+  override def getMemberIds(senderId: AccountId): Either[Exception, MemberIds] = {
     if (isRemoved)
       Left(new IllegalStateException("already removed the thread"))
     else if (!isMemberId(senderId))
@@ -90,7 +147,7 @@ final case class Thread(
       Right(memberIds)
   }
 
-  def addMessages(values: Messages, at: Instant): Either[Exception, Thread] = {
+  override def addMessages(values: Messages, at: Instant): Either[Exception, Thread] = {
     if (isRemoved)
       Left(new IllegalStateException("already removed the thread"))
     else if (!values.forall(v => isMemberId(v.senderId)))
@@ -101,7 +158,11 @@ final case class Thread(
       Right(copy(messages = messages combine values, updatedAt = at))
   }
 
-  def removeMessages(values: MessageIds, removerId: AccountId, at: Instant): Either[Exception, (Thread, MessageIds)] = {
+  override def removeMessages(
+      values: MessageIds,
+      removerId: AccountId,
+      at: Instant
+  ): Either[Exception, (Thread, MessageIds)] = {
     if (isRemoved)
       Left(new IllegalStateException("already removed the thread"))
     else if (!isMemberId(removerId))
@@ -117,7 +178,7 @@ final case class Thread(
     }
   }
 
-  def getMessages(senderId: AccountId): Either[Exception, Messages] = {
+  override def getMessages(senderId: AccountId): Either[Exception, Messages] = {
     if (isRemoved)
       Left(new IllegalStateException("already removed the thread"))
     else if (!isMemberId(senderId))
@@ -126,7 +187,7 @@ final case class Thread(
       Right(messages)
   }
 
-  def destroy(senderId: AccountId, at: Instant): Either[Exception, Thread] = {
+  override def destroy(senderId: AccountId, at: Instant): Either[Exception, Thread] = {
     if (isRemoved)
       Left(new IllegalStateException("already removed the thread"))
     else if (!isAdministratorId(senderId))

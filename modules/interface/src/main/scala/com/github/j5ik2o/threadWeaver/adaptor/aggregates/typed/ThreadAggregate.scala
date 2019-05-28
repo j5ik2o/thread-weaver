@@ -4,14 +4,18 @@ import java.time.Instant
 
 import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors }
 import akka.actor.typed.{ ActorRef, Behavior, PostStop, Signal }
-import ThreadProtocol._
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol.{ Started, Stopped }
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol._
 import com.github.j5ik2o.threadWeaver.domain.model.threads.{ Messages, Thread, ThreadId }
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 
-class ThreadAggregate(context: ActorContext[CommandRequest])(id: ThreadId, subscribers: Seq[ActorRef[Message]])
-    extends AbstractBehavior[CommandRequest] {
+class ThreadAggregate(context: ActorContext[CommandRequest])(
+    id: ThreadId,
+    subscribers: Seq[ActorRef[ThreadCommonProtocol.Message]]
+) extends AbstractBehavior[CommandRequest] {
 
-  subscribers.foreach(_ ! Started(ULID(), id, Instant.now, context.self))
+  subscribers.foreach(_ ! Started(ULID(), id, Instant.now))
 
   override def onMessage(msg: CommandRequest): Behavior[CommandRequest] = msg match {
     case ExistsThread(requestId, threadId, _, createAt, replyTo) if threadId == id =>
@@ -53,7 +57,7 @@ class ThreadAggregate(context: ActorContext[CommandRequest])(id: ThreadId, subsc
 
   override def onSignal: PartialFunction[Signal, Behavior[CommandRequest]] = {
     case PostStop =>
-      subscribers.foreach(_ ! Stopped(ULID(), id, Instant.now, context.self))
+      subscribers.foreach(_ ! Stopped(ULID(), id, Instant.now))
       Behaviors.same
   }
 
@@ -214,7 +218,7 @@ object ThreadAggregate {
 
   def name(id: ThreadId): String = s"thread-${id.value.asString}"
 
-  def behavior(id: ThreadId, subscribers: Seq[ActorRef[Message]]): Behavior[CommandRequest] =
+  def behavior(id: ThreadId, subscribers: Seq[ActorRef[ThreadCommonProtocol.Message]]): Behavior[CommandRequest] =
     Behaviors.setup[CommandRequest] { ctx =>
       new ThreadAggregate(ctx)(id, subscribers)
     }
