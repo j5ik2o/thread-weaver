@@ -7,12 +7,14 @@ import akka.actor.typed.{ ActorRef, Behavior, PostStop }
 import akka.persistence.typed.scaladsl.{ Effect, EventSourcedBehavior }
 import akka.persistence.typed.{ PersistenceId, RecoveryCompleted }
 import ThreadProtocol._
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol.{ Started, Stopped }
 import com.github.j5ik2o.threadWeaver.domain.model.threads.{ Messages, Thread, ThreadId }
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 
 object PersistentThreadAggregate {
 
-  private val commandHandler: (State, CommandRequest) => Effect[Event, State] = {
+  private val commandHandler: (State, CommandRequest) => Effect[ThreadCommonProtocol.Event, State] = {
     case (State(None, _), c @ CreateThread(cmdId, threadId, _, _, _, _, _, _, createAt, replyTo)) =>
       Effect.persist(c.toEvent).thenRun { _ =>
         replyTo.foreach(_ ! CreateThreadSucceeded(ULID(), cmdId, threadId, createAt))
@@ -157,7 +159,7 @@ object PersistentThreadAggregate {
 
   }
 
-  private val eventHandler: (State, Event) => State = {
+  private val eventHandler: (State, ThreadCommonProtocol.Event) => State = {
     case (s @ State(None, _), e: ThreadCreated) =>
       s.applyState(
         Thread(
@@ -200,26 +202,27 @@ object PersistentThreadAggregate {
 
   }
 
-  def behavior(id: ThreadId, subscribers: Seq[ActorRef[Message]]): Behavior[CommandRequest] =
+  def behavior(id: ThreadId, subscribers: Seq[ActorRef[ThreadCommonProtocol.Message]]): Behavior[CommandRequest] =
     Behaviors.setup[CommandRequest] { ctx =>
-      subscribers.foreach(_ ! Started(ULID(), id, Instant.now, ctx.self))
+      subscribers.foreach(_ ! Started(ULID(), id, Instant.now))
 
-      EventSourcedBehavior[CommandRequest, Event, State](
+      EventSourcedBehavior[CommandRequest, ThreadCommonProtocol.Event, State](
         persistenceId = PersistenceId(id.value.asString),
         emptyState = State(None, subscribers),
         commandHandler,
         eventHandler
       ).receiveSignal {
         case (_, PostStop) =>
-          subscribers.foreach(_ ! Stopped(ULID(), id, Instant.now, ctx.self))
+          subscribers.foreach(_ ! Stopped(ULID(), id, Instant.now))
         case (_, RecoveryCompleted) =>
           ctx.log.info("recovery completed")
 
       }
     }
 
-  case class State(thread: Option[Thread], subscribers: Seq[ActorRef[Message]]) {
+  case class State(thread: Option[Thread], subscribers: Seq[ActorRef[ThreadCommonProtocol.Message]]) {
     def applyState(value: Thread): State = copy(thread = Some(value))
+
   }
 
 }

@@ -20,7 +20,7 @@ import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
 
 private[useCase] class AddMessagesUseCaseImpl(
-    threadAggregates: ThreadActorRefOfCommand,
+    threadAggregates: ThreadActorRefOfCommandTypeRef,
     parallelism: Int = 1,
     timeout: Timeout = 3 seconds
 )(

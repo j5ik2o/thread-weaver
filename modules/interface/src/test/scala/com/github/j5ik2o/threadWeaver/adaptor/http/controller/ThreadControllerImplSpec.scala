@@ -2,8 +2,6 @@ package com.github.j5ik2o.threadWeaver.adaptor.http.controller
 
 import java.time.Instant
 
-import akka.actor.typed.ActorSystem
-import akka.actor.typed.scaladsl.adapter._
 import akka.http.scaladsl.model._
 import com.github.j5ik2o.threadWeaver.adaptor.DISettings
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.PersistenceCleanup
@@ -28,8 +26,6 @@ class ThreadControllerImplSpec
     with Slick3SpecSupport
     with RouteSpec
     with PersistenceCleanup {
-
-  override def typedSystem: ActorSystem[Nothing] = system.toTyped
 
   override def testConfigSource: String =
     """
@@ -60,7 +56,7 @@ class ThreadControllerImplSpec
   override def design: Design = super.design.add(DISettings.designOfSlick(dbConfig.profile, dbConfig.db))
 
   override def beforeAll(): Unit = {
-    deleteStorageLocations()
+    deleteStorageLocations(system)
     super.beforeAll()
     commandController = session.build[ThreadCommandController]
     queryController = session.build[ThreadQueryController]

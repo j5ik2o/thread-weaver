@@ -30,9 +30,9 @@ trait DynamoDbSpecSupport
     enterBarrier(from.name + "-joined")
   }
 
-  override protected def atStartup() {}
+  override protected def atStartup(): Unit = {}
 
-  override protected def afterTermination() {
+  override protected def afterTermination(): Unit = {
     runOn(controller) {
       shutdownDynamoDBLocal()
     }

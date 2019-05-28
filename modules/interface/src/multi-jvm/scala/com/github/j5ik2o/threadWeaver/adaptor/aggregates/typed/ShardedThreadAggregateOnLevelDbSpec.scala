@@ -1,4 +1,4 @@
-package com.github.j5ik2o.threadWeaver.adaptor.aggregates
+package com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed
 
 import java.time.Instant
 
@@ -17,7 +17,7 @@ import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol.{
   CreateThreadResponse,
   CreateThreadSucceeded
 }
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ShardedThreadAggregates
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.{ DynamoDbConfig, LevelDbConfig, LevelDbSpecSupport }
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
 import com.github.j5ik2o.threadWeaver.domain.model.threads.{ AdministratorIds, MemberIds, ThreadId, ThreadTitle }
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID

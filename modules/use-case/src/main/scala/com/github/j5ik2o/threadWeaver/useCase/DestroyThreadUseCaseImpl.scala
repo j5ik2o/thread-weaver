@@ -19,7 +19,7 @@ import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
 
 class DestroyThreadUseCaseImpl(
-    threadAggregates: ThreadActorRefOfCommand,
+    threadAggregates: ThreadActorRefOfCommandTypeRef,
     parallelism: Int = 1,
     timeout: Timeout = 3 seconds
 )(

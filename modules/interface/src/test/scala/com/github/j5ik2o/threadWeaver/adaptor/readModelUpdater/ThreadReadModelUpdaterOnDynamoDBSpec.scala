@@ -7,11 +7,12 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
 import akka.persistence.query.PersistenceQuery
 import com.github.j5ik2o.akka.persistence.dynamodb.query.scaladsl.DynamoDBReadJournal
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol.Started
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol._
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.{
   PersistentThreadAggregate,
   PersistentThreadAggregateOnDynamoDBSpec,
-  ThreadProtocol,
   TypedActorSpecSupport
 }
 import com.github.j5ik2o.threadWeaver.adaptor.dao.jdbc.ThreadMessageComponent
@@ -114,8 +115,8 @@ class ThreadReadModelUpdaterOnDynamoDBSpec
         }
       }
 
-      val subscriber = spawn(Behaviors.receiveMessagePartial[ThreadProtocol.Message] {
-        case Started(_, tid, _, _) =>
+      val subscriber = spawn(Behaviors.receiveMessagePartial[ThreadCommonProtocol.Message] {
+        case Started(_, tid, _) =>
           tmc.trmuRef ! Start(ULID(), tid, Instant.now)
           Behaviors.same
       })

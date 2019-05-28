@@ -1,0 +1,22 @@
+@startuml
+[modules/infrastructure]
+
+[modules/domain] -right-> [modules/infrastructure]
+[modules/use-case] -right-> [modules/infrastructure]
+[modules/interface] -right-> [modules/infrastructure]
+[applications/api-server] -right-> [modules/infrastructure]
+
+[modules/use-case] .up.> [contracts/contract-use-case]
+[modules/use-case] .up.> [contracts/contract-interface]
+[modules/use-case] -up-> [modules/domain]
+[modules/interface] -up-> [modules/domain]
+[applications/api-server] -up-> [modules/domain]
+[contracts/contract-interface] .up.> [contracts/contract-use-case]
+[contracts/contract-interface] .up.> [contracts/contract-http-proto-interface]
+[modules/interface] .up.> [contracts/contract-interface]
+[modules/interface] -up-> [modules/use-case]
+[applications/api-server] -up-> [modules/interface]
+[modules/api-client] .up.> [contracts/contract-http-proto-interface]
+
+
+@enduml

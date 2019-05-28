@@ -10,12 +10,8 @@ import akka.persistence.query.scaladsl._
 import akka.stream.scaladsl.{ Flow, Keep, RestartSource, Sink, Source }
 import akka.stream.typed.scaladsl.ActorMaterializer
 import akka.stream.{ Attributes, KillSwitch, KillSwitches }
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol.{
-  CommandRequest => _,
-  Message => _,
-  Stop => _,
-  _
-}
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol.{ CommandRequest => _, Stop => _, _ }
 import com.github.j5ik2o.threadWeaver.adaptor.dao.jdbc.{
   ThreadAdministratorIdsComponent,
   ThreadComponent,
@@ -89,7 +85,10 @@ class ThreadReadModelUpdater(
     onFinish = Attributes.LogLevels.Info
   )
 
-  type Handler = PartialFunction[(Long, Event), DBIOAction[Unit, NoStream, Effect.Write with Effect.Transactional]]
+  type Handler = PartialFunction[
+    (Long, ThreadCommonProtocol.Event),
+    DBIOAction[Unit, NoStream, Effect.Write with Effect.Transactional]
+  ]
 
   private def forLifecycle(threadId: ThreadId): Handler = {
     case (
@@ -159,7 +158,7 @@ class ThreadReadModelUpdater(
   ): Flow[EventEnvelope, DBIOAction[Unit, NoStream, Effect.Write with Effect.Transactional], NotUsed] =
     Flow[EventEnvelope]
       .map { ee =>
-        (ee.sequenceNr, ee.event.asInstanceOf[Event])
+        (ee.sequenceNr, ee.event.asInstanceOf[ThreadCommonProtocol.Event])
       }.map {
         forLifecycle(threadId)
           .orElse(forAdministrator(threadId)).orElse(forMember(threadId)).orElse(forMessage(threadId))

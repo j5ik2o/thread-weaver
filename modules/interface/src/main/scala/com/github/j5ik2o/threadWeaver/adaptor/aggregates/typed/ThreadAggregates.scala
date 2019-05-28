@@ -2,7 +2,8 @@ package com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed
 
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ ActorRef, Behavior }
-import ThreadProtocol.{ CommandRequest, Message }
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol.CommandRequest
 import com.github.j5ik2o.threadWeaver.domain.model.threads.ThreadId
 
 object ThreadAggregates {
@@ -10,9 +11,11 @@ object ThreadAggregates {
   val name = "threads"
 
   def behavior(
-      subscribers: Seq[ActorRef[Message]],
+      subscribers: Seq[ActorRef[ThreadCommonProtocol.Message]],
       name: ThreadId => String
-  )(behaviorF: (ThreadId, Seq[ActorRef[Message]]) => Behavior[CommandRequest]): Behavior[CommandRequest] = {
+  )(
+      behaviorF: (ThreadId, Seq[ActorRef[ThreadCommonProtocol.Message]]) => Behavior[CommandRequest]
+  ): Behavior[CommandRequest] = {
     Behaviors.setup { ctx =>
       def createAndSend(threadId: ThreadId): ActorRef[CommandRequest] = {
         ctx.child(name(threadId)) match {

@@ -1,11 +1,10 @@
 package com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed
 
 import java.time.Instant
-
+import akka.actor.typed.scaladsl.adapter._
 import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
-import akka.actor.typed.ActorSystem
-import ThreadProtocol._
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.PersistenceCleanup
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol._
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
 import com.github.j5ik2o.threadWeaver.domain.model.threads._
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
@@ -34,15 +33,13 @@ class PersistentThreadAggregateOnLevelDBSpec
     with TypedActorSpecSupport
     with PersistenceCleanup {
 
-  override def typedSystem: ActorSystem[Nothing] = system
-
   override protected def beforeAll(): Unit = {
-    deleteStorageLocations()
+    deleteStorageLocations(system.toUntyped)
     super.beforeAll()
   }
 
   override protected def afterAll(): Unit = {
-    deleteStorageLocations()
+    deleteStorageLocations(system.toUntyped)
     super.afterAll()
   }
 
