@@ -1,0 +1,27 @@
+@startuml
+
+class Thread<Domain object>
+
+class ThreadAggregate<Actor> {
+  val state: Thread
+}
+
+class PersistentThreadAggregate<PersistentActor> {
+  val childRef: ActorRef
+}
+
+
+class ThreadAggregates<Actor, MessageBroker> {
+  val childRef: ActorRef
+}
+
+class ShardedThreadAggregates<Actor, ClusterSharding>{
+}
+
+ShardedThreadAggregates -right-|> ThreadAggregates: <<extends>>
+ThreadAggregate .down.> Thread: <<use>>
+PersistentThreadAggregate .down.> ThreadAggregate: <<use>>
+ThreadAggregates .down.> PersistentThreadAggregate: <<use>>
+
+
+@enduml

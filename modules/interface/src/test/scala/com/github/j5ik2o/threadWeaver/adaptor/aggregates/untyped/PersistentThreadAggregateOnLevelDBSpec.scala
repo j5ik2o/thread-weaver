@@ -54,7 +54,7 @@ class PersistentThreadAggregateOnLevelDBSpec
         AdministratorIds(administratorId),
         MemberIds.empty,
         now,
-        true
+        reply = true
       )
 
       expectMsgType[CreateThreadResponse] match {
@@ -73,7 +73,7 @@ class PersistentThreadAggregateOnLevelDBSpec
         administratorId,
         MemberIds(memberId),
         now,
-        true
+        reply = true
       )
 
       expectMsgType[JoinMemberIdsResponse] match {
@@ -90,7 +90,7 @@ class PersistentThreadAggregateOnLevelDBSpec
         threadId,
         messages,
         now,
-        true
+        reply = true
       )
 
       expectMsgType[AddMessagesResponse] match {
