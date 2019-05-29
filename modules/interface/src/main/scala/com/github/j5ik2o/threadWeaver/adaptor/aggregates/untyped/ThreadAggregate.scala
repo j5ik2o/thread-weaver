@@ -174,8 +174,6 @@ class ThreadAggregate(id: ThreadId, subscribers: Seq[ActorRef]) extends Actor {
   }
 
   override def receive: Receive = {
-    case ExistsThread(requestId, threadId, _, createAt) if threadId == id =>
-      sender() ! ExistsThreadSucceeded(ULID(), requestId, threadId, exists = false, createAt)
     case CreateThread(
         requestId,
         threadId,
@@ -209,5 +207,7 @@ class ThreadAggregate(id: ThreadId, subscribers: Seq[ActorRef]) extends Actor {
     case DestroyThread(requestId, threadId, _, createAt, replyTo) if threadId == id =>
       if (replyTo)
         sender() ! DestroyThreadFailed(ULID(), requestId, threadId, "Not created yet", createAt)
+    case ExistsThread(requestId, threadId, _, createAt) if threadId == id =>
+      sender() ! ExistsThreadSucceeded(ULID(), requestId, threadId, exists = false, createAt)
   }
 }

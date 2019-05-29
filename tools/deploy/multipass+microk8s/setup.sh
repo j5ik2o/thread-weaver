@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 # https://qiita.com/mumoshu/items/6ff56badcfabe5ab1f49
 # https://nnao45.hatenadiary.com/entry/2018/12/20/085706
 
@@ -50,7 +52,7 @@ multipass launch --name ${VM_NAME} --mem ${MEM} --disk ${DISK} --cpus ${CPUS}
 sleep 1
 install_microk8s
 install_kubectl
-# install_docker
+install_docker
 
 do_exec '/snap/bin/microk8s.config' > ./microk8s-kubeconfig
 
