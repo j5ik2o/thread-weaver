@@ -61,6 +61,11 @@ layout: true
 Akka
 ]
 
+???
+今回のアジェンダはこのとおりです。
+まずAkkaでのEventSourcingのやりかたについて
+そのあとはEKSへのデプロイについて話します。
+
 ---
 class: impact
 
@@ -73,11 +78,18 @@ class: impact
 - The latest state is derived by the events
 - For example, transactions such as the e-commerce are sourced on events. This is nothing special.
 - An event sequence represents an immutable history.
-  - The transaction makes the following unique corrections. Events are never modified or deleted.
+    - The transaction makes the following unique corrections. Events are never modified or deleted.
     - The order #0001 is canceled at the #0700, and the corrected data is registered at the slip #0701.
   
 .center[<img src="images/real-events.png" width="80%">]
 
+???
+- イベントソーシングとは何か？
+- 最新状態をイベントによって導出することです。そのためにできることはすべて定義に入ります。
+- たとえば、Eコマースにおける取引はイベントを基にしています。これは特別なことではありません。
+- あるイベント列はある不変な歴史を表します
+  - 取引は以下のユニークな訂正を行います。イベントは決して変更されたり削除されたりしません(イベントを巻き上げる以外は)
+  - 注文 1番を700番でキャンセルし、701番で修正データを登録します 
 
 ---
 
@@ -85,7 +97,7 @@ class: impact
 
 .col-6[
 - Events that occurred in the past
-- Domain Events are events that a domain expert is interested in
+- Domain Events are events that domain experts is interested in
 - Generally, Domain Events is expressed as a verb in past tense
   - CustomerRelocated
   - CargoShipped
@@ -97,11 +109,20 @@ class: impact
 ]  
 .center[<img src="images/event-stream.png" width="80%">]
 
+???
+EventSourcingはイベントをモデリングの主軸に起きます。つまりドメインで起こる過去の出来事にフォーカスします。
+ドメインイベントはドメインエキスパートが関心を持つ出来事です。一般にドメインイベントは動詞の過去形で表現されます。
+たとえば、顧客の引越や貨物の出荷など
+
 ---
 class: impact
 
 # Consider thread-weaver 
 # as an example of a simple chat application.
+
+???
+ここからは論よりコード。シンプルなチャットアプリケーションの事例として
+thread-weaverという架空プロジェクトで話しを進めます。
 
 ---
 
@@ -112,6 +133,16 @@ class: impact
 - Only members can post to threads
 - Only text messages posted to threads
 - Omit authentication and authorization for convenience
+
+???
+システム要件について
+チャットはチャットメッセージをサーバとクライアントの間でやりとりできるようにします。
+APIサーバはAPIクライアントからのコマンドとクエリを受け付けます
+チャットを開始するためにスレッドを作ります。
+スレッドに投稿できるのはメンバーだけです。
+スレッドにはテキストメッセージをポストできます。
+便宜上、認証・認可は省きます
+
 ---
 
 # System Configuration
@@ -121,19 +152,31 @@ class: impact
 ]
 
 .col-6[
-- Split commands and queries
+- Split the application into the command stack and the query stack
 - The command is sent to (clustered sharding) aggregate actor
-- The aggregate actor appends and stores domain events in storage when it accepts a command
+- The aggregate actor stores(appends) domain events in storage when it accepts a command
 - RMU(cluster sharding ) starts up in conjunction with the aggregation actor and reads the domain events for the appropriate aggregate ID immediately after startup, executes the SQL, and creates the Read-Model
-- Query uses DAO to load and return the lead model
+- Query using DAO to load and return the lead model
 - Deploy the api-server as a kubernetes pod
 ]
+
+???
+システム構成です。
+- アプリケーションをコマンドスタックとクエリスタックに分割します
+- コマンドはクラスターシャーディングされた集約アクターに送信されます
+- 集約アクターはコマンドを受け付けるとストレージにドメインイベントを書き込みます
+- RMU（クラスタ共有）は集約アクタと連携して起動し、起動直後に適切な集約IDのドメインイベントを読み取り、SQLを実行してRead-Modelを作成します
+- DAOを使用してリードモデルをロードして返します
+- api-serverをkubernetesポッドとしてデプロイします。
 
 ---
 
 class: impact
 
-# Command side
+# Command stack side
+
+???
+それでは詳細にコマンド側をみていきましょう
 
 
 ---
@@ -146,7 +189,7 @@ class: impact
 - Thread
     - Indicates a place to exchange Messages
 - Message
-    - A story written in some language言
+    - A hearsay written in some language
 ]
 .col-6[
 - Administrator
@@ -156,9 +199,21 @@ class: impact
 ]
 .center[<img src="images/domain-models.svg" width="80%">]
 
+???
+- アカウント
+  - システムのユーザーを識別するアカウント情報
+- スレッド
+  - メッセージを交換する場所を示します
+- メッセージ
+  - ある言語で書かれた伝聞
+- 管理者
+  - スレッドの管理者
+- メンバー
+  - スレッドのユーザ
+
 ---
 
-# Domain Events
+# Commands/Domain Events
 
 ThreadEvent sub types
 
@@ -174,6 +229,13 @@ ThreadEvent sub types
 - Add/Remove Messages
     - MessagesAdded 
     - MessagesRemoved
+
+???
+コマンドとドメインイベントについて。
+以下のような命令に対応して、ドメインイベントが発生します。
+ドメインイベントにフォーカスすると振る舞いとしてのコマンドが見えます。
+これをそのままドメインの振る舞いとして実装しましょう。
+管理者IDをINSERTしたりDELETEしたりというCUDの言葉より、JoinやLeaveという動詞を使う方が貧血症を回避できるでしょう。
 
 ---
 
@@ -195,6 +257,13 @@ ThreadEvent sub types
 .center[<img src="images/clean-architecture.jpeg" width="100%">]
 ]
 
+???
+ドメインを隔離するために、なんらかのレイヤー化アーキテクチャを使いましょう。
+ここではクリーンアーキテクチャを採用しています。詳しい話は 藤井さんの実践 Clean Architecture のセッションを聞いてみてください。
+共通のレイヤーはインターフェイスアダプタ層とインフラストラクチャ層です。
+コマンドサイドはドメイン層とユースケース層です。
+クエリサイドは非正規データにアクセスするためのDAOとそのストリームラッパーがあります。
+
 ---
 
 # Projects structure
@@ -202,6 +271,10 @@ ThreadEvent sub types
 .center[
 <object type="image/svg+xml" data="images/modules.svg" width="900"></object>
 ]
+
+???
+プロジェクト構造はこのようになります。contractsというモジュールはプロトコルと契約としてのインターフェイスのみを定義しています。
+modulesというものは、実装が含まれます。依存の方向性は循環しないようになっています。
 
 ---
 
@@ -216,6 +289,11 @@ ThreadEvent sub types
 - Actors that fulfill all the functions are undesirable
 - Follow object-oriented principles to build a hierarchy of actors with a single responsibility
 ]
+
+???
+次にドメインオブジェクトとアクターの関係性を示した図を説明します。
+まずはじめにすべての機能を満たすアクターは必要ありません。
+オブジェクト指向の原則に従って、単一の責任でアクターの階層を構築しましょう
 
 ---
 
@@ -242,9 +320,10 @@ trait Thread {
   def destroy(senderId: AccountId, at: Instant): Result[Thread]
 }
 ```
-.bottom-bar[
-Threadモデルをアクターの状態として扱う 
-]
+
+???
+- 今回のドメインのコアはThreadです。
+- ユビキタス言語で表現される振る舞いのセットが定義されています。これらは副作用のない関数です。
 ---
 
 # ThreadAggregate
@@ -282,6 +361,13 @@ class ThreadAggregate(id: ThreadId,
 - If the other commands defined in the protocol are received by the Actor, the Actor will have corresponding side effects.
 ]
 
+???
+- トランザクションの整合性をサポートするアクター
+- データ更新の境界は、集計値の境界と同じです。
+- たとえば、アクターがCreateTheadコマンドを受け取ると、内部でThread状態が生成されます。
+- その後、AddMessagesコマンドを受信したときにメッセージもスレッドに追加されます。
+- プロトコルで定義された他のコマンドがアクターによって受信された場合、アクターは対応する副作用を持ちます。
+
 ---
 
 # ThreadAggreateSpec
@@ -297,7 +383,7 @@ val title           = ThreadTitle("test")
 threadRef ! CreateThread(ULID(), threadId, administratorId, 
   None, title, None, AdministratorIds(administratorId),
   MemberIds.empty, now, reply = false)
-      
+
 val messages = Messages(TextMessage(MessageId(), None, 
   ToAccountIds.empty, Text("ABC"), memberId, now, now))
 threadRef ! AddMessages(ULID(), threadId, messages, 
@@ -312,9 +398,9 @@ expectMsgType[AddMessagesResponse] match {
 }
 ```
 ]
-.col-6[
-- 
-]
+
+???
+- このようにメッセージパッシングを使ってテストを実装します
 
 ---
 
@@ -351,10 +437,15 @@ class PersistentThreadAggregate(id: ThreadId,
 ```
 ]
 .col-6[
-- Actors that add persistence to ThreadAggregate
+- Actors that add the persistence function to ThreadAggregate
 - Domain behavior is provided by child actors
 - The recover process sends commands generated from events to child actors.
 ]
+
+???
+- ThreadAggregateに永続化機能を追加するアクターです
+- ドメインの振る舞いは子アクターによって提供されます
+- receiveRecover処理は、ドメインイベントから生成されたコマンドを子アクターに送信します
 
 ---
 
@@ -395,28 +486,33 @@ class PersistentThreadAggregate(id: ThreadId,
 - message processing is suspended until a command response is returned
 ]
 
+???
+- コマンドを受信したとき、子アクターに委譲します
+- そのコマンドの応答が返されるまで、メッセージ処理は一時停止されます。
+
 ---
 
-# Replaying PersitentThreadAggregate
+# PersitentThreadAggregateSpec
 
 .col-8[
 ```scala
+// Create id = 1 of Thread actor
 threadRef1 ! CreateThread(ULID(), threadId, administratorId, None, title, None, 
   AdministratorIds(administratorId), MemberIds.empty, now, reply = false)
 val messages = Messages(TextMessage(MessageId(), None, 
   ToAccountIds.empty, Text("ABC"), memberId, now, now))
 threadRef1 ! AddMessages(ULID(), threadId, messages, now, reply = false)
 
-//Stop the actorる
+//Stop id = 1 of Thread actor
 killActors(threadRef)
 
-// Recovery
+// Recover id = 1 of Thread actor
 val threadRef2 = system.actorOf(PersistentThreadAggregate.props(threadId, Seq.empty))
 
 // Check if it is in the previous state
 threadRef2 ! GetMessages(ULID(), threadId, memberId, now)
 expectMsgType[GetMessagesResponse] match {
-  case f: GetMessagesFailed =4
+  case f: GetMessagesFailed =>
     fail(f.message)
   case s: GetMessagesSucceeded =>
     s.threadId shouldBe threadId
@@ -429,9 +525,49 @@ expectMsgType[GetMessagesResponse] match {
 - a test that intentionally stops and restarts the persistence actor
 - Replayed state after reboot
 ]
+
+???
+- 永続化アクターを意図的に停止して再起動するテスト
+- 再起動後に状態をリプレイできます
+
+
+---
+
+# ThreadAggregates(Message Broker)
+
+.col-6[
+```scala
+class ThreadAggregates(subscribers: Seq[ActorRef], 
+    propsF: (ThreadId, Seq[ActorRef]) => Props)
+    extends Actor
+    with ActorLogging
+    with ChildActorLookup {
+  override type ID             = ThreadId
+  override type CommandRequest = ThreadProtocol.CommandMessage
+  
+  override def receive: Receive = forwardToActor
+
+  override protected def childName(childId: ThreadId): String = childId.value.asString
+  override protected def childProps(childId: ThreadId): Props = propsF(childId, subscribers)
+  override protected def toChildId(commandRequest: ThreadProtocol.CommandMessage): ThreadId = commandRequest.threadId
+}
+```
+]
+.col-6[
+- The message broker that bundles multiple ThreadAggregates as child actors 
+- Most of the logic is in ChildActorLookup
+- Resolve the actor name from ThreadId in the command message, and transfer the message to the corresponding child actor.  If there is no child actor, generate an actor and then forward the message to the actor
+]
+
+???
+- 複数のThreadAggregateを子アクターとして束ねるメッセージブローカー
+- ほとんどのロジックはChildActorLookupにあります
+- コマンドメッセージ内のThreadIdからアクター名を解決し、対応づく子アクターにメッセージを転送します。子アクターがいない場合は子アクターを生成してからメッセージを転送します。
+
 ---
 
 # ChildActorLookup
+
 .col-8[
 ```scala
 trait ChildActorLookup extends ActorLogging { this: Actor =>
@@ -466,37 +602,6 @@ trait ChildActorLookup extends ActorLogging { this: Actor =>
 - Create a child actor if none exists and forward the message
 - forward the message to its child actors, if any
 ]
----
-
-# ThreadAggregates(Message Broker)
-
-```scala
-object ThreadAggregates {
-
-  val name = "threads"
-
-  def props(subscribers: Seq[ActorRef], propsF: (ThreadId, Seq[ActorRef]) => Props): Props =
-    Props(new ThreadAggregates(subscribers, propsF))
-
-}
-
-class ThreadAggregates(subscribers: Seq[ActorRef], propsF: (ThreadId, Seq[ActorRef]) => Props)
-    extends Actor
-    with ActorLogging
-    with ChildActorLookup {
-  override def receive: Receive = forwardToActor
-
-  override type ID             = ThreadId
-  override type CommandRequest = ThreadProtocol.CommandMessage
-
-  override protected def childName(childId: ThreadId): String = childId.value.asString
-
-  override protected def childProps(childId: ThreadId): Props = propsF(childId, subscribers)
-
-  override protected def toChildId(commandRequest: ThreadProtocol.CommandMessage): ThreadId = commandRequest.threadId
-}
-```
-
 ---
 
 # ShardedThreadAggregates (1/2)
