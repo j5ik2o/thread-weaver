@@ -1,4 +1,4 @@
-package com.github.j5ik2o.threadWeaver.useCase
+package com.github.j5ik2o.threadWeaver.useCase.typed
 
 import akka.NotUsed
 import akka.actor.Scheduler
@@ -8,50 +8,46 @@ import akka.stream.scaladsl.Flow
 import akka.util.Timeout
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol._
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
+import com.github.j5ik2o.threadWeaver.useCase.LeaveAdministratorIdsUseCase
 import com.github.j5ik2o.threadWeaver.useCase.ThreadWeaverProtocol.{
-  CreateThread => UCreateThread,
-  CreateThreadFailed => UCreateThreadFailed,
-  CreateThreadResponse => UCreateThreadResponse,
-  CreateThreadSucceeded => UCreateThreadSucceeded
+  LeaveAdministratorIds => ULeaveAdministratorIds,
+  LeaveAdministratorIdsFailed => ULeaveAdministratorIdsFailed,
+  LeaveAdministratorIdsResponse => ULeaveAdministratorIdsResponse,
+  LeaveAdministratorIdsSucceeded => ULeaveAdministratorIdsSucceeded
 }
 
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
 
-private[useCase] class CreateThreadUseCaseImpl(
+class LeaveAdministratorIdsUseCaseTypeImpl(
     threadAggregates: ThreadActorRefOfCommandTypeRef,
     parallelism: Int = 1,
     timeout: Timeout = 3 seconds
 )(
     implicit system: ActorSystem[Nothing]
-) extends CreateThreadUseCase {
+) extends LeaveAdministratorIdsUseCase {
 
-  override def execute: Flow[UCreateThread, UCreateThreadResponse, NotUsed] = {
-    Flow[UCreateThread].mapAsync(parallelism) { request =>
+  override def execute: Flow[ULeaveAdministratorIds, ULeaveAdministratorIdsResponse, NotUsed] =
+    Flow[ULeaveAdministratorIds].mapAsync(parallelism) { request =>
       implicit val to: Timeout                  = timeout
       implicit val scheduler: Scheduler         = system.scheduler
       implicit val ec: ExecutionContextExecutor = system.executionContext
       threadAggregates
-        .ask[CreateThreadResponse] { ref =>
-          CreateThread(
+        .ask[LeaveAdministratorIdsResponse] { ref =>
+          LeaveAdministratorIds(
             ULID(),
             request.threadId,
-            request.creatorId,
-            None,
-            request.title,
-            request.remarks,
+            request.removerId,
             request.administratorIds,
-            request.memberIds,
             request.createAt,
             Some(ref)
           )
         }.map {
-          case v: CreateThreadSucceeded =>
-            UCreateThreadSucceeded(v.id, v.requestId, v.threadId, v.createAt)
-          case v: CreateThreadFailed =>
-            UCreateThreadFailed(v.id, v.requestId, v.threadId, v.message, v.createAt)
+          case v: LeaveAdministratorIdsSucceeded =>
+            ULeaveAdministratorIdsSucceeded(v.id, v.requestId, v.threadId, v.createAt)
+          case v: LeaveAdministratorIdsFailed =>
+            ULeaveAdministratorIdsFailed(v.id, v.requestId, v.threadId, v.message, v.createAt)
         }
     }
-  }
 
 }

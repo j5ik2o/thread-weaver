@@ -1,4 +1,4 @@
-package com.github.j5ik2o.threadWeaver.useCase
+package com.github.j5ik2o.threadWeaver.useCase.typed
 
 import akka.NotUsed
 import akka.actor.Scheduler
@@ -9,6 +9,7 @@ import akka.util.Timeout
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol._
 import com.github.j5ik2o.threadWeaver.domain.model.threads._
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
+import com.github.j5ik2o.threadWeaver.useCase.AddMessagesUseCase
 import com.github.j5ik2o.threadWeaver.useCase.ThreadWeaverProtocol.{
   AddMessages => UAddMessages,
   AddMessagesFailed => UAddMessagesFailed,
@@ -19,7 +20,7 @@ import com.github.j5ik2o.threadWeaver.useCase.ThreadWeaverProtocol.{
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
 
-private[useCase] class AddMessagesUseCaseImpl(
+private[useCase] class AddMessagesUseCaseTypeImpl(
     threadAggregates: ThreadActorRefOfCommandTypeRef,
     parallelism: Int = 1,
     timeout: Timeout = 3 seconds

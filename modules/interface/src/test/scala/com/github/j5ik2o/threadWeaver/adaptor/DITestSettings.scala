@@ -1,5 +1,5 @@
 package com.github.j5ik2o.threadWeaver.adaptor
-
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.ActorSystem
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
@@ -14,6 +14,7 @@ import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.{
   ThreadAggregate,
   ThreadAggregates
 }
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ThreadProtocol.ThreadActorRefOfCommandUntypeRef
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdater
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdater.ReadJournalType
 import slick.jdbc.JdbcProfile
@@ -42,6 +43,12 @@ object DITestSettings extends DISettings {
             name = "local-threads-aggregates-with-persistence"
           )
       }
+      .bind[ThreadActorRefOfCommandUntypeRef].toProvider[ActorSystem[Nothing], ThreadActorRefOfMessageTypeRef] {
+        (actorSystem, subscribers) =>
+          actorSystem.toUntyped.actorOf(
+            untyped.ThreadAggregates.props(Seq(subscribers.toUntyped), untyped.PersistentThreadAggregate.props)
+          )
+      }
 
   private[adaptor] def designOfLocalAggregatesWithoutPersistence: Design =
     newDesign
@@ -50,6 +57,12 @@ object DITestSettings extends DISettings {
           actorSystem.toUntyped.spawn(
             ThreadAggregates.behavior(Seq(subscriber), ThreadAggregate.name)(ThreadAggregate.behavior),
             name = "local-threads-aggregates-without-persistence"
+          )
+      }
+      .bind[ThreadActorRefOfCommandUntypeRef].toProvider[ActorSystem[Nothing], ThreadActorRefOfMessageTypeRef] {
+        (actorSystem, subscribers) =>
+          actorSystem.toUntyped.actorOf(
+            untyped.ThreadAggregates.props(Seq(subscribers.toUntyped), untyped.ThreadAggregate.props)
           )
       }
 

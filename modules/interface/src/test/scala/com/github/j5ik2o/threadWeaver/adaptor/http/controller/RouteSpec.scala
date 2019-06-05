@@ -36,7 +36,7 @@ trait RouteSpec extends ScalatestRouteTest with Matchers with BeforeAndAfterAll 
 
   def design: Design =
     com.github.j5ik2o.threadWeaver.useCase.DISettings
-      .design(3 seconds)
+      .designOfTyped(3 seconds)
       .add(DISettings.designOfActorSystem(system.toTyped, materializer))
       .add(
         DISettings.designOfReadJournal(
