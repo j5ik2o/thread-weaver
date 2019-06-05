@@ -133,7 +133,7 @@ trait DISettings {
       aggregateAskTimeout: FiniteDuration
   ): Design =
     com.github.j5ik2o.threadWeaver.useCase.DISettings
-      .design(aggregateAskTimeout)
+      .designOfUntyped(aggregateAskTimeout)
       .add(designOfSwagger(host, port))
       .add(designOfActorSystem(system, materializer))
       .add(designOfReadJournal(readJournal))

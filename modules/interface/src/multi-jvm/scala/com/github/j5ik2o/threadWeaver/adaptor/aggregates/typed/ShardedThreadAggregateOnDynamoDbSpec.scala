@@ -43,33 +43,34 @@ class ShardedThreadAggregateOnDynamoDbSpec
       runOn(controller) {
         startDynamoDBLocal()
       }
-      enterBarrier("start dynamo-db")
+      enterBarrier("wait dynamo-db")
       runOn(controller, node1, node2) {
         waitDynamoDBLocal()
       }
-      enterBarrier("wait dynamo-db")
+      enterBarrier("create tables on the dynamo-db")
       runOn(controller) {
         createJournalTable()
         createSnapshotTable()
       }
-      enterBarrier("wait creating table")
+      enterBarrier("wait creating tables")
     }
     "join cluster" in within(15 seconds) {
+      enterBarrier("join controller")
       join(controller, controller) {
         val clusterSharding = ClusterSharding(typedSystem)
         ShardedThreadAggregates.initEntityActor(clusterSharding, 1 hours, Seq.empty)
       }
-      enterBarrier("after-1")
+      enterBarrier("join node1")
       join(node1, controller) {
         clusterSharding1 = ClusterSharding(typedSystem)
         ShardedThreadAggregates.initEntityActor(clusterSharding1, 1 hours, Seq.empty)
       }
-      enterBarrier("after-2")
+      enterBarrier("join node2")
       join(node2, controller) {
         val clusterSharding = ClusterSharding(typedSystem)
         ShardedThreadAggregates.initEntityActor(clusterSharding, 1 hours, Seq.empty)
       }
-      enterBarrier("after-3")
+      enterBarrier("join all nodes to the cluster")
     }
     "createThread" in {
       runOn(node1) {
@@ -95,7 +96,7 @@ class ShardedThreadAggregateOnDynamoDbSpec
             s.threadId shouldBe threadId
         }
       }
-      enterBarrier("after-4")
+      enterBarrier("created thread")
     }
   }
 }

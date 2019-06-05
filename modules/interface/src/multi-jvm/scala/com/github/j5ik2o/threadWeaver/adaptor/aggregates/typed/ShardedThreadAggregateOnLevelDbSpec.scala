@@ -44,22 +44,24 @@ class ShardedThreadAggregateOnLevelDbSpec
       runOn(controller) {
         system.actorOf(Props[SharedLeveldbStore], "store")
       }
-      enterBarrier("persistence-started")
+      enterBarrier("persistence start")
       runOn(node1, node2) {
         system.actorSelection(node(controller) / "user" / "store") ! Identify(None)
         val sharedStore = expectMsgType[ActorIdentity].ref.get
         SharedLeveldbJournal.setStore(sharedStore, system)
       }
-      enterBarrier("after-1")
+      enterBarrier("persistence started")
     }
     "join cluster" in within(15 seconds) {
+      enterBarrier("join node1")
       join(node1, node1) {
         ShardedThreadAggregates.initEntityActor(ClusterSharding(typedSystem), 1 hours, Seq.empty)
       }
+      enterBarrier("join node2")
       join(node2, node1) {
         ShardedThreadAggregates.initEntityActor(ClusterSharding(typedSystem), 1 hours, Seq.empty)
       }
-      enterBarrier("after-2")
+      enterBarrier("join all nodes to the cluster")
     }
     "createThread" in {
       runOn(node1) {
@@ -86,7 +88,7 @@ class ShardedThreadAggregateOnLevelDbSpec
             s.threadId shouldBe threadId
         }
       }
-      enterBarrier("after-3")
+      enterBarrier("created thread")
     }
   }
 }

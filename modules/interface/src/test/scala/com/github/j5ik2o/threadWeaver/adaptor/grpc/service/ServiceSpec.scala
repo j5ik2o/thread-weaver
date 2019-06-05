@@ -25,7 +25,7 @@ trait ServiceSpec extends BeforeAndAfterAll {
 
   def design: Design =
     com.github.j5ik2o.threadWeaver.useCase.DISettings
-      .design(3 seconds)
+      .designOfTyped(3 seconds)
       .add(DISettings.designOfActorSystem(typedActorSystem, materializer))
       .add(
         DISettings.designOfReadJournal(
