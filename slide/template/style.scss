@@ -27,7 +27,7 @@ $iframe-scale     : 1.5;
 * { box-sizing: border-box; }
 body { font-family: $font; }
 h1, h2, h3, h4, h5, h6 {
-  margin: 0 0 $margin 0;
+  margin: 0 0 0.25em 0;
   font-family: $font-title;
 }
 h1 { color: $primary; }
@@ -35,6 +35,7 @@ h2 { color: $secondary; }
 h3 { color: $tertiary; }
 li { margin-bottom: .25em; };
 pre, code {
+  margin: 0;
   text-align: left;
   font-family: $font-fixed;
   color: $secondary;
@@ -65,7 +66,7 @@ blockquote {
   padding: 2em 2em;
   color: $text-dark;
   background-size: cover;
-  padding-top: 2em; 
+  padding-top: 2.5em; 
 }
 
 .remark-slide-number {
