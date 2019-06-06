@@ -6,6 +6,7 @@ import akka.stream.scaladsl.Sink
 import com.github.j5ik2o.threadWeaver.adaptor.das.ThreadDas
 import com.github.j5ik2o.threadWeaver.adaptor.http.directives.{ MetricsDirectives, ThreadValidateDirectives }
 import com.github.j5ik2o.threadWeaver.adaptor.http.json._
+import com.github.j5ik2o.threadWeaver.adaptor.http.presenter.{ ThreadMessagePresenter, ThreadPresenter }
 import com.github.j5ik2o.threadWeaver.adaptor.http.rejections.{ NotFoundRejection, RejectionHandlers }
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.generic.auto._
@@ -13,7 +14,9 @@ import wvlet.airframe._
 
 trait ThreadQueryControllerImpl extends ThreadQueryController with ThreadValidateDirectives with MetricsDirectives {
 
-  private val threadDas: ThreadDas = bind[ThreadDas]
+  private val threadDas: ThreadDas                           = bind[ThreadDas]
+  private val threadPresenter: ThreadPresenter               = bind[ThreadPresenter]
+  private val threadMessagePresenter: ThreadMessagePresenter = bind[ThreadMessagePresenter]
 
   override def toRoutes: Route = handleRejections(RejectionHandlers.default) {
     pathPrefix("v1") {
@@ -32,17 +35,8 @@ trait ThreadQueryControllerImpl extends ThreadQueryController with ThreadValidat
                   onSuccess(
                     threadDas
                       .getThreadByIdSource(accountId, threadId)
-                      .map { threadRecord =>
-                        ThreadJson(
-                          threadRecord.id,
-                          threadRecord.creatorId,
-                          threadRecord.parentId,
-                          threadRecord.title,
-                          threadRecord.remarks,
-                          threadRecord.createdAt.toEpochMilli,
-                          threadRecord.updatedAt.toEpochMilli
-                        )
-                      }.runWith(Sink.headOption[ThreadJson]).map(identity)
+                      .via(threadPresenter.response)
+                      .runWith(Sink.headOption[ThreadJson]).map(identity)
                   ) {
                     case None =>
                       reject(NotFoundRejection("thread is not found", None))
@@ -68,17 +62,8 @@ trait ThreadQueryControllerImpl extends ThreadQueryController with ThreadValidat
                   onSuccess(
                     threadDas
                       .getThreadsByAccountIdSource(accountId, offset, limit)
-                      .map { threadRecord =>
-                        ThreadJson(
-                          threadRecord.id,
-                          threadRecord.creatorId,
-                          threadRecord.parentId,
-                          threadRecord.title,
-                          threadRecord.remarks,
-                          threadRecord.createdAt.toEpochMilli,
-                          threadRecord.updatedAt.toEpochMilli
-                        )
-                      }.runWith(Sink.seq[ThreadJson]).map(_.toSeq)
+                      .via(threadPresenter.response)
+                      .runWith(Sink.seq[ThreadJson]).map(_.toSeq)
                   ) { response =>
                     complete(GetThreadsResponseJson(response))
                   }
@@ -153,17 +138,8 @@ trait ThreadQueryControllerImpl extends ThreadQueryController with ThreadValidat
                     onSuccess(
                       threadDas
                         .getMessagesByThreadIdSource(accountId, threadId, offset, limit)
-                        .map { messageRecord =>
-                          ThreadMessageJson(
-                            messageRecord.id,
-                            messageRecord.threadId,
-                            messageRecord.senderId,
-                            messageRecord.`type`,
-                            messageRecord.body,
-                            messageRecord.createdAt.toEpochMilli,
-                            messageRecord.updatedAt.toEpochMilli
-                          )
-                        }.runWith(Sink.seq[ThreadMessageJson]).map(_.toSeq)
+                        .via(threadMessagePresenter.response)
+                        .runWith(Sink.seq[ThreadMessageJson]).map(_.toSeq)
                     ) { response =>
                       complete(GetThreadMessagesResponseJson(response))
                     }

@@ -602,6 +602,10 @@ trait ChildActorLookup extends ActorLogging { this: Actor =>
 - Create a child actor if none exists and forward the message
 - forward the message to its child actors, if any
 ]
+
+???
+メッセージブローカはメッセージを転送しますが、内部で子アクターの生成も担当します。
+
 ---
 
 # ShardedThreadAggregates (1/2)
@@ -640,6 +644,12 @@ object ShardedThreadAggregates {
 - extractEntityId is the function to extract an entity id
 - extractShardId is the function to extract a shard id
 ]
+
+???
+-  ThreadAggregateをクラスタ全体に分散できるようにする
+-  extractEntityIdはエンティティIDを抽出するための関数です
+-  extractShardIdはシャードIDを抽出する関数です
+
 ---
 
 # ShardedThreadAggregates (2/2)
@@ -666,6 +676,10 @@ class ShardedThreadAggregates(subscribers: Seq[ActorRef],
 - Inherit ThreadAggregates
 - Then add an implementation to passivate ShardedThreadAggregates when occurred ReceiveTimeout 
 ]
+
+???
+- ShardedThreadAggregatesはThreadAggregatesを継承します
+- 一定時間を過ぎたらアクターをランタイムから退避させる設定を追加します
 
 ---
 
@@ -696,6 +710,12 @@ object ShardedThreadAggregatesRegion {
 - The startClusterSharing method will start ClusterSharing with the specified settings
 - The shardRegion method gets the ActorRef to the started ShardRegion.
 ]
+
+???
+最後にクラスターシャーディングのための設定を追加します。
+- startClusterSharingメソッドは指定した設定に基づいてクラスターシャーディングを開始します
+- shardRegionメソッドは開始されたShardRegionへのActor参照を返します
+
 ---
 
 # MultiJVM Testing
@@ -710,12 +730,12 @@ object ShardedThreadAggregatesRegion {
         val sharedStore = expectMsgType[ActorIdentity].ref.get
         SharedLeveldbJournal.setStore(sharedStore, system)
       }
-      enterBarrier("after-1")
+      enterBarrier("setup shared journal")
     }
     "join cluster" in within(15 seconds) {
       join(node1, node1) { ShardedThreadAggregatesRegion.startClusterSharding(Seq.empty) }
       join(node2, node1) { ShardedThreadAggregatesRegion.startClusterSharding(Seq.empty) }
-      enterBarrier("after-2")
+      enterBarrier("join cluster")
     }
     "createThread" in { runOn(node1) {
         val accountId = AccountId(); val threadId  = ThreadId(); val title = ThreadTitle("test")
@@ -724,9 +744,14 @@ object ShardedThreadAggregatesRegion {
           MemberIds.empty, Instant.now, reply = true)
         expectMsgType[CreateThreadSucceeded](10 seconds).threadId shouldBe threadId
       }
-      enterBarrier("after-3")
+      enterBarrier("create thread")
     }
 ```
+
+???
+これはMultiJVMテストの例です。
+akka-persistenceの初期化とクラスターメンバーのジョイン後に、スレッドを作成する処理を記述しています。
+ローカルアクターにメッセージを送信するとの同じようにRPCを実現します。これは非同期でかつノンブロッキングです。
 
 ---
 
@@ -738,12 +763,175 @@ object ShardedThreadAggregatesRegion {
 ]
 ]
 .col-4[
-- 状態をオンメモリに保持したアクターはクラスター上に分散されます
-- 発生したドメインイベントは、集約ID毎にパーティショニングされたストレージに追記保存されていきます
+- Actors with state in on-memory are distributed across the cluster
+- Domain events that occur are saved in partitioned storage by aggregate ID
 ]
 
+???
+cluster-shardingとpersistenceを振り返ります。
+- 状態をオンメモリに保持したアクターはクラスター上に分散されます
+- 発生したドメインイベントは、集約ID毎にパーティショニングされたストレージに追記保存されます
 
 ---
+
+# CreateThreadUseCaseUntypeImpl
+
+```scala
+class CreateThreadUseCaseUntypeImpl(
+    threadAggregates: ThreadActorRefOfCommandUntypeRef, parallelism: Int = 1, timeout: Timeout = 3 seconds
+)(implicit system: ActorSystem) extends CreateThreadUseCase {
+  override def execute: Flow[UCreateThread, UCreateThreadResponse, NotUsed] =
+    Flow[UCreateThread].mapAsync(parallelism) { request =>
+      implicit val to: Timeout                  = timeout
+      implicit val scheduler: Scheduler         = system.scheduler
+      implicit val ec: ExecutionContextExecutor = system.dispatcher
+      (threadAggregates ? CreateThread(
+        ULID(), request.threadId, request.creatorId, None, request.title, request.remarks,
+        request.administratorIds, request.memberIds, request.createAt, reply = true
+      )).mapTo[CreateThreadResponse].map {
+        case s: CreateThreadSucceeded =>
+          UCreateThreadSucceeded(s.id, s.requestId, s.threadId, s.createAt)
+        case f: CreateThreadFailed =>
+          UCreateThreadFailed(f.id, f.requestId, f.threadId, f.message, f.createAt)
+      }
+    }
+}
+```
+
+???
+より複雑なユースケースではワークフローを制御しますが、このユースケースでは単純にスレッド集約にコマンドを送信し応答を待ちます。
+また、プロトコルとしてのメッセージは変換します。
+
+---
+
+# ThreadCommandControllerImpl
+
+```scala
+trait ThreadCommandControllerImpl extends ThreadCommandController with ThreadValidateDirectives with MetricsDirectives {
+  private val createThreadUseCase: CreateThreadUseCase     = bind[CreateThreadUseCase]
+  private val createThreadPresenter: CreateThreadPresenter = bind[CreateThreadPresenter]
+
+  override private[controller] def createThread: Route =
+    path("threads" / "create") {
+      post {
+        extractMaterializer { implicit mat =>
+          entity(as[CreateThreadRequestJson]) { json =>
+            validateJsonRequest(json).apply { commandRequest =>
+              val responseFuture = Source
+                .single(commandRequest)
+                .via(createThreadUseCase.execute)
+                .via(createThreadPresenter.response)
+                .runWith(Sink.head)
+              onSuccess(responseFuture) { response =>
+                complete(response)
+              }
+            }
+          }
+        }
+      }
+    }
+```
+
+---
+
+# ThreadQueryControllerImpl
+
+```scala
+trait ThreadQueryControllerImpl extends ThreadQueryController with ThreadValidateDirectives with MetricsDirectives {
+  private val threadDas: ThreadDas = bind[ThreadDas]
+  // ...
+  override private[controller] def getThread: Route =
+    path("threads" / Segment) { threadIdString => get {
+        extractExecutionContext { implicit ec =>
+          extractMaterializer { implicit mat =>
+            validateThreadId(threadIdString) { threadId =>
+              parameter('account_id) { accountValue =>
+                validateAccountId(accountValue) { accountId =>
+                  onSuccess(threadDas.getThreadByIdSource(accountId, threadId)
+                    .via(threadPresenter.response)
+                    .runWith(Sink.headOption[ThreadJson]).map(identity)) { 
+                      case None => reject(NotFoundRejection("thread is not found", None))
+                      case Some(response) => complete(GetThreadResponseJson(response)) 
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  // ...
+}
+```
+
+---
+
+# Bootstrap
+
+```scala
+object Main extends App {
+
+  SLF4JBridgeHandler.install()
+
+  implicit val logger = LoggerFactory.getLogger(getClass)
+  val config: Config = ConfigFactory.load()
+
+  implicit val system: ActorSystem                        = ActorSystem("thread-weaver-api-server", config)
+  implicit val materializer: ActorMaterializer            = ActorMaterializer()
+  implicit val executionContext: ExecutionContextExecutor = system.dispatcher
+  implicit val cluster                                    = Cluster(system)
+  logger.info(s"Started [$system], cluster.selfAddress = ${cluster.selfAddress}")
+
+  AkkaManagement(system).start()
+  ClusterBootstrap(system).start()
+
+  cluster.subscribe(
+    system.actorOf(Props[ClusterWatcher]),
+    ClusterEvent.InitialStateAsEvents,
+    classOf[ClusterDomainEvent]
+  )
+
+  val readJournal = PersistenceQuery(system).readJournalFor[DynamoDBReadJournal](DynamoDBReadJournal.Identifier)
+  val dbConfig    = DatabaseConfig.forConfig[JdbcProfile]("slick", config)
+  val profile     = dbConfig.profile
+  val db          = dbConfig.db
+
+  val clusterSharding = ClusterSharding(system.toTyped)
+
+  val host = config.getString("thread-weaver.api-server.host")
+  val port = config.getInt("thread-weaver.api-server.http.port")
+
+  val akkaHealthCheck = HealthCheck.akka(host, port)
+
+  val design =
+    DISettings.design(host, port, system.toTyped, clusterSharding, materializer, readJournal, profile, db, 15 seconds)
+  val session = design.newSession
+  session.start
+
+  val routes = session
+      .build[Routes].root ~ readinessProbe(akkaHealthCheck).toRoute ~ livenessProbe(akkaHealthCheck).toRoute
+
+  val bindingFuture = Http().bindAndHandle(routes, host, port).map { serverBinding =>
+    system.log.info(s"Server online at ${serverBinding.localAddress}")
+    serverBinding
+  }
+
+  Cluster(system).registerOnMemberUp({
+    logger.info("Cluster member is up!")
+  })
+
+  sys.addShutdownHook {
+    session.shutdown
+    bindingFuture
+      .flatMap(_.unbind())
+      .onComplete(_ => system.terminate())
+  }
+
+}
+```
+
+---
+
 
 # Kubernetes/EKSを学ぶ
 

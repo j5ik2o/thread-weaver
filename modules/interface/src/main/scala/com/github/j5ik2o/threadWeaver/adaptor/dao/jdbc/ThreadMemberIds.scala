@@ -2,12 +2,13 @@ package com.github.j5ik2o.threadWeaver.adaptor.dao.jdbc
 
 import slick.lifted.ProvenShape
 import slick.lifted.PrimaryKey
+import com.github.j5ik2o.threadWeaver.adaptor.dao._
 
 trait ThreadMemberIdsComponent extends SlickDaoSupport {
 
   import profile.api._
 
-  case class ThreadMemberIdsRecord(
+  case class ThreadMemberIdsRecordImpl(
       id: String,
       threadId: String,
       accountId: String,
@@ -15,8 +16,9 @@ trait ThreadMemberIdsComponent extends SlickDaoSupport {
       createdAt: java.time.Instant,
       updatedAt: java.time.Instant
   ) extends Record
+      with ThreadMemberIdsRecord
 
-  case class ThreadMemberIdss(tag: Tag) extends TableBase[ThreadMemberIdsRecord](tag, "thread_member_ids") {
+  case class ThreadMemberIdss(tag: Tag) extends TableBase[ThreadMemberIdsRecordImpl](tag, "thread_member_ids") {
     def id: Rep[String]                   = column[String]("id")
     def threadId: Rep[String]             = column[String]("thread_id")
     def accountId: Rep[String]            = column[String]("account_id")
@@ -24,8 +26,8 @@ trait ThreadMemberIdsComponent extends SlickDaoSupport {
     def createdAt: Rep[java.time.Instant] = column[java.time.Instant]("created_at")
     def updatedAt: Rep[java.time.Instant] = column[java.time.Instant]("updated_at")
     def pk: PrimaryKey                    = primaryKey("pk", (id))
-    override def * : ProvenShape[ThreadMemberIdsRecord] =
-      (id, threadId, accountId, adderId, createdAt, updatedAt) <> (ThreadMemberIdsRecord.tupled, ThreadMemberIdsRecord.unapply)
+    override def * : ProvenShape[ThreadMemberIdsRecordImpl] =
+      (id, threadId, accountId, adderId, createdAt, updatedAt) <> (ThreadMemberIdsRecordImpl.tupled, ThreadMemberIdsRecordImpl.unapply)
   }
 
   object ThreadMemberIdsDao extends TableQuery(ThreadMemberIdss)
