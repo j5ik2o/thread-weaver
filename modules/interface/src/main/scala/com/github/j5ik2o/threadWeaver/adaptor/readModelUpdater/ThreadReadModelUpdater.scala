@@ -266,7 +266,7 @@ class ThreadReadModelUpdater(
       createdAt: Instant
   ): List[FixedSqlAction[Int, NoStream, Effect.Write]] = {
     messages.breachEncapsulationOfValues.map { message =>
-      ThreadMessageDao += ThreadMessageRecord(
+      ThreadMessageDao += ThreadMessageRecordImpl(
         id = message.id.value.asString,
         deleted = false,
         threadId = threadId.value.asString,
@@ -286,7 +286,7 @@ class ThreadReadModelUpdater(
       createdAt: Instant
   ): List[FixedSqlAction[Int, NoStream, Effect.Write]] = {
     memberIds.breachEncapsulationOfValues.map { accountId =>
-      ThreadMemberIdsDao += ThreadMemberIdsRecord(
+      ThreadMemberIdsDao += ThreadMemberIdsRecordImpl(
         id = ULID().asString,
         threadId = threadId.value.asString,
         accountId = accountId.value.asString,
@@ -316,7 +316,7 @@ class ThreadReadModelUpdater(
       createdAt: Instant
   ): List[FixedSqlAction[Int, NoStream, Effect.Write]] = {
     administratorIds.breachEncapsulationOfValues.map { accountId =>
-      ThreadAdministratorIdsDao += ThreadAdministratorIdsRecord(
+      ThreadAdministratorIdsDao += ThreadAdministratorIdsRecordImpl(
         id = ULID().asString,
         threadId = threadId.value.asString,
         accountId = accountId.value.asString,
@@ -348,7 +348,7 @@ class ThreadReadModelUpdater(
       remarks: Option[ThreadRemarks],
       createdAt: Instant
   ): FixedSqlAction[Int, NoStream, Effect.Write] = {
-    ThreadDao += ThreadRecord(
+    ThreadDao += ThreadRecordImpl(
       id = threadId.value.asString,
       deleted = false,
       sequenceNr = sequenceNr,

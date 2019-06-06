@@ -6,9 +6,9 @@ import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ThreadProtocol.
 import com.github.j5ik2o.threadWeaver.useCase.typed._
 import com.github.j5ik2o.threadWeaver.useCase.untyped._
 import wvlet.airframe._
-import akka.actor.typed.scaladsl.adapter._
 
 import scala.concurrent.duration._
+import akka.actor.{ ActorSystem => UntypedActorSystem }
 
 object DISettings {
 
@@ -18,44 +18,44 @@ object DISettings {
 
   def designOfUntyped(timeout: FiniteDuration): Design =
     newDesign
-      .bind[CreateThreadUseCase].toProvider[ThreadActorRefOfCommandUntypeRef, ActorSystem[Nothing]] {
+      .bind[CreateThreadUseCase].toProvider[ThreadActorRefOfCommandUntypeRef, UntypedActorSystem] {
         case (ref, actorSystem) =>
-          implicit val ac = actorSystem.toUntyped
+          implicit val ac = actorSystem
           new CreateThreadUseCaseUntypeImpl(ref, 1, timeout)
       }
-      .bind[DestroyThreadUseCase].toProvider[ThreadActorRefOfCommandUntypeRef, ActorSystem[Nothing]] {
+      .bind[DestroyThreadUseCase].toProvider[ThreadActorRefOfCommandUntypeRef, UntypedActorSystem] {
         case (ref, actorSystem) =>
-          implicit val ac = actorSystem.toUntyped
+          implicit val ac = actorSystem
           new DestroyThreadUseCaseUntypeImpl(ref, 1, timeout)
       }
-      .bind[JoinAdministratorIdsUseCase].toProvider[ThreadActorRefOfCommandUntypeRef, ActorSystem[Nothing]] {
+      .bind[JoinAdministratorIdsUseCase].toProvider[ThreadActorRefOfCommandUntypeRef, UntypedActorSystem] {
         case (ref, actorSystem) =>
-          implicit val ac = actorSystem.toUntyped
+          implicit val ac = actorSystem
           new JoinAdministratorIdsUseCaseUntypeImpl(ref, 1, timeout)
       }
-      .bind[LeaveAdministratorIdsUseCase].toProvider[ThreadActorRefOfCommandUntypeRef, ActorSystem[Nothing]] {
+      .bind[LeaveAdministratorIdsUseCase].toProvider[ThreadActorRefOfCommandUntypeRef, UntypedActorSystem] {
         case (ref, actorSystem) =>
-          implicit val ac = actorSystem.toUntyped
+          implicit val ac = actorSystem
           new LeaveAdministratorIdsUseCaseUntypeImpl(ref, 1, timeout)
       }
-      .bind[JoinMemberIdsUseCase].toProvider[ThreadActorRefOfCommandUntypeRef, ActorSystem[Nothing]] {
+      .bind[JoinMemberIdsUseCase].toProvider[ThreadActorRefOfCommandUntypeRef, UntypedActorSystem] {
         case (ref, actorSystem) =>
-          implicit val ac = actorSystem.toUntyped
+          implicit val ac = actorSystem
           new JoinMemberIdsUseCaseUntypeImpl(ref, 1, timeout)
       }
-      .bind[LeaveMemberIdsUseCase].toProvider[ThreadActorRefOfCommandUntypeRef, ActorSystem[Nothing]] {
+      .bind[LeaveMemberIdsUseCase].toProvider[ThreadActorRefOfCommandUntypeRef, UntypedActorSystem] {
         case (ref, actorSystem) =>
-          implicit val ac = actorSystem.toUntyped
+          implicit val ac = actorSystem
           new LeaveMemberIdsUseCaseUntypeImpl(ref, 1, timeout)
       }
-      .bind[AddMessagesUseCase].toProvider[ThreadActorRefOfCommandUntypeRef, ActorSystem[Nothing]] {
+      .bind[AddMessagesUseCase].toProvider[ThreadActorRefOfCommandUntypeRef, UntypedActorSystem] {
         case (ref, actorSystem) =>
-          implicit val ac = actorSystem.toUntyped
+          implicit val ac = actorSystem
           new AddMessagesUseCaseUntypeImpl(ref, 1, timeout)
       }
-      .bind[RemoveMessagesUseCase].toProvider[ThreadActorRefOfCommandUntypeRef, ActorSystem[Nothing]] {
+      .bind[RemoveMessagesUseCase].toProvider[ThreadActorRefOfCommandUntypeRef, UntypedActorSystem] {
         case (ref, actorSystem) =>
-          implicit val ac = actorSystem.toUntyped
+          implicit val ac = actorSystem
           new RemoveMessagesUseCaseUntypeImpl(ref, 1, timeout)
       }
 

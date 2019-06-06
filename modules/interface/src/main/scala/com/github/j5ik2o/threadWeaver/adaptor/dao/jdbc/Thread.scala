@@ -2,12 +2,13 @@ package com.github.j5ik2o.threadWeaver.adaptor.dao.jdbc
 
 import slick.lifted.ProvenShape
 import slick.lifted.PrimaryKey
+import com.github.j5ik2o.threadWeaver.adaptor.dao._
 
 trait ThreadComponent extends SlickDaoSupport {
 
   import profile.api._
 
-  case class ThreadRecord(
+  case class ThreadRecordImpl(
       id: String,
       deleted: Boolean,
       sequenceNr: Long,
@@ -19,10 +20,11 @@ trait ThreadComponent extends SlickDaoSupport {
       updatedAt: java.time.Instant,
       removedAt: Option[java.time.Instant]
   ) extends SoftDeletableRecord
+      with ThreadRecord
 
   case class Threads(tag: Tag)
-      extends TableBase[ThreadRecord](tag, "thread")
-      with SoftDeletableTableSupport[ThreadRecord] {
+      extends TableBase[ThreadRecordImpl](tag, "thread")
+      with SoftDeletableTableSupport[ThreadRecordImpl] {
     def id: Rep[String]                           = column[String]("id")
     def deleted: Rep[Boolean]                     = column[Boolean]("deleted")
     def sequenceNr: Rep[Long]                     = column[Long]("sequence_nr")
@@ -34,8 +36,8 @@ trait ThreadComponent extends SlickDaoSupport {
     def updatedAt: Rep[java.time.Instant]         = column[java.time.Instant]("updated_at")
     def removedAt: Rep[Option[java.time.Instant]] = column[Option[java.time.Instant]]("removed_at")
     def pk: PrimaryKey                            = primaryKey("pk", (id))
-    override def * : ProvenShape[ThreadRecord] =
-      (id, deleted, sequenceNr, creatorId, parentId, title, remarks, createdAt, updatedAt, removedAt) <> (ThreadRecord.tupled, ThreadRecord.unapply)
+    override def * : ProvenShape[ThreadRecordImpl] =
+      (id, deleted, sequenceNr, creatorId, parentId, title, remarks, createdAt, updatedAt, removedAt) <> (ThreadRecordImpl.tupled, ThreadRecordImpl.unapply)
   }
 
   object ThreadDao extends TableQuery(Threads)

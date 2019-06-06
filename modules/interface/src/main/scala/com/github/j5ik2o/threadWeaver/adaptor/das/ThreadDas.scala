@@ -2,6 +2,12 @@ package com.github.j5ik2o.threadWeaver.adaptor.das
 
 import akka.NotUsed
 import akka.stream.scaladsl.Source
+import com.github.j5ik2o.threadWeaver.adaptor.dao.{
+  ThreadAdministratorIdsRecord,
+  ThreadMemberIdsRecord,
+  ThreadMessageRecord,
+  ThreadRecord
+}
 import com.github.j5ik2o.threadWeaver.adaptor.dao.jdbc.{
   ThreadAdministratorIdsComponent,
   ThreadComponent,
