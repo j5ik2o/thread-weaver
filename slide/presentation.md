@@ -426,7 +426,7 @@ class PersistentThreadAggregate(id: ThreadId,
       name = ThreadAggregate.name(id))
   context.watch(childRef)
 
-  override def persistenceId: String = ThreadAggregate.name(id)
+  // persistenceIdえ is the partition keでもスレッドIDに対応するf persistenceId: String = ThreadAggregate.name(id)
 
   override def receiveRecover: Receive = {
     case e: ThreadCommonProtocol.Event with ToCommandRequest =>
@@ -535,7 +535,7 @@ expectMsgType[GetMessagesResponse] match {
 
 # ThreadAggregates(Message Broker)
 
-.col-6[
+.col-8[
 ```scala
 class ThreadAggregates(subscribers: Seq[ActorRef], 
     propsF: (ThreadId, Seq[ActorRef]) => Props)
@@ -547,13 +547,16 @@ class ThreadAggregates(subscribers: Seq[ActorRef],
   
   override def receive: Receive = forwardToActor
 
-  override protected def childName(childId: ThreadId): String = childId.value.asString
-  override protected def childProps(childId: ThreadId): Props = propsF(childId, subscribers)
-  override protected def toChildId(commandRequest: ThreadProtocol.CommandMessage): ThreadId = commandRequest.threadId
+  override protected def childName(childId: ThreadId): String = 
+    childId.value.asString
+  override protected def childProps(childId: ThreadId): Props = 
+    propsF(childId, subscribers)
+  override protected def toChildId(commandRequest: CommandMessage): ThreadId = 
+    commandRequest.threadId
 }
 ```
 ]
-.col-6[
+.col-4[
 - The message broker that bundles multiple ThreadAggregates as child actors 
 - Most of the logic is in ChildActorLookup
 - Resolve the actor name from ThreadId in the command message, and transfer the message to the corresponding child actor.  If there is no child actor, generate an actor and then forward the message to the actor
@@ -614,7 +617,8 @@ trait ChildActorLookup extends ActorLogging { this: Actor =>
 ```scala
 object ShardedThreadAggregates {
 
-  def props(subscribers: Seq[ActorRef], propsF: (ThreadId, Seq[ActorRef]) => Props): Props =
+  def props(subscribers: Seq[ActorRef], 
+    propsF: (ThreadId, Seq[ActorRef]) => Props): Props =
     Props(new ShardedThreadAggregates(subscribers, propsF))
 
   def name(id: ThreadId): String = id.value.asString
@@ -631,8 +635,10 @@ object ShardedThreadAggregates {
   // function to extract a shard id
   val extractShardId: ShardRegion.ExtractShardId = {
     case cmd: CommandRequest =>
-      val mostSignificantBits  = cmd.threadId.value.mostSignificantBits  % 12
-      val leastSignificantBits = cmd.threadId.value.leastSignificantBits % 12
+      val mostSignificantBits  = cmd.threadId
+        .value.mostSignificantBits  % 12
+      val leastSignificantBits = cmd.threadId 
+        .value.leastSignificantBits % 12
       s"$mostSignificantBits:$leastSignificantBits"
   }
 
@@ -659,7 +665,8 @@ object ShardedThreadAggregates {
 class ShardedThreadAggregates(subscribers: Seq[ActorRef], 
   propsF: (ThreadId, Seq[ActorRef]) => Props)
     extends ThreadAggregates(subscribers, propsF) {
-  context.setReceiveTimeout(Settings(context.system).passivateTimeout)
+  context.setReceiveTimeout(
+    Settings(context.system).passivateTimeout)
 
   override def unhandled(message: Any): Unit = message match {
     case ReceiveTimeout =>
@@ -721,31 +728,31 @@ object ShardedThreadAggregatesRegion {
 # MultiJVM Testing
 
 ```scala
-    "setup shared journal" in {
-      Persistence(system)
-      runOn(controller) { system.actorOf(Props[SharedLeveldbStore], "store") }
-      enterBarrier("persistence-started")
-      runOn(node1, node2) {
-        system.actorSelection(node(controller) / "user" / "store") ! Identify(None)
-        val sharedStore = expectMsgType[ActorIdentity].ref.get
-        SharedLeveldbJournal.setStore(sharedStore, system)
-      }
-      enterBarrier("setup shared journal")
-    }
-    "join cluster" in within(15 seconds) {
-      join(node1, node1) { ShardedThreadAggregatesRegion.startClusterSharding(Seq.empty) }
-      join(node2, node1) { ShardedThreadAggregatesRegion.startClusterSharding(Seq.empty) }
-      enterBarrier("join cluster")
-    }
-    "createThread" in { runOn(node1) {
-        val accountId = AccountId(); val threadId  = ThreadId(); val title = ThreadTitle("test")
-        val threadRef = ShardedThreadAggregatesRegion.shardRegion
-        threadRef ! CreateThread(ULID(), threadId, accountId, None, title, None, AdministratorIds(accountId), 
-          MemberIds.empty, Instant.now, reply = true)
-        expectMsgType[CreateThreadSucceeded](10 seconds).threadId shouldBe threadId
-      }
-      enterBarrier("create thread")
-    }
+"setup shared journal" in {
+  Persistence(system)
+  runOn(controller) { system.actorOf(Props[SharedLeveldbStore], "store") }
+  enterBarrier("persistence-started")
+  runOn(node1, node2) {
+    system.actorSelection(node(controller) / "user" / "store") ! Identify(None)
+    val sharedStore = expectMsgType[ActorIdentity].ref.get
+    SharedLeveldbJournal.setStore(sharedStore, system)
+  }
+  enterBarrier("setup shared journal")
+}
+"join cluster" in within(15 seconds) {
+  join(node1, node1) { ShardedThreadAggregatesRegion.startClusterSharding(Seq.empty) }
+  join(node2, node1) { ShardedThreadAggregatesRegion.startClusterSharding(Seq.empty) }
+  enterBarrier("join cluster")
+}
+"createThread" in { runOn(node1) {
+    val accountId = AccountId(); val threadId  = ThreadId(); val title = ThreadTitle("test")
+    val threadRef = ShardedThreadAggregatesRegion.shardRegion
+    threadRef ! CreateThread(ULID(), threadId, accountId, None, title, None, AdministratorIds(accountId), 
+      MemberIds.empty, Instant.now, reply = true)
+    expectMsgType[CreateThreadSucceeded](10 seconds).threadId shouldBe threadId
+  }
+  enterBarrier("create thread")
+}
 ```
 
 ???
@@ -806,19 +813,21 @@ class CreateThreadUseCaseUntypeImpl(
 
 # ThreadCommandControllerImpl
 
+.col-6[
 ```scala
-trait ThreadCommandControllerImpl extends ThreadCommandController with ThreadValidateDirectives with MetricsDirectives {
-  private val createThreadUseCase: CreateThreadUseCase     = bind[CreateThreadUseCase]
-  private val createThreadPresenter: CreateThreadPresenter = bind[CreateThreadPresenter]
+trait ThreadCommandControllerImpl
+  extends ThreadCommandController 
+  with ThreadValidateDirectives {
+  private val createThreadUseCase = bind[CreateThreadUseCase]
+  private val createThreadPresenter = bind[CreateThreadPresenter]
 
-  override private[controller] def createThread: Route =
+  override private[controller] def createThread: Route = 
     path("threads" / "create") {
       post {
         extractMaterializer { implicit mat =>
           entity(as[CreateThreadRequestJson]) { json =>
             validateJsonRequest(json).apply { commandRequest =>
-              val responseFuture = Source
-                .single(commandRequest)
+              val responseFuture = Source.single(commandRequest)
                 .via(createThreadUseCase.execute)
                 .via(createThreadPresenter.response)
                 .runWith(Sink.head)
@@ -831,38 +840,323 @@ trait ThreadCommandControllerImpl extends ThreadCommandController with ThreadVal
       }
     }
 ```
+]
+.col-6[
+- Command side controller
+- The thread creation root composes several directives and calls a use case
+- The request JSON returns a command if validation passes. Pass the command to the use-case and execute it
+- The presenter will convert the use-case result to Response JSON
+]
+???
+- コマンドサイドのコントローラです
+- スレッド作成用ルートはいくつかのディレクティブを合成しユースケースを呼び出します
+- リクエスト用JSONはバリデーションをパスするとコマンドを返します。コマンドをユースケースに渡し実行します。
+- 実行結果はプレゼンタがレスポンス用JSONに変換します
+
+---
+
+class: impact
+
+# Read Model Updater side
+
+---
+
+# FYI: akka-typed
+
+- メッセージハンドラで受け取るメッセージ型はAnyだったが、型を指定できるようになった
+- 基本的に互換性がないので、覚えることが多い。今のうちになれておこう
+
+.col-6[
+```scala
+object PingPong extends App {
+
+  trait Message
+  case class Ping(reply: ActorRef[Message]) extends Message
+  case object Pong                          extends Message
+
+  def receiver: Behavior[Message] =
+    Behaviors.setup[Message] { ctx =>
+      Behaviors.receiveMessagePartial[Message] {
+        case Ping(replyTo) =>
+          ctx.log.info("ping")
+          replyTo ! Pong
+          Behaviors.same
+      }
+    }
+```
+]
+.col-6[
+```scala
+
+  def main: Behavior[Message] = Behaviors.setup { ctx =>
+    val receiverRef = ctx.spawn(receiver, name = "receiver")
+    receiverRef ! Ping(ctx.self)
+    Behaviors.receiveMessagePartial[Message] {
+      case Pong =>
+        ctx.log.info("pong")
+        receiverRef ! Ping(ctx.self)
+        Behaviors.same
+    }
+  }
+
+  ActorSystem(main, "ping-pong")
+
+}
+```
+]
+---
+
+# Read Model Updater(1/2)
+
+.col-7[
+```scala
+private def projectionSource(sqlBatchSize: Long, threadId: ThreadId)
+  (implicit ec: ExecutionContext): Source[Vector[Unit], NotUsed] = {
+  Source
+    .fromFuture(
+      db.run(getSequenceNrAction(threadId)).map(_.getOrElse(0L))
+    ).log("lastSequenceNr").flatMapConcat { lastSequenceNr =>
+      readJournal
+        .eventsByPersistenceId(threadId.value.asString, 
+          lastSequenceNr + 1, Long.MaxValue)
+    }.log("ee").via(sqlActionFlow(threadId))
+    .batch(sqlBatchSize, ArrayBuffer(_))(_ :+ _).mapAsync(1) { sqlActions =>
+      db.run(DBIO.sequence(sqlActions.result.toVector))
+    }.withAttributes(logLevels)
+}
+```
+]
+.col-5[
+- RMUは終わらないストリーム処理を行います
+- persistenceIdでもスレッドIDに対応する最新のシーケンス番号を取得します
+- スレッドIDと最新のシーケンス番号以降のイベントをreadJournalから読み込みます
+- sqlActionFlowではイベントをSQLに変換します
+- 最後にSQLをまとめて実行します(今回は非正規はやっていません。問い合わせパターンに柔軟に対応するためです)
+]
+
+---
+
+# Read Model Updater(2/2)
+
+.col-8[
+```scala 
+class ThreadReadModelUpdater(
+    val readJournal: ReadJournalType,
+    val profile: JdbcProfile, val db: JdbcProfile#Backend#Database
+) extends ThreadComponent with ThreadMessageComponent ... {
+  import profile.api._
+
+  def behavior(sqlBatchSize: Long = 10, 
+    backoffSettings: Option[BackoffSettings] = None): Behavior[CommandRequest] =
+    Behaviors.setup[CommandRequest] { ctx =>
+      Behaviors.receiveMessagePartial[CommandRequest] {
+        case s: Start =>
+          ctx.child(s.threadId.value.asString) match {
+            case None =>
+              ctx.spawn(
+                projectionBehavior(sqlBatchSize, backoffSettings, s.threadId),
+                name = s"RMU-${s.threadId.value.asString}"
+              ) ! s
+            case _ =>
+              ctx.log.warning(
+                "RMU already has started: threadId = {}", s.threadId.value.asString)
+          }
+          Behaviors.same
+      }
+    }
+    // ...
+}
+```
+]
+.col-4[
+- Read Model UpdaterはStartメッセージを受け取るとストリーム処理を開始します。
+- ストリーム処理は子アクターのタスクとして実行されます
+]
+
+---
+
+# ShardedThreadReadModelUpdater(1/2)
+
+```scala
+class ShardedThreadReadModelUpdater(
+    val readJournal: ReadJournalType,
+    val profile: JdbcProfile,
+    val db: JdbcProfile#Backend#Database
+) {
+  val TypeKey: EntityTypeKey[CommandRequest] = EntityTypeKey[CommandRequest]("threads-rmu")
+
+  private def behavior(
+      receiveTimeout: FiniteDuration, sqlBatchSize: Long = 10, backoffSettings: Option[BackoffSettings] = None
+  ): EntityContext => Behavior[CommandRequest] = { entityContext =>
+    Behaviors.setup[CommandRequest] { ctx =>
+      val childRef = ctx.spawn(new ThreadReadModelUpdater(readJournal, profile, db).behavior(sqlBatchSize, backoffSettings),
+        name = "threads-rmu")
+      Behaviors.receiveMessagePartial {
+        case Idle => entityContext.shard ! ClusterSharding.Passivate(ctx.self); Behaviors.same
+        case Stop => Behaviors.stopped
+        case Stop(_, _, _) => ctx.self ! Idle; Behaviors.same
+        case msg => childRef ! msg; Behaviors.same
+      }
+    }
+  }
+```
+
+---
+
+# ShardedThreadReadModelUpdater(2/2)
+
+```scala
+  def initEntityActor(
+      clusterSharding: ClusterSharding,
+      receiveTimeout: FiniteDuration
+  ): ActorRef[ShardingEnvelope[CommandRequest]] =
+    clusterSharding.init(
+      Entity(typeKey = TypeKey, createBehavior = behavior(receiveTimeout)).withStopMessage(Stop)
+    )
+}
+```
+
+- ShardedThreadReadModelUpdaterProxy
+
+```scala
+class ShardedThreadReadModelUpdaterProxy(
+    val readJournal: ReadJournalType, val profile: JdbcProfile, val db: JdbcProfile#Backend#Database
+) {
+  def behavior(clusterSharding: ClusterSharding, receiveTimeout: FiniteDuration): Behavior[CommandRequest] =
+    Behaviors.setup[CommandRequest] { _ =>
+      val actorRef =
+        new ShardedThreadReadModelUpdater(readJournal, profile, db).initEntityActor(clusterSharding, receiveTimeout)
+      Behaviors.receiveMessagePartial[CommandRequest] {
+        case msg =>
+          actorRef ! typed.ShardingEnvelope(msg.threadId.value.asString, msg)
+          Behaviors.same
+      }
+    }
+}
+```
+
+---
+
+# Interlocking of Aggreagte and RMU
+
+.col-7[
+```scala
+object AggregateToRMU {
+
+  def behavior(
+      rmuRef: ActorRef[ThreadReadModelUpdaterProtocol.CommandRequest]
+  ): Behavior[ThreadCommonProtocol.Message] =
+    Behaviors.setup[ThreadCommonProtocol.Message] { ctx =>
+      Behaviors.receiveMessagePartial[ThreadCommonProtocol.Message] {
+        case s: Started =>
+          ctx.log.debug(s"RMU ! $s")
+          rmuRef ! ThreadReadModelUpdaterProtocol.Start(
+            ULID(), s.threadId, Instant.now)
+          Behaviors.same
+        case s: Stopped =>
+          ctx.log.debug(s"RMU ! $s")
+          rmuRef ! ThreadReadModelUpdaterProtocol.Stop(
+            ULID(), s.threadId, Instant.now)
+          Behaviors.same
+      }
+
+    }
+
+}
+```
+]
+.col-5[
+- この二つのアクターは責務が異なるので分離されていますが、起動と停止は連動します
+- ノード故障などでReadModelUpdaterだけが停止した場合は、もう一度Startメッセージを送る必要があります(監視と再起動の仕組みが必要)
+]
+
+---
+
+class: impact
+
+# Query stack side
+
+???
+それでは詳細にクエリ側をみていきましょう
 
 ---
 
 # ThreadQueryControllerImpl
 
+.col-7[
 ```scala
-trait ThreadQueryControllerImpl extends ThreadQueryController with ThreadValidateDirectives with MetricsDirectives {
+trait ThreadQueryControllerImpl 
+  extends ThreadQueryController
+  with ThreadValidateDirectives {
   private val threadDas: ThreadDas = bind[ThreadDas]
   // ...
   override private[controller] def getThread: Route =
     path("threads" / Segment) { threadIdString => get {
-        extractExecutionContext { implicit ec =>
-          extractMaterializer { implicit mat =>
-            validateThreadId(threadIdString) { threadId =>
-              parameter('account_id) { accountValue =>
-                validateAccountId(accountValue) { accountId =>
-                  onSuccess(threadDas.getThreadByIdSource(accountId, threadId)
-                    .via(threadPresenter.response)
-                    .runWith(Sink.headOption[ThreadJson]).map(identity)) { 
-                      case None => reject(NotFoundRejection("thread is not found", None))
-                      case Some(response) => complete(GetThreadResponseJson(response)) 
-                  }
-                }
-              }
-            }
+      // ...
+      parameter('account_id) { accountValue =>
+        validateAccountId(accountValue) { accountId =>
+          onSuccess(threadDas.getThreadByIdSource(accountId, threadId)
+            .via(threadPresenter.response)
+            .runWith(Sink.headOption[ThreadJson]).map(identity)) { 
+              case None => 
+                reject(NotFoundRejection("thread is not found", None))
+              case Some(response) => 
+                complete(GetThreadResponseJson(response)) 
           }
         }
       }
+    // ...
     }
   // ...
 }
 ```
+]
+.col-5[
+]
+
+???
+- 最後はクエリサイドのコントローラです
+- クエリサイドではユースケースではなくDaoをストリームでラップしたオブジェクトを利用します。
+- これ以外はコマンドサイドと同様です。
+
+---
+
+# ThreadControllerSpec 
+
+.col-6[
+```scala
+val administratorId = ULID().asString
+val entity = CreateThreadRequestJson(
+    administratorId, None, "test",
+    None, Seq(administratorId), Seq.empty,
+    Instant.now.toEpochMilli
+  ).toHttpEntity
+
+Post(RouteNames.CreateThread, entity) ~> 
+  commandController.createThread ~> check {
+  response.status shouldEqual StatusCodes.OK
+  val responseJson = responseAs[CreateThreadResponseJson]
+  responseJson.isSuccessful shouldBe true
+  val threadId = responseJson.threadId.get
+
+  eventually { // repeat util read
+    Get(RouteNames.GetThread(threadId, administratorId)) ~> 
+      queryController.getThread ~> check {
+      response.status shouldEqual StatusCodes.OK
+      val responseJson = responseAs[GetThreadResponseJson]
+      responseJson.isSuccessful shouldBe true
+    }
+  }
+}
+```
+]
+.col-6[
+]
+
+???
+- 二つのコントローラをつなげたテストです
+- スレッドを作成後にスレッドが読めるようになるかを検証します
+- 正常に機能します
 
 ---
 
@@ -870,77 +1164,503 @@ trait ThreadQueryControllerImpl extends ThreadQueryController with ThreadValidat
 
 ```scala
 object Main extends App {
-
-  SLF4JBridgeHandler.install()
-
-  implicit val logger = LoggerFactory.getLogger(getClass)
-  val config: Config = ConfigFactory.load()
+  // ...
 
   implicit val system: ActorSystem                        = ActorSystem("thread-weaver-api-server", config)
   implicit val materializer: ActorMaterializer            = ActorMaterializer()
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
   implicit val cluster                                    = Cluster(system)
-  logger.info(s"Started [$system], cluster.selfAddress = ${cluster.selfAddress}")
 
   AkkaManagement(system).start()
   ClusterBootstrap(system).start()
 
-  cluster.subscribe(
-    system.actorOf(Props[ClusterWatcher]),
-    ClusterEvent.InitialStateAsEvents,
-    classOf[ClusterDomainEvent]
-  )
-
-  val readJournal = PersistenceQuery(system).readJournalFor[DynamoDBReadJournal](DynamoDBReadJournal.Identifier)
-  val dbConfig    = DatabaseConfig.forConfig[JdbcProfile]("slick", config)
-  val profile     = dbConfig.profile
-  val db          = dbConfig.db
-
-  val clusterSharding = ClusterSharding(system.toTyped)
-
-  val host = config.getString("thread-weaver.api-server.host")
-  val port = config.getInt("thread-weaver.api-server.http.port")
-
-  val akkaHealthCheck = HealthCheck.akka(host, port)
-
-  val design =
-    DISettings.design(host, port, system.toTyped, clusterSharding, materializer, readJournal, profile, db, 15 seconds)
-  val session = design.newSession
-  session.start
+  // ...
 
   val routes = session
-      .build[Routes].root ~ readinessProbe(akkaHealthCheck).toRoute ~ livenessProbe(akkaHealthCheck).toRoute
+      .build[Routes].root ~ /* ... */
 
   val bindingFuture = Http().bindAndHandle(routes, host, port).map { serverBinding =>
     system.log.info(s"Server online at ${serverBinding.localAddress}")
     serverBinding
   }
 
-  Cluster(system).registerOnMemberUp({
-    logger.info("Cluster member is up!")
-  })
-
-  sys.addShutdownHook {
-    session.shutdown
-    bindingFuture
-      .flatMap(_.unbind())
-      .onComplete(_ => system.terminate())
-  }
+  // ...
 
 }
 ```
 
 ---
 
+# FYI: Akka Management
 
-# Kubernetes/EKSを学ぶ
+- Akka Management is a suite of tools for operating Akka Clusters.
+
+- modules
+    - akka-management: HTTP管理エンドポイントとヘルスチェック機能
+    - akka-managment-cluster-http: クラスターの監視とマネジメントのためのHTTPエンドポイントを提供する
+    - akka-managment-cluster-bootstrap: akka-discoveryを使ってクラスターのブートスラップをサポート
+    - akka-discovery-kubernetes-api: k8s podをクラスターメンバーとして管理するためのモジュール
+
+---
+
+# Example for akka.conf(1/2)
+
+- 本番での設定例
+
+```scala
+akka {
+  cluster {
+    auto-down-unreachable-after = off
+    seed-nodes = []
+    seed-nodes = ${?THREAD_WEAVER_SEED_NODES}
+  }
+
+  remote {
+    log-remote-lifecycle-events = on
+    netty.tcp {
+      hostname = "127.0.0.1"
+      hostname = ${?HOSTNAME}
+      port = 2551
+      port = ${?THREAD_WEAVER_REMOTE_PORT}
+      bind-hostname = "0.0.0.0"
+    }
+  }
+```
+
+---
+
+# Example for akka.conf(2/2)
+
+akka-managementとakka-discoveryの設定
+
+```scala
+  discovery {
+    method = kubernetes-api
+    method = ${?THREAD_WEAVER_DISCOVERY_METHOD}
+    kubernetes-api {
+      pod-namespace = "thread-weaver"
+      pod-namespace = ${?THREAD_WEAVER_K8S_NAMESPACE}
+      pod-label-selector = "app=thread-weaver-api-server"
+      pod-label-selector = ${?THREAD_WEAVER_K8S_SELECTOR}
+      pod-port-name = "management"
+      pod-port-name = ${?THREAD_WEAVER_K8S_MANAGEMENT_PORT}
+    }
+  }
+
+  management {
+    http {
+      hostname = "127.0.0.1"
+      hostname = ${?HOSTNAME}
+      port = 8558
+      port = ${?THREAD_WEAVER_MANAGEMENT_PORT}
+      bind-hostname = 0.0.0.0
+      bind-port = 8558
+    }
+    cluster.bootstrap {
+      contact-point-discovery {
+        discovery-method = kubernetes-api
+      }
+    }
+    contract-point {
+      fallback-port = 8558
+    }
+  }
+}
+```
+
+---
+
+# FYI: Kubernetes/EKSを学ぶ
 
 - [Kubernetes公式サイト](https://kubernetes.io/ja/docs/home/)
 - [Amazon EKS](https://docs.aws.amazon.com/ja_jp/eks/latest/userguide/what-is-eks.html)
 - [Amazon EKS Workshop](https://eksworkshop.com/)
 
+---
+
+class: impact
+
+# build.sbt for deployment
 
 ---
+
+# project/plugins.sbt
+
+```scala
+addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.3.10")
+
+addSbtPlugin("com.mintbeans" % "sbt-ecr" % "0.14.1")
+```
+
+---
+
+# build.sbt
+
+- Dockerの設定
+
+```scala
+lazy val dockerCommonSettings = Seq(
+  dockerBaseImage := "adoptopenjdk/openjdk8:x86_64-alpine-jdk8u191-b12",
+  maintainer in Docker := "Junichi Kato <j5ik2o@gmail.com>",
+  dockerUpdateLatest := true,
+  bashScriptExtraDefines ++= Seq(
+    "addJava -Xms${JVM_HEAP_MIN:-1024m}",
+    "addJava -Xmx${JVM_HEAP_MAX:-1024m}",
+    "addJava -XX:MaxMetaspaceSize=${JVM_META_MAX:-512M}",
+    "addJava ${JVM_GC_OPTIONS:--XX:+UseG1GC}",
+    "addJava -Dconfig.resource=${CONFIG_RESOURCE:-application.conf}",
+    "addJava -Dakka.remote.startup-timeout=60s"
+  )
+)
+```
+
+---
+
+# build.sbt
+
+- ECRに対する設定
+
+```scala
+val ecrSettings = Seq(
+  region in Ecr := Region.getRegion(Regions.AP_NORTHEAST_1),
+  repositoryName in Ecr := "j5ik2o/thread-weaver-api-server",
+  repositoryTags in Ecr ++= Seq(version.value),
+  localDockerImage in Ecr := "j5ik2o/" + (packageName in Docker).value + ":" + (version in Docker).value,
+  push in Ecr := ((push in Ecr) dependsOn (publishLocal in Docker, login in Ecr)).value
+)
+```
+
+---
+
+# build.sbt
+
+```scala
+val `api-server` = (project in file("api-server"))
+  .enablePlugins(AshScriptPlugin, JavaAgent, EcrPlugin)
+  .settings(baseSettings)
+  .settings(dockerCommonSettings)
+  .settings(ecrSettings)
+  .settings(
+    name := "thread-weaver-api-server",
+    dockerEntrypoint := Seq("/opt/docker/bin/thread-weaver-api-server"),
+    dockerUsername := Some("j5ik2o"),
+  // ...
+    libraryDependencies ++= Seq(
+      "com.github.scopt" %% "scopt" % "4.0.0-RC2",
+      "net.logstash.logback" % "logstash-logback-encoder" % "4.11" excludeAll (/**/),
+      "com.lightbend.akka.management" %% "akka-management" % akkaManagementVersion,
+      "com.lightbend.akka.management" %% "akka-management-cluster-http" % akkaManagementVersion,
+      "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % akkaManagementVersion,
+      "com.lightbend.akka.discovery" %% "akka-discovery-kubernetes-api" % akkaManagementVersion,
+      "com.github.TanUkkii007" %% "akka-cluster-custom-downing" % "0.0.12",
+      "com.github.everpeace" %% "healthchecks-core" % "0.4.0",
+      "com.github.everpeace" %% "healthchecks-k8s-probes" % "0.4.0",
+      "org.slf4j" % "jul-to-slf4j" % "1.7.26",
+      "ch.qos.logback" % "logback-classic" % "1.2.3",
+      "org.codehaus.janino" % "janino" % "3.0.6"
+    )
+```
+
+---
+
+class: impact
+
+# Deployment to Local Cluster
+
+---
+
+# minikube
+
+- minikube(with virtualbox) を利用する
+
+```sh
+$ minikube start --vmdriver virtualbox --kubernetes-version v1.12.8 --cpus 6 --memory 5000 --disk-size 30g
+$ helm init
+$ kubectl create namespace thread-weaver
+$ kubectl create serviceaccount thread-weaver
+$ helm install ./mysql --namespace thread-weaver -f ./mysql/environments/${ENV_NAME}-values.yaml
+$ helm install ./dynamodb --namespace thread-weaver -f ./dynamodb/environments/${ENV_NAME}-values.yaml
+$ sbt -Dmysql.host="$(minikube ip)" -Dmysql.port=30306 'migrate-mysql/run'
+$ DYNAMODB_HOST="$(minikube ip)" DYNAMODB_PORT=32000 sbt 'migrate-dynamodb/run'
+$ eval $(minikube docker-env)
+$ sbt api-server/docker:publishLocal
+$ helm install ./thread-weaver-api-server --namespace thread-weaver -f ./thread-weaver-api-server/environments/${ENV_NAME}-values.yaml
+```
+
+---
+
+class: impact
+
+# Helm charts
+
+---
+
+# deployment.yaml
+
+.col-6[
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "name" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ template "name" . }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: {{ template "name" . }}
+    spec:
+      containers:
+      - image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{.Values.image.pullPolicy}}
+        name: {{ template "name" . }}
+```
+]
+.col-6[
+```yaml
+        env:
+          - name: AWS_REGION
+            value: "ap-northeast-1"
+          - name: HOSTNAME
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: status.podIP
+          - name: ENV_NAME
+            value: {{.Values.envName | quote}}
+          - name: CONFIG_RESOURCE
+            value: {{.Values.configResource | quote}}
+          - name: JVM_HEAP_MIN
+            value: {{.Values.jvmHeapMin | quote}}
+          - name: JVM_HEAP_MAX
+            value: {{.Values.jvmHeapMax | quote}}
+          - name: JVM_META_MAX
+            value: {{.Values.jvmMetaMax | quote}}
+```
+]
+
+
+---
+
+# deployment.yaml
+
+.col-6[
+```yaml
+          - name: THREAD_WEAVER_SLICK_URL
+            value: {{.Values.db.url | quote}}
+          - name: THREAD_WEAVER_SLICK_USER
+            value: {{.Values.db.user | quote}}
+          - name: THREAD_WEAVER_SLICK_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: thread-weaver-app-secrets
+                key: mysql.password
+          - name: THREAD_WEAVER_SLICK_MAX_POOL_SIZE
+            value: {{.Values.db.maxPoolSize | quote}}
+          - name: THREAD_WEAVER_SLICK_MIN_IDLE_SIZE
+            value: {{.Values.db.minIdleSize | quote}}
+        ports:
+        - name: remoting
+          containerPort: 2551
+        - name: {{ .Values.service.name }}
+          containerPort: {{ .Values.service.internalPort }}
+        - name: management
+          containerPort: 8558
+```
+]
+.col-6[
+```yaml
+        readinessProbe:
+          tcpSocket:
+            port: 18080
+            initialDelaySeconds: 60
+            periodSeconds: 30
+        livenessProbe:
+          tcpSocket:
+            port: 18080
+            initialDelaySeconds: 60
+            periodSeconds: 30
+```
+]
+
+---
+
+# service.yaml
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "name" . }}
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: http
+  labels:
+    app: {{ template "name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  selector:
+    app: {{ template "name" . }}
+  type: {{ .Values.service.type }}
+  ports:
+    - protocol: TCP
+      name: api
+      port: 8080
+      targetPort: api
+    - protocol: TCP
+      name: management
+      port: 8558
+      targetPort: management
+```
+
+---
+
+# rbac.yaml
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: thread-weaver-api-server
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "watch", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: thread-weaver-api-server
+subjects:
+  - kind: User
+    name: system:serviceaccount:thread-weaver:default
+roleRef:
+  kind: Role
+  name: thread-weaver-api-server
+  apiGroup: rbac.authorization.k8s.io
+```
+
+---
+
+# Verification for Minikube
+
+```sh
+API_HOST=$(minikube ip)
+API_PORT=$(kubectl get svc thread-weaver-api-server -n thread-weaver -ojsonpath="{.spec.ports[?(@.name==\"api\")].port}")
+
+ACCOUNT_ID=01DB5QXD4NP0XQTV92K42B3XBF
+ADMINISTRATOR_ID=01DB5QXD4NP0XQTV92K42B3XBF
+
+THREAD_ID=$(curl -v -X POST "http://$API_HOST:$API_PORT/v1/threads/create" -H "accept: application/json" -H "Content-Type: application/json" \
+    -d "{\"accountId\":\"${ACCOUNT_ID}\",\"title\":\"string\",\"remarks\":\"string\",\"administratorIds\":[\"${ADMINISTRATOR_ID}\"],\"memberIds\":[\"${ACCOUNT_ID}\"],\"createAt\":10000}" | jq -r .threadId)
+echo "THREAD_ID=$THREAD_ID"
+sleep 3
+curl -v -X GET "http://$API_HOST:$API_PORT/v1/threads/${THREAD_ID}?account_id=${ACCOUNT_ID}" -H "accept: application/json"
+```
+
+---
+
+class: impact
+
+# Deployment to Production Cluster
+
+---
+
+# Build Kubernetes Cluster
+
+- EKSクラスター以外に必要なモノをすべて作る
+    - subnet
+    - security group
+    - ineternet-gw
+    - eip
+    - nat-gw
+    - route table
+    - ecr
+    - rds(aurora)
+    - dynamodb(with shema)
+
+
+```sh
+$ terraform plan
+$ terraform apply
+```
+
+---
+
+# Build Kubernetes Cluster
+
+
+- EKSクラスタを構築
+
+```sh
+$ eksctl create cluster \
+    --name ${CLUSTER_NAME} \
+    --region ${AWS_REGION} \
+	  --nodes ${NODES} \
+	  --nodes-min ${NODES_MIN} \
+	  --nodes-max ${NODES_MAX} \
+	  --node-type ${INSTANCE_TYPE} \
+	  --full-ecr-access \
+    --node-ami ${NODE_AMI} \
+    --version ${K8S_VERSION} \
+    --nodegroup-name ${NODE_GROUP_NAME} \
+	  --vpc-private-subnets=${SUBNET_PRIVATE1},${SUBNET_PRIVATE2},${SUBNET_PRIVATE3} \
+	  --vpc-public-subnets=${SUBNET_PUBLIC1},${SUBNET_PUBLIC2},${SUBNET_PUBLIC3}
+```
+
+- 初期設定(RBAC設定など)
+
+```sh
+tools/eks/helm $ kubectl apply -f ./rbac-config.yaml
+$ helm init
+$ kubectl create namespace thread-weaver
+$ kubectl create serviceaccount thread-weaver
+tools/deploy/eks $ kubectl apply -f secret.yaml
+```
+---
+
+# Build Kubernetes Cluster
+
+- docker build & push to ecr
+
+```sh
+$ AWS_DEFUALT_PROFILE=xxxxx sbt api-server/ecr:push
+```
+
+- flyway migrate(should be implemented as k8s job)
+
+```sh
+$ docker run --rm -v $(pwd)/tools/flyway/src/test/resources/db-migration:/flyway/sql -v $(pwd):/flyway/conf boxfuse/flyway migrate
+```
+
+- verification
+
+```sh
+API_HOST=$(kubectl get svc thread-weaver-api-server -n thread-weaver -ojsonpath="{.status.loadBalancer.ingress[0].hostname}")
+API_PORT=$(kubectl get svc thread-weaver-api-server -n thread-weaver -ojsonpath="{.spec.ports[?(@.name==\"api\")].port}")
+
+ACCOUNT_ID=01DB5QXD4NP0XQTV92K42B3XBF
+ADMINISTRATOR_ID=01DB5QXD4NP0XQTV92K42B3XBF
+
+THREAD_ID=$(curl -v -X POST "http://$API_HOST:$API_PORT/v1/threads/create" 
+-H "accept: application/json" -H "Content-Type: application/json" \
+-d "{\"accountId\":\"${ACCOUNT_ID}\", ... "memberIds\":[\"${ACCOUNT_ID}\"],\"createAt\":10000}" | jq -r .threadId)
+echo "THREAD_ID=$THREAD_ID"
+sleep 3
+curl -v -X GET "http://$API_HOST:$API_PORT/v1/threads/${THREAD_ID}?account_id=${ACCOUNT_ID}" -H "accept: application/json"
+```
+
+---
+
 
 # まとめ
 
