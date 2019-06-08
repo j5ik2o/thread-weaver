@@ -398,6 +398,9 @@ expectMsgType[AddMessagesResponse] match {
 }
 ```
 ]
+.col-6[
+- Verify that add messages and create a thread by using Test Kit
+]
 
 ???
 - このようにメッセージパッシングを使ってテストを実装します
@@ -848,7 +851,7 @@ trait ThreadCommandControllerImpl
 - The presenter will convert the use-case result to Response JSON
 ]
 ???
-- コマンドサイドのコントローラです
+- コマンドサイドのコントローラです。クエリとは責務が異なるので分離しました。
 - スレッド作成用ルートはいくつかのディレクティブを合成しユースケースを呼び出します
 - リクエスト用JSONはバリデーションをパスするとコマンドを返します。コマンドをユースケースに渡し実行します。
 - 実行結果はプレゼンタがレスポンス用JSONに変換します
@@ -906,7 +909,23 @@ object PingPong extends App {
 ]
 ---
 
-# Read Model Updater(1/2)
+# Read Model Updater(1/3)
+
+
+.col-6[
+.center[
+<object type="image/svg+xml" data="images/separate-node-layout.svg" height="400"></object>
+]
+]
+.col-6[
+- 集約IDごとにRead Model Updater(RMU)を起動させる
+- 1ノードで複数のRMUが起動できるようにシャーディングする
+- RMUの起動と停止は集約アクターのイベントをきっかけにする。実際にはAggregateToRMUでメッセージ変換を行う
+]
+
+---
+
+# Read Model Updater(2/3)
 
 .col-7[
 ```scala
@@ -1067,7 +1086,22 @@ object AggregateToRMU {
 ]
 .col-5[
 - この二つのアクターは責務が異なるので分離されていますが、起動と停止は連動します
-- ノード故障などでReadModelUpdaterだけが停止した場合は、もう一度Startメッセージを送る必要があります(監視と再起動の仕組みが必要)
+- この方法はあまりよくありません。ノード故障でRMUだけが停止した場合、再度Startメッセージを受信しないとリカバリできないからです。ThreadAggregateから定期的にハートビードを受ける方法もありますが、RMUをThreadAggreagteの子アクターにする方法もあります。
+]
+
+---
+
+# RMU for improvement
+
+.col-6[
+.center[
+<object type="image/svg+xml" data="images/same-node-layout.svg" height="400"></object>
+]
+]
+.col-6[
+- もうひとつの実装パターンは、RMUをPersistentThreadAggregateの子アクターにする方法です。
+- RMUを子アクターとしてwatchできるようになるので、万が一RMUが停止しても再起動が可能です。
+- ただしPersistentThreadAggregateがRMU責務を担うことになります。責務の重複？
 ]
 
 ---
@@ -1112,6 +1146,8 @@ trait ThreadQueryControllerImpl
 ```
 ]
 .col-5[
+- The query side uses a stream wrapped Dao object instead of a use case.
+— Same as command side except for this.
 ]
 
 ???
@@ -1151,6 +1187,9 @@ Post(RouteNames.CreateThread, entity) ~>
 ```
 ]
 .col-6[
+- a test where two controllers are connected.
+- Verify threads are readable after they are created
+- Works fine
 ]
 
 ???
@@ -1161,6 +1200,8 @@ Post(RouteNames.CreateThread, entity) ~>
 ---
 
 # Bootstrap
+
+- Start AkkaManagement and ClusterBootstrap and start akka-http server
 
 ```scala
 object Main extends App {
@@ -1189,13 +1230,43 @@ object Main extends App {
 }
 ```
 
+???
+- Start AkkaManagement and ClusterBootstrap and start akka-http server
+
+---
+
+# FYI: Akka Cluster
+
+.col-6[
+- [Cluster Specification](https://doc.akka.io/docs/akka/current/common/cluster.html)
+
+- Node
+    - A logical member of a cluster. There could be multiple nodes on a physical machine. Defined by a hostname:port:uid tuple.
+- Cluster
+    - A set of nodes joined together through the membership service.
+- leader
+    - A single node in the cluster that acts as the leader. Managing cluster convergence and membership state transitions.
+- Seed Nodes
+    - The seed nodes are configured contact points for new nodes joining the cluster. When a new node is started it sends a message to all seed nodes and then sends a join command to the seed node that answers first.  
+]
+.col-6[
+.center[
+<object type="image/svg+xml" data="images/cluster-image.svg" height="400"></object>
+]
+]
 ---
 
 # FYI: Akka Management
 
 - Akka Management is a suite of tools for operating Akka Clusters.
-
 - modules
+    - akka-management: HTTP management endpoints and health checks
+    - akka-managment-cluster-http:  Provides HTTP endpoints for cluster monitoring and management
+    - akka-managment-cluster-bootstrap: Supports cluster bootstrapping by using akka-discovery
+    - akka-discovery-kubernetes-api: Module for managing k8s pod as a cluster member
+
+???
+- モジュール
     - akka-management: HTTP管理エンドポイントとヘルスチェック機能
     - akka-managment-cluster-http: クラスターの監視とマネジメントのためのHTTPエンドポイントを提供する
     - akka-managment-cluster-bootstrap: akka-discoveryを使ってクラスターのブートスラップをサポート
@@ -1205,14 +1276,13 @@ object Main extends App {
 
 # Example for akka.conf(1/2)
 
-- 本番での設定例
+- Sample Configuration for Production
 
 ```scala
 akka {
   cluster {
+    seed-nodes = [] # seed-nodes are empty because managed by akka-management
     auto-down-unreachable-after = off
-    seed-nodes = []
-    seed-nodes = ${?THREAD_WEAVER_SEED_NODES}
   }
 
   remote {
@@ -1227,13 +1297,20 @@ akka {
   }
 ```
 
+???
+シードノードの管理は手動で行うのは明らかに不便ですなので、akka-managementを使うため seed-nodesは空で大丈夫です。
+akka-remoteの設定も忘れずに
+
+
 ---
 
 # Example for akka.conf(2/2)
 
-akka-managementとakka-discoveryの設定
+- Sample configuration for akka-management and akka-discovery
+- Configuration to find nodes from k8s pod information
 
-```scala
+.col-6[
+```hcon
   discovery {
     method = kubernetes-api
     method = ${?THREAD_WEAVER_DISCOVERY_METHOD}
@@ -1246,7 +1323,10 @@ akka-managementとakka-discoveryの設定
       pod-port-name = ${?THREAD_WEAVER_K8S_MANAGEMENT_PORT}
     }
   }
-
+```
+]
+.col-6[
+```hcon
   management {
     http {
       hostname = "127.0.0.1"
@@ -1267,6 +1347,11 @@ akka-managementとakka-discoveryの設定
   }
 }
 ```
+]
+
+---
+class: impact
+# Deployment to EKS
 
 ---
 
@@ -1369,23 +1454,39 @@ class: impact
 
 ---
 
-# minikube
+# Deployment to Local Cluster
 
-- minikube(with virtualbox) を利用する
-
+.col-5[
+- minikubeの起動
+- helmの導入
+- ネームスペースとサービスアカウントの作成
+- DBをデプロイ
+- スキーマ作成
+- アプリケーション用イメージのビルド
+- アプリケーション用イメージのデプロイ
+]
+.col-7[
 ```sh
-$ minikube start --vmdriver virtualbox --kubernetes-version v1.12.8 --cpus 6 --memory 5000 --disk-size 30g
+$ minikube start --vmdriver virtualbox \
+  --kubernetes-version v1.12.8 --cpus 6 --memory 5000 --disk-size 30g
 $ helm init
 $ kubectl create namespace thread-weaver
 $ kubectl create serviceaccount thread-weaver
-$ helm install ./mysql --namespace thread-weaver -f ./mysql/environments/${ENV_NAME}-values.yaml
-$ helm install ./dynamodb --namespace thread-weaver -f ./dynamodb/environments/${ENV_NAME}-values.yaml
-$ sbt -Dmysql.host="$(minikube ip)" -Dmysql.port=30306 'migrate-mysql/run'
-$ DYNAMODB_HOST="$(minikube ip)" DYNAMODB_PORT=32000 sbt 'migrate-dynamodb/run'
+$ helm install ./mysql --namespace thread-weaver \
+    -f ./mysql/environments/${ENV_NAME}-values.yaml
+$ helm install ./dynamodb --namespace thread-weaver \
+    -f ./dynamodb/environments/${ENV_NAME}-values.yaml
+$ sbt -Dmysql.host="$(minikube ip)" -Dmysql.port=30306 \
+  'migrate-mysql/run'
+$ DYNAMODB_HOST="$(minikube ip)" DYNAMODB_PORT=32000 \
+  sbt 'migrate-dynamodb/run'
 $ eval $(minikube docker-env)
 $ sbt api-server/docker:publishLocal
-$ helm install ./thread-weaver-api-server --namespace thread-weaver -f ./thread-weaver-api-server/environments/${ENV_NAME}-values.yaml
+$ helm install ./thread-weaver-api-server \
+  --namespace thread-weaver \
+  -f ./thread-weaver-api-server/environments/${ENV_NAME}-values.yaml
 ```
+]
 
 ---
 
@@ -1395,9 +1496,35 @@ class: impact
 
 ---
 
-# deployment.yaml
+# FYI: Helm
 
 .col-6[
+- [Helm](https://helm.sh/)
+    - Helm is 'The package manager for Kubernetes'
+- Charts
+    - Helm uses a packaging format called charts
+- CLI
+    - `helm init`
+        - initialize Helm on both client and server(tiller)
+    - `helm package`
+        - package a chart directory into a chart archive
+    - `helm install`
+        - install a chart archive
+    - `helm upgrade`
+        - upgrade a release
+    - `helm rollback`
+        - roll back a release to a previous revision
+]
+.col-6[
+  .center[
+<img src="images/helm.png" width="60%"/>
+  ]
+]
+---
+
+# deployment.yaml(1/2)
+
+.col-7[
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -1424,7 +1551,7 @@ spec:
         name: {{ template "name" . }}
 ```
 ]
-.col-6[
+.col-5[
 ```yaml
         env:
           - name: AWS_REGION
@@ -1450,7 +1577,7 @@ spec:
 
 ---
 
-# deployment.yaml
+# deployment.yaml(2/2)
 
 .col-6[
 ```yaml
@@ -1489,19 +1616,19 @@ spec:
             initialDelaySeconds: 60
             periodSeconds: 30
 ```
+- イメージの名前やタグ、環境変数、ポートなどコンテナが起動するための設定を記述する
 ]
 
 ---
 
 # service.yaml
 
+.col-6[
 ```yaml
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ template "name" . }}
-  annotations:
-    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: http
   labels:
     app: {{ template "name" . }}
     chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
@@ -1521,11 +1648,16 @@ spec:
       port: 8558
       targetPort: management
 ```
+]
+.col-6[
+- 外部からアクセス可能にするためにLoadBalancerタイプのServiceを構築します
+]
 
 ---
 
 # rbac.yaml
 
+.col-6[
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -1548,10 +1680,13 @@ roleRef:
   name: thread-weaver-api-server
   apiGroup: rbac.authorization.k8s.io
 ```
-
+]
+.col6[
+- akka-discoveryがノードを見つけられるようにRBACを設定します
+]
 ---
 
-# Verification for Minikube
+# Verification for Local Cluster 
 
 ```sh
 API_HOST=$(minikube ip)
@@ -1566,7 +1701,6 @@ echo "THREAD_ID=$THREAD_ID"
 sleep 3
 curl -v -X GET "http://$API_HOST:$API_PORT/v1/threads/${THREAD_ID}?account_id=${ACCOUNT_ID}" -H "accept: application/json"
 ```
-
 ---
 
 class: impact
@@ -1658,6 +1792,19 @@ echo "THREAD_ID=$THREAD_ID"
 sleep 3
 curl -v -X GET "http://$API_HOST:$API_PORT/v1/threads/${THREAD_ID}?account_id=${ACCOUNT_ID}" -H "accept: application/json"
 ```
+
+---
+
+# 本番運用のために考慮すべき観点
+
+- Event Schema Evolution
+    - [Persistence - Schema Evolution](https://doc.akka.io/docs/akka/current/persistence-schema-evolution.html)
+- Split-Brain Resolver
+    - [Split Brain Resolver](https://doc.akka.io/docs/akka-enhancements/current/split-brain-resolver.html)
+    - [TanUkkii007/akka-cluster-custom-downing](https://github.com/TanUkkii007/akka-cluster-custom-downing)
+- Distributed Tracing
+    - [kamon-io/Kamon](https://github.com/kamon-io/Kamon)
+    - [alevkhomich/akka-tracing](https://github.com/levkhomich/akka-tracing)
 
 ---
 

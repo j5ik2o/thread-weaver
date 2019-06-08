@@ -42,7 +42,14 @@ pre, code {
   background: $code-background;
 }
 a, a:visited, a:hover, a:active { color: $text-dark; }
-img { vertical-align: inherit; }
+img {
+  vertical-align: inherit;
+}
+object {
+  padding: 1em;
+  margin: 1em 2em 2em 2em; 
+  border: 1em; 
+}
 blockquote {
   border-left: 8px solid;
   padding-left: .5em;
