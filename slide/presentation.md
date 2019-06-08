@@ -57,6 +57,8 @@ layout: true
 1. Event Sourcing with Akka
 2. Deployment to EKS
 
+- https://github.com/j5ik2o/thread-weaver
+
 .bottom-bar[
 Akka
 ]
@@ -537,12 +539,12 @@ expectMsgType[GetMessagesResponse] match {
 
 # FYI: akka-persistence plugin
 
-- プラグインを変えることで様々なデータベースに対応できる
+- Different plugins for different databases
   - [Akka Persistence journal and snapshot plugins](https://index.scala-lang.org/search?topics=akka-persistence&_ga=2.59796846.298215744.1559990739-503694813.1531235856)
-- デフォルトはLevelDBに対応している
-- AWSでのお勧めはDynamoDB。本家と私が作っているプラグインがあるが、おすすめは私のほうです
+- Default corresponds to LevelDB
+- recommended on AWS is DynamoDB. There are the following plugins, but I recommend my plugin:P
     - https://github.com/j5ik2o/akka-persistence-dynamodb
-
+    - https://github.com/akka/akka-persistence-dynamodb
 .col-6[
 ```scala
     libraryDependencies ++= Seq(
@@ -903,8 +905,8 @@ class: impact
 
 # FYI: akka-typed
 
-- メッセージハンドラで受け取るメッセージ型はAnyだったが、型を指定できるようになった
-- 基本的に互換性がないので、覚えることが多い。今のうちになれておこう
+- The message type received by the message handler was Any, but akka-typed allows the Message type to be specified
+- There is basically no compatibility, so there are many things to remember. Let's get used to it now
 
 .col-6[
 ```scala
@@ -944,6 +946,11 @@ object PingPong extends App {
 }
 ```
 ]
+
+???
+- メッセージハンドラで受け取るメッセージ型はAnyだったが、型を指定できるようになった
+- 基本的に互換性がないので、覚えることが多い。今のうちになれておこう
+
 ---
 
 # Read Model Updater(1/3)
@@ -955,10 +962,15 @@ object PingPong extends App {
 ]
 ]
 .col-6[
+- Starts the Read Model Updater (RMU) for each aggregation ID
+- Sharding to allow multiple RMUs to boot on a single node
+- Starting and stopping the RMU is triggered by events on the aggregate actor. It actually does message translation with AggregateToRMU.う
+]
+
+???
 - 集約IDごとにRead Model Updater(RMU)を起動させる
 - 1ノードで複数のRMUが起動できるようにシャーディングする
 - RMUの起動と停止は集約アクターのイベントをきっかけにする。実際にはAggregateToRMUでメッセージ変換を行う
-]
 
 ---
 
@@ -983,13 +995,18 @@ private def projectionSource(sqlBatchSize: Long, threadId: ThreadId)
 ```
 ]
 .col-5[
+- RMU does not end stream processing
+-persistenceId also gets the latest sequence number corresponding to the thread ID
+- read events from readJournal since thread ID and last sequence number
+- sqlActionFlow converts events to SQL
+- Finally, run the SQL in batches (Read model not denormalized to be flexible to query patterns)
+]
+???
 - RMUは終わらないストリーム処理を行います
 - persistenceIdでもスレッドIDに対応する最新のシーケンス番号を取得します
 - スレッドIDと最新のシーケンス番号以降のイベントをreadJournalから読み込みます
 - sqlActionFlowではイベントをSQLに変換します
-- 最後にSQLをまとめて実行します(今回は非正規はやっていません。問い合わせパターンに柔軟に対応するためです)
-]
-
+- 最後にSQLをまとめて実行します(問い合わせパターンに柔軟に対応するためリードモデルを非正規化していません)
 ---
 
 # Read Model Updater(2/2)
@@ -1025,9 +1042,13 @@ class ThreadReadModelUpdater(
 ```
 ]
 .col-4[
-- Read Model UpdaterはStartメッセージを受け取るとストリーム処理を開始します。
-- ストリーム処理は子アクターのタスクとして実行されます
+- RMU starts stream processing when it receives a Start message.
+- Stream processing is performed as a task on a child actor
 ]
+
+???
+- RMUはStartメッセージを受け取るとストリーム処理を開始します。
+- ストリーム処理は子アクターのタスクとして実行されます
 
 ---
 
@@ -1122,9 +1143,13 @@ object AggregateToRMU {
 ```
 ]
 .col-5[
+- These two actors are separated because they have different responsibilities, but start and stop work together
+- Actually there is a problem with this method. If only the RMU stops due to a node failure, the RMU cannot recover until it receives the Start message again. The downside is that ThreadAggregate must periodically send heartbeat beads.
+]
+
+???
 - この二つのアクターは責務が異なるので分離されていますが、起動と停止は連動します
 - この方法はあまりよくありません。ノード故障でRMUだけが停止した場合、再度Startメッセージを受信しないとリカバリできないからです。ThreadAggregateから定期的にハートビードを受ける方法もありますが、RMUをThreadAggreagteの子アクターにする方法もあります。
-]
 
 ---
 
@@ -1136,10 +1161,14 @@ object AggregateToRMU {
 ]
 ]
 .col-6[
-- もうひとつの実装パターンは、RMUをPersistentThreadAggregateの子アクターにする方法です。
-- RMUを子アクターとしてwatchできるようになるので、万が一RMUが停止しても再起動が可能です。
-- ただしPersistentThreadAggregateがRMU責務を担うことになります。責務の重複？
+- Another implementation pattern is to make the RMU a child actor of PersistentThreadAggregate.
+- This method allows you to watch the RMU as a child actor so that it can be restarted if the RMU should stop.
+- However, PersistentThreadAggregate is responsible for RMU responsibilities. Duplicate Responsibilities?
 ]
+???
+- もうひとつの実装パターンは、RMUをPersistentThreadAggregateの子アクターにする方法です。
+- この方法はRMUを子アクターとしてwatchできるようになるので、万が一RMUが停止しても再起動が可能です。
+- ただしPersistentThreadAggregateがRMU責務を担うことになります。責務の重複？
 
 ---
 
@@ -1392,9 +1421,9 @@ class: impact
 
 ---
 
-# FYI: Kubernetes/EKSを学ぶ
+# FYI: Learn Kubernetes/EKS
 
-- [Kubernetes公式サイト](https://kubernetes.io/ja/docs/home/)
+- [Kubernetes Documentation](https://kubernetes.io/ja/docs/home/)
 - [Amazon EKS](https://docs.aws.amazon.com/ja_jp/eks/latest/userguide/what-is-eks.html)
 - [Amazon EKS Workshop](https://eksworkshop.com/)
 
@@ -1418,7 +1447,7 @@ addSbtPlugin("com.mintbeans" % "sbt-ecr" % "0.14.1")
 
 # build.sbt
 
-- Dockerの設定
+- Configuration for Docker
 
 ```scala
 lazy val dockerCommonSettings = Seq(
@@ -1440,7 +1469,7 @@ lazy val dockerCommonSettings = Seq(
 
 # build.sbt
 
-- ECRに対する設定
+- Configuration for ECR
 
 ```scala
 val ecrSettings = Seq(
@@ -1494,13 +1523,13 @@ class: impact
 # Deployment to Local Cluster
 
 .col-5[
-- minikubeの起動
-- helmの導入
-- ネームスペースとサービスアカウントの作成
-- DBをデプロイ
-- スキーマ作成
-- アプリケーション用イメージのビルド
-- アプリケーション用イメージのデプロイ
+- start minikube
+- Helm Implementation
+- Create namespaces and service accounts
+- Deploy DB
+- Create Schema
+- Building an image for your application
+- Deploy the image for the application
 ]
 .col-7[
 ```sh
@@ -1524,6 +1553,15 @@ $ helm install ./thread-weaver-api-server \
   -f ./thread-weaver-api-server/environments/${ENV_NAME}-values.yaml
 ```
 ]
+
+???
+- minikubeの起動
+- helmの導入
+- ネームスペースとサービスアカウントの作成
+- DBをデプロイ
+- スキーマ作成
+- アプリケーション用イメージのビルド
+- アプリケーション用イメージのデプロイ
 
 ---
 
@@ -1653,8 +1691,12 @@ spec:
             initialDelaySeconds: 60
             periodSeconds: 30
 ```
-- イメージの名前やタグ、環境変数、ポートなどコンテナが起動するための設定を記述する
+- Describes the settings for starting the container, such as image name, tags, environment variables, and ports
 ]
+
+???
+- イメージの名前やタグ、環境変数、ポートなどコンテナが起動するための設定を記述する
+
 
 ---
 
@@ -1687,8 +1729,11 @@ spec:
 ```
 ]
 .col-6[
-- 外部からアクセス可能にするためにLoadBalancerタイプのServiceを構築します
+- Build a Service of type LoadBalancer to make it externally accessible
 ]
+
+???
+- 外部からアクセス可能にするためにLoadBalancerタイプのServiceを構築します
 
 ---
 
@@ -1719,8 +1764,11 @@ roleRef:
 ```
 ]
 .col6[
-- akka-discoveryがノードを見つけられるようにRBACを設定します
+Configure RBAC so that akka-discovery can find the nodes
 ]
+???
+- akka-discoveryがノードを見つけられるようにRBACを設定します
+
 ---
 
 # Verification for Local Cluster 
@@ -1748,7 +1796,7 @@ class: impact
 
 # Build Kubernetes Cluster
 
-- EKSクラスター以外に必要なモノをすべて作る
+- Build the required components for the EKS cluster in advance
     - subnet
     - security group
     - ineternet-gw
@@ -1756,6 +1804,7 @@ class: impact
     - nat-gw
     - route table
     - ecr
+- Build the database required by the application
     - rds(aurora)
     - dynamodb(with shema)
 
@@ -1770,7 +1819,8 @@ $ terraform apply
 # Build Kubernetes Cluster
 
 
-- EKSクラスタを構築
+- Build an EKS cluster
+    - [eksctl](https://eksctl.io/)
 
 ```sh
 $ eksctl create cluster \
@@ -1788,7 +1838,7 @@ $ eksctl create cluster \
 	  --vpc-public-subnets=${SUBNET_PUBLIC1},${SUBNET_PUBLIC2},${SUBNET_PUBLIC3}
 ```
 
-- 初期設定(RBAC設定など)
+- Initial Setup (RBAC settings, etc.)
 
 ```sh
 tools/eks/helm $ kubectl apply -f ./rbac-config.yaml
@@ -1832,7 +1882,7 @@ curl -v -X GET "http://$API_HOST:$API_PORT/v1/threads/${THREAD_ID}?account_id=${
 
 ---
 
-# 本番運用のために考慮すべき観点
+# Perspective to be considered for production operations
 
 - Event Schema Evolution
     - [Persistence - Schema Evolution](https://doc.akka.io/docs/akka/current/persistence-schema-evolution.html)
@@ -1846,10 +1896,9 @@ curl -v -X GET "http://$API_HOST:$API_PORT/v1/threads/${THREAD_ID}?account_id=${
 ---
 
 
-# まとめ
+# Summary
 
-- ドメインイベントは、ドメインの分析と実装の両方で使えるツール
-- 集約を跨がる整合性の問題は難しいが、解決方法がないわけではない
+- T.B.D
 
 ---
 class: impact
