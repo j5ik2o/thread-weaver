@@ -533,8 +533,45 @@ expectMsgType[GetMessagesResponse] match {
 - 永続化アクターを意図的に停止して再起動するテスト
 - 再起動後に状態をリプレイできます
 
+---
+
+# FYI: akka-persistence plugin
+
+- プラグインを変えることで様々なデータベースに対応できる
+  - [Akka Persistence journal and snapshot plugins](https://index.scala-lang.org/search?topics=akka-persistence&_ga=2.59796846.298215744.1559990739-503694813.1531235856)
+- デフォルトはLevelDBに対応している
+- AWSでのお勧めはDynamoDB。本家と私が作っているプラグインがあるが、おすすめは私のほうです
+    - https://github.com/j5ik2o/akka-persistence-dynamodb
+
+.col-6[
+```scala
+    libraryDependencies ++= Seq(
+      // ...
+      "com.typesafe.akka" %% "akka-persistence" % akkaVersion,
+      "org.fusesource.leveldbjni" % "leveldbjni-all" % "1.8" % Test,
+      "org.iq80.leveldb" % "leveldb" % "0.9" % Test,
+      "com.github.j5ik2o" %% "akka-persistence-dynamodb" % "1.0.2",
+      // ...
+    )
+```
+]
+.col-6[
+```hcon
+akka {
+  persistence {
+    journal {
+      plugin = dynamo-db-journal
+    }
+    snapshot-store {
+      plugin = dynamo-db-snapshot
+    }
+  }
+}
+```
+]
 
 ---
+
 
 # ThreadAggregates(Message Broker)
 
