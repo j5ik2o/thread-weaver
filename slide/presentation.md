@@ -50,6 +50,9 @@ layout: true
 .center[<img src="images/self-prof.png" width="50%">]
 ]
 
+.bottom-bar[
+Chatworkテックリード。OSS活動&翻訳レビューなど
+]
 ---
 
 # Agenda
@@ -60,7 +63,7 @@ layout: true
 - https://github.com/j5ik2o/thread-weaver
 
 .bottom-bar[
-Akka
+AkkaでのES実装。EMSへのデプロイなどを話します。動作するソースコードはGithubにあります
 ]
 
 ???
@@ -82,8 +85,59 @@ class: impact
 - An event sequence represents an immutable history.
     - The transaction makes the following unique corrections. Events are never modified or deleted.
     - The order #0001 is canceled at the #0700, and the corrected data is registered at the slip #0701.
-  
-.center[<img src="images/real-events.png" width="80%">]
+
+<table class="waffle" cellspacing="0" cellpadding="0">
+<tbody>
+  <tr style='height:20px;'>
+    <td class="s2" dir="ltr">Slip Number</td>
+    <td class="s2" dir="ltr">Product</td>
+    <td class="s2" dir="ltr">Price</td>
+    <td class="s2" dir="ltr">Quantity</td>
+    <td class="s3 softmerge" dir="ltr">
+      <div class="softmerge-inner" style="width: 309px; left: -1px;">Slip Number For Correction</div>
+    </td>
+    <td class="s4">Remarks</td>
+  </tr>
+  <tr style='height:20px;'>
+    <td class="s2" dir="ltr">0001</td>
+    <td class="s2" dir="ltr">A0123</td>
+    <td class="s5" dir="ltr">5,000</td>
+    <td class="s5" dir="ltr">10</td>
+    <td class="s2" dir="ltr">0700</td>
+    <td class="s6 softmerge" dir="ltr">
+      <div class="softmerge-inner" style="width: 244px; left: -1px;">data before modification</div>
+    </td>
+  </tr>
+  <tr style='height:20px;'>
+    <td class="s2"></td>
+    <td class="s2"></td>
+    <td class="s2"></td>
+    <td class="s2"></td>
+    <td class="s2"></td>
+    <td></td>
+  </tr>
+  <tr style='height:20px;'>
+    <td class="s2" dir="ltr">0700</td>
+    <td class="s2" dir="ltr">A0123</td>
+    <td class="s5" dir="ltr">5,000</td>
+    <td class="s5" dir="ltr">-10</td>
+    <td class="s2" dir="ltr">0001</td>
+    <td class="s7" dir="ltr">data for cancellation</td>
+  </tr>
+  <tr style='height:20px;'>
+    <td class="s2" dir="ltr">0701</td>
+    <td class="s2" dir="ltr">A0123</td>
+    <td class="s5" dir="ltr">4,000</td>
+    <td class="s5" dir="ltr">20</td>
+    <td class="s2"></td>
+    <td class="s7" dir="ltr">corrected data</td>
+  </tr>
+</tbody>
+</table>
+
+.bottom-bar[
+状態はイベントから導出可能。取引はドメインイベントのよい例。イベントは列は不変な歴史を示す
+]
 
 ???
 - イベントソーシングとは何か？
@@ -111,6 +165,10 @@ class: impact
 ]  
 .center[<img src="images/event-stream.png" width="80%">]
 
+.bottom-bar[
+イベントをモデリングの主軸にするのがES。ドメインイベントは動詞の過去形で表現される
+]
+
 ???
 EventSourcingはイベントをモデリングの主軸に起きます。つまりドメインで起こる過去の出来事にフォーカスします。
 ドメインイベントはドメインエキスパートが関心を持つ出来事です。一般にドメインイベントは動詞の過去形で表現されます。
@@ -121,6 +179,10 @@ class: impact
 
 # Consider thread-weaver 
 # as an example of a simple chat application.
+
+.bottom-bar[
+ESの事例としてシンプルなチャットアプリケーション thread-weaverを基に話しを進める
+]
 
 ???
 ここからは論よりコード。シンプルなチャットアプリケーションの事例として
@@ -136,6 +198,10 @@ thread-weaverという架空プロジェクトで話しを進めます。
 - Only text messages posted to threads
 - Omit authentication and authorization for convenience
 
+.bottom-bar[
+システム要件。API鯖を作る。チャットはスレッドを生成しメンバーとして投稿することで始められる
+]
+
 ???
 システム要件について
 チャットはチャットメッセージをサーバとクライアントの間でやりとりできるようにします。
@@ -150,7 +216,7 @@ APIサーバはAPIクライアントからのコマンドとクエリを受け�
 # System Configuration
 
 .col-6[
-.center[<img src="images/syste-diagram.svg">]
+.center[<img src="images/system-diagram.svg">]
 ]
 
 .col-6[
@@ -160,6 +226,10 @@ APIサーバはAPIクライアントからのコマンドとクエリを受け�
 - RMU(cluster sharding ) starts up in conjunction with the aggregation actor and reads the domain events for the appropriate aggregate ID immediately after startup, executes the SQL, and creates the Read-Model
 - Query using DAO to load and return the lead model
 - Deploy the api-server as a kubernetes pod
+]
+
+.bottom-bar[
+システム構成。akka-cluster, CQRS, ShardingされたPersistentActor, RMU, DAOなどがキーコンポーネント。
 ]
 
 ???
@@ -180,6 +250,9 @@ class: impact
 ???
 それでは詳細にコマンド側をみていきましょう
 
+.bottom-bar[
+コマンド側から設計を考えましょう
+]
 
 ---
 
@@ -200,6 +273,10 @@ class: impact
   - Users of the Thread
 ]
 .center[<img src="images/domain-models.svg" width="80%">]
+
+.bottom-bar[
+想定するドメインオブジェクト
+]
 
 ???
 - アカウント
@@ -232,6 +309,10 @@ ThreadEvent sub types
     - MessagesAdded 
     - MessagesRemoved
 
+.bottom-bar[
+コマンドとドメインイベント。コマンドが受理されるとドメインイベントが生成される
+]
+
 ???
 コマンドとドメインイベントについて。
 以下のような命令に対応して、ドメインイベントが発生します。
@@ -259,6 +340,10 @@ ThreadEvent sub types
 .center[<img src="images/clean-architecture.jpeg" width="100%">]
 ]
 
+.bottom-bar[
+レイヤー化アーキテクチャ。クリーンアーキテクチャっぽいものを想定。
+]
+
 ???
 ドメインを隔離するために、なんらかのレイヤー化アーキテクチャを使いましょう。
 ここではクリーンアーキテクチャを採用しています。詳しい話は 藤井さんの実践 Clean Architecture のセッションを聞いてみてください。
@@ -272,6 +357,10 @@ ThreadEvent sub types
 
 .center[
 <object type="image/svg+xml" data="images/modules.svg" width="900"></object>
+]
+
+.bottom-bar[
+プロジェクト構造。レイヤー間の依存はサブプロジェクトで強制します。依存には契約と実装の二つの種類があります
 ]
 
 ???
@@ -290,6 +379,10 @@ modulesというものは、実装が含まれます。依存の方向性は循�
 .col-4[
 - Actors that fulfill all the functions are undesirable
 - Follow object-oriented principles to build a hierarchy of actors with a single responsibility
+]
+
+.bottom-bar[
+ドメインオブジェクトを含むアクターヒエラルキー。責務毎にアクターを分割する
 ]
 
 ???
@@ -323,8 +416,12 @@ trait Thread {
 }
 ```
 
+.bottom-bar[
+ドメインオブジェクトのひとつであるThread。ユビキタス言語を反映したメソッドを持ちます
+]
+
 ???
-- 今回のドメインのコアはThreadです。
+- 今回のドメインはThreadです。
 - ユビキタス言語で表現される振る舞いのセットが定義されています。これらは副作用のない関数です。
 ---
 
@@ -363,9 +460,13 @@ class ThreadAggregate(id: ThreadId,
 - If the other commands defined in the protocol are received by the Actor, the Actor will have corresponding side effects.
 ]
 
+.bottom-bar[
+ドメインオブジェクトを集約するアクターを実装。集約は強い整合性をサポートする
+]
+
 ???
 - トランザクションの整合性をサポートするアクター
-- データ更新の境界は、集計値の境界と同じです。
+- データ更新の境界は、集約の境界と同じです。
 - たとえば、アクターがCreateTheadコマンドを受け取ると、内部でThread状態が生成されます。
 - その後、AddMessagesコマンドを受信したときにメッセージもスレッドに追加されます。
 - プロトコルで定義された他のコマンドがアクターによって受信された場合、アクターは対応する副作用を持ちます。
@@ -402,6 +503,10 @@ expectMsgType[AddMessagesResponse] match {
 ]
 .col-6[
 - Verify that add messages and create a thread by using Test Kit
+]
+
+.bottom-bar[
+メッセージパッシングを使ってテストを実装します
 ]
 
 ???
@@ -445,6 +550,10 @@ class PersistentThreadAggregate(id: ThreadId,
 - Actors that add the persistence function to ThreadAggregate
 - Domain behavior is provided by child actors
 - The recover process sends commands generated from events to child actors.
+]
+
+.bottom-bar[
+メッセージパッシングを使ってテストを実装します
 ]
 
 ???
@@ -491,6 +600,10 @@ class PersistentThreadAggregate(id: ThreadId,
 - message processing is suspended until a command response is returned
 ]
 
+.bottom-bar[
+実際のドメインの振る舞いは子アクターが実現する。コマンドの応答が返されるまでメッセージ処理は一時退避される
+]
+
 ???
 - コマンドを受信したとき、子アクターに委譲します
 - そのコマンドの応答が返されるまで、メッセージ処理は一時停止されます。
@@ -530,6 +643,9 @@ expectMsgType[GetMessagesResponse] match {
 - a test that intentionally stops and restarts the persistence actor
 - Replayed state after reboot
 ]
+.bottom-bar[
+永続化アクターを意図的に停止して再起動するテスト。再起動後に状態をリプレイする
+]
 
 ???
 - 永続化アクターを意図的に停止して再起動するテスト
@@ -545,20 +661,23 @@ expectMsgType[GetMessagesResponse] match {
 - recommended on AWS is DynamoDB. There are the following plugins, but I recommend my plugin:P
     - https://github.com/j5ik2o/akka-persistence-dynamodb
     - https://github.com/akka/akka-persistence-dynamodb
+
 .col-6[
 ```scala
-    libraryDependencies ++= Seq(
-      // ...
-      "com.typesafe.akka" %% "akka-persistence" % akkaVersion,
-      "org.fusesource.leveldbjni" % "leveldbjni-all" % "1.8" % Test,
-      "org.iq80.leveldb" % "leveldb" % "0.9" % Test,
-      "com.github.j5ik2o" %% "akka-persistence-dynamodb" % "1.0.2",
-      // ...
-    )
+// build.sbt
+libraryDependencies ++= Seq(
+  // ...
+  "com.typesafe.akka" %% "akka-persistence" % akkaVersion,
+  "org.fusesource.leveldbjni" % "leveldbjni-all" % "1.8" % Test,
+  "org.iq80.leveldb" % "leveldb" % "0.9" % Test,
+  "com.github.j5ik2o" %% "akka-persistence-dynamodb" % "1.0.2",
+  // ...
+)
 ```
 ]
 .col-6[
 ```hcon
+// application.conf
 akka {
   persistence {
     journal {
@@ -570,6 +689,9 @@ akka {
   }
 }
 ```
+]
+.bottom-bar[
+akka-persistence pluginには様々なプラグインがある。AWSでのお勧めは私が作ったDynamoDBプラグイン
 ]
 
 ---
@@ -602,6 +724,9 @@ class ThreadAggregates(subscribers: Seq[ActorRef],
 - The message broker that bundles multiple ThreadAggregates as child actors 
 - Most of the logic is in ChildActorLookup
 - Resolve the actor name from ThreadId in the command message, and transfer the message to the corresponding child actor.  If there is no child actor, generate an actor and then forward the message to the actor
+]
+.bottom-bar[
+複数のThreadAggregateを子アクターとして束ねるメッセージブローカー
 ]
 
 ???
@@ -646,6 +771,9 @@ trait ChildActorLookup extends ActorLogging { this: Actor =>
 .col-4[
 - Create a child actor if none exists and forward the message
 - forward the message to its child actors, if any
+]
+.bottom-bar[
+メッセージブローカはメッセージを転送しますが、内部で子アクターの生成も担当する
 ]
 
 ???
@@ -692,6 +820,9 @@ object ShardedThreadAggregates {
 - extractEntityId is the function to extract an entity id
 - extractShardId is the function to extract a shard id
 ]
+.bottom-bar[
+ThreadAggregateをクラスタ全体に分散できるようにする
+]
 
 ???
 -  ThreadAggregateをクラスタ全体に分散できるようにする
@@ -724,6 +855,9 @@ class ShardedThreadAggregates(subscribers: Seq[ActorRef],
 .col-6[
 - Inherit ThreadAggregates
 - Then add an implementation to passivate ShardedThreadAggregates when occurred ReceiveTimeout 
+]
+.bottom-bar[
+ShardedThreadAggregatesはThreadAggregatesを継承。一定時間を過ぎたらランタイムから退避させる設定を追加する
 ]
 
 ???
@@ -759,15 +893,18 @@ object ShardedThreadAggregatesRegion {
 - The startClusterSharing method will start ClusterSharing with the specified settings
 - The shardRegion method gets the ActorRef to the started ShardRegion.
 ]
+.bottom-bar[
+最後にクラスターシャーディングのためユーティリティを定義
+]
+
 
 ???
-最後にクラスターシャーディングのための設定を追加します。
 - startClusterSharingメソッドは指定した設定に基づいてクラスターシャーディングを開始します
 - shardRegionメソッドは開始されたShardRegionへのActor参照を返します
 
 ---
 
-# MultiJVM Testing
+# MultiJVM Testing(by using sbt-multi-jvm)
 
 ```scala
 "setup shared journal" in {
@@ -796,6 +933,9 @@ object ShardedThreadAggregatesRegion {
   enterBarrier("create thread")
 }
 ```
+.bottom-bar[
+sbt-multi-jvmを使ったテスト
+]
 
 ???
 これはMultiJVMテストの例です。
@@ -814,6 +954,9 @@ akka-persistenceの初期化とクラスターメンバーのジョイン後に�
 .col-4[
 - Actors with state in on-memory are distributed across the cluster
 - Domain events that occur are saved in partitioned storage by aggregate ID
+]
+.bottom-bar[
+akka-cluster-shardingとakka-persistenceの構成振り返り
 ]
 
 ???
@@ -846,6 +989,9 @@ class CreateThreadUseCaseUntypeImpl(
     }
 }
 ```
+.bottom-bar[
+ユースケースクラスの実装例。アクターをラップしストリームに結合できるように
+]
 
 ???
 より複雑なユースケースではワークフローを制御しますが、このユースケースでは単純にスレッド集約にコマンドを送信し応答を待ちます。
@@ -889,6 +1035,11 @@ trait ThreadCommandControllerImpl
 - The request JSON returns a command if validation passes. Pass the command to the use-case and execute it
 - The presenter will convert the use-case result to Response JSON
 ]
+.bottom-bar[
+コマンド側のコントローラ。バリデーションとユースケースの実行とプレゼンターの実行を行う
+]
+
+
 ???
 - コマンドサイドのコントローラです。クエリとは責務が異なるので分離しました。
 - スレッド作成用ルートはいくつかのディレクティブを合成しユースケースを呼び出します
@@ -946,7 +1097,9 @@ object PingPong extends App {
 }
 ```
 ]
-
+.bottom-bar[
+受け取るメッセージ型を指定できるようになった。APIには互換性がない
+]
 ???
 - メッセージハンドラで受け取るメッセージ型はAnyだったが、型を指定できるようになった
 - 基本的に互換性がないので、覚えることが多い。今のうちになれておこう
@@ -958,15 +1111,17 @@ object PingPong extends App {
 
 .col-6[
 .center[
-<object type="image/svg+xml" data="images/separate-node-layout.svg" height="400"></object>
+<object type="image/svg+xml" data="images/separate-node-layout.svg" width="500"></object>
 ]
 ]
 .col-6[
 - Starts the Read Model Updater (RMU) for each aggregation ID
 - Sharding to allow multiple RMUs to boot on a single node
-- Starting and stopping the RMU is triggered by events on the aggregate actor. It actually does message translation with AggregateToRMU.う
+- Starting and stopping the RMU is triggered by events on the aggregate actor. It actually does message translation with AggregateToRMU.
 ]
-
+.bottom-bar[
+集約IDごとにRead Model Updater(RMU)を起動
+]
 ???
 - 集約IDごとにRead Model Updater(RMU)を起動させる
 - 1ノードで複数のRMUが起動できるようにシャーディングする
@@ -1000,6 +1155,9 @@ private def projectionSource(sqlBatchSize: Long, threadId: ThreadId)
 - read events from readJournal since thread ID and last sequence number
 - sqlActionFlow converts events to SQL
 - Finally, run the SQL in batches (Read model not denormalized to be flexible to query patterns)
+]
+.bottom-bar[
+RMUは終わらないストリーム処理を行う
 ]
 ???
 - RMUは終わらないストリーム処理を行います
@@ -1045,7 +1203,9 @@ class ThreadReadModelUpdater(
 - RMU starts stream processing when it receives a Start message.
 - Stream processing is performed as a task on a child actor
 ]
-
+.bottom-bar[
+RMUはStartメッセージを受け取るとストリーム処理を開始する
+]
 ???
 - RMUはStartメッセージを受け取るとストリーム処理を開始します。
 - ストリーム処理は子アクターのタスクとして実行されます
@@ -1146,24 +1306,29 @@ object AggregateToRMU {
 - These two actors are separated because they have different responsibilities, but start and stop work together
 - Actually there is a problem with this method. If only the RMU stops due to a node failure, the RMU cannot recover until it receives the Start message again. The downside is that ThreadAggregate must periodically send heartbeat beads.
 ]
-
+.bottom-bar[
+イベントとメッセージの変換を行うアクター
+]
 ???
 - この二つのアクターは責務が異なるので分離されていますが、起動と停止は連動します
 - この方法はあまりよくありません。ノード故障でRMUだけが停止した場合、再度Startメッセージを受信しないとリカバリできないからです。ThreadAggregateから定期的にハートビードを受ける方法もありますが、RMUをThreadAggreagteの子アクターにする方法もあります。
 
 ---
 
-# RMU for improvement
+# Improvement for RMU
 
 .col-6[
 .center[
-<object type="image/svg+xml" data="images/same-node-layout.svg" height="400"></object>
+<object type="image/svg+xml" data="images/same-node-layout.svg" width="500"></object>
 ]
 ]
 .col-6[
 - Another implementation pattern is to make the RMU a child actor of PersistentThreadAggregate.
 - This method allows you to watch the RMU as a child actor so that it can be restarted if the RMU should stop.
 - However, PersistentThreadAggregate is responsible for RMU responsibilities. Duplicate Responsibilities?
+]
+.bottom-bar[
+改善の余地がある。どちらのヒエラルキーがよいかは試してみてください
 ]
 ???
 - もうひとつの実装パターンは、RMUをPersistentThreadAggregateの子アクターにする方法です。

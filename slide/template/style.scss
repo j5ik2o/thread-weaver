@@ -245,3 +245,24 @@ blockquote {
     left: 0 !important;
   }
 }
+
+table {
+  table-layout: auto;
+}
+table th {
+  color: #FF9800;
+  background: #FFF5E5;
+}
+table th, table td {
+  border: solid 1px black;
+}
+
+.ritz .waffle a { color: inherit; }
+.ritz .waffle .s4{border-left: none;background-color:#ffffff;}
+.ritz .waffle .s0{border-bottom:1px SOLID #000000;background-color:#ffffff;}
+.ritz .waffle .s2{border-bottom:1px SOLID #000000;border-right:1px SOLID #000000;background-color:#ffffff;text-align:left;color:#000000;font-family:'Arial';font-size:10pt;vertical-align:bottom;white-space:nowrap;direction:ltr;padding:2px 3px 2px 3px;}
+.ritz .waffle .s3{border-right: none;border-bottom:1px SOLID #000000;background-color:#ffffff;text-align:left;color:#000000;font-family:'Arial';font-size:10pt;vertical-align:bottom;white-space:nowrap;direction:ltr;padding:2px 3px 2px 3px;}
+.ritz .waffle .s5{border-bottom:1px SOLID #000000;border-right:1px SOLID #000000;background-color:#ffffff;text-align:right;color:#000000;font-family:'Arial';font-size:10pt;vertical-align:bottom;white-space:nowrap;direction:ltr;padding:2px 3px 2px 3px;}
+.ritz .waffle .s1{border-bottom:1px SOLID #000000;background-color:#ffffff;text-align:left;color:#000000;font-family:'Arial';font-size:10pt;vertical-align:bottom;white-space:nowrap;direction:ltr;padding:2px 3px 2px 3px;}
+.ritz .waffle .s6{border-right: none;background-color:#ffffff;text-align:left;color:#000000;font-family:'Arial';font-size:10pt;vertical-align:bottom;white-space:nowrap;direction:ltr;padding:2px 3px 2px 3px;}
+.ritz .waffle .s7{background-color:#ffffff;text-align:left;color:#000000;font-family:'Arial';font-size:10pt;vertical-align:bottom;white-space:nowrap;direction:ltr;padding:2px 3px 2px 3px;}
