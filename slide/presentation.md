@@ -662,6 +662,57 @@ expectMsgType[GetMessagesResponse] match {
     - https://github.com/j5ik2o/akka-persistence-dynamodb
     - https://github.com/akka/akka-persistence-dynamodb
 
+---
+
+# FYI: akka-persistence plugin
+
+- akka plugin 
+    - is complex schema 
+    - doesn't support the query function.
+    - doesn't support non-blocking I/O (by aws-sdk v2)
+    
+.col-6[
+#### akka/akka-persistence-dynamodb
+
+```hcon
+# PersistentRepr
+PKey: par = <journalName>-P-<persistenceId>-<sequenceNr / 100>
+SKey: num = <sequenceNr % 100>
+pay = <payload> 
+idx = <atomic write batch index>
+cnt = <atomic write batch max index>
+# 高いシーケンス番号
+PKey: par = <journalName>-SH-<persistenceId>-<(sequenceNr / 100)
+   % sequenceShards>
+SKey: num = 0 
+seq = <sequenceNr rounded down to nearest multiple of 100>
+# 低シーケンス番号
+PKey: par = <journalName>-SL-<persistenceId>-<(sequenceNr / 100)
+   % sequenceShards>
+SKey: num = 0
+seq = <sequenceNr, not rounded>
+```
+]
+.col-6[
+#### j5ik2o/akka-persistence-dynamodb
+
+```hcon
+# PrimaryIndex(for Writing)
+PKey: pkey = ${PersistenceId}-${SequenceNumber % ShardCount}
+SKey: sequence-nr = ${SequenceNumber}
+# GSI:GetJournalRows(for Reading)
+persistence-id = ${PersistenceId}
+sequence-nr = ${SequenceNumber}
+# GSI:TagsIndex(for Reading)
+tags = ...
+```
+]
+
+
+---
+
+# FYI: akka-persistence plugin
+
 .col-6[
 ```scala
 // build.sbt
@@ -1212,7 +1263,7 @@ RMUはStartメッセージを受け取るとストリーム処理を開始する
 
 ---
 
-# ShardedThreadReadModelUpdater(1/2)
+# ShardedThreadReadModelUpdater(1/3)
 
 ```scala
 class ShardedThreadReadModelUpdater(
@@ -1222,27 +1273,6 @@ class ShardedThreadReadModelUpdater(
 ) {
   val TypeKey: EntityTypeKey[CommandRequest] = EntityTypeKey[CommandRequest]("threads-rmu")
 
-  private def behavior(
-      receiveTimeout: FiniteDuration, sqlBatchSize: Long = 10, backoffSettings: Option[BackoffSettings] = None
-  ): EntityContext => Behavior[CommandRequest] = { entityContext =>
-    Behaviors.setup[CommandRequest] { ctx =>
-      val childRef = ctx.spawn(new ThreadReadModelUpdater(readJournal, profile, db).behavior(sqlBatchSize, backoffSettings),
-        name = "threads-rmu")
-      Behaviors.receiveMessagePartial {
-        case Idle => entityContext.shard ! ClusterSharding.Passivate(ctx.self); Behaviors.same
-        case Stop => Behaviors.stopped
-        case Stop(_, _, _) => ctx.self ! Idle; Behaviors.same
-        case msg => childRef ! msg; Behaviors.same
-      }
-    }
-  }
-```
-
----
-
-# ShardedThreadReadModelUpdater(2/2)
-
-```scala
   def initEntityActor(
       clusterSharding: ClusterSharding,
       receiveTimeout: FiniteDuration
@@ -1250,10 +1280,44 @@ class ShardedThreadReadModelUpdater(
     clusterSharding.init(
       Entity(typeKey = TypeKey, createBehavior = behavior(receiveTimeout)).withStopMessage(Stop)
     )
-}
+// ...
+```
+.bottom-bar[
+akka-typedでのcluster-shardingのやり方
+]
+
+---
+
+# ShardedThreadReadModelUpdater(2/3)
+
+```scala
+// ...
+  private def behavior(
+      receiveTimeout: FiniteDuration, sqlBatchSize: Long = 10, backoffSettings: Option[BackoffSettings] = None
+  ): EntityContext => Behavior[CommandRequest] = { entityContext =>
+    Behaviors.setup[CommandRequest] { ctx =>
+      // setting receive timeout
+      ctx.setReceiveTimeout(receiveTimeout, Idle)
+      val childRef = ctx.spawn(new ThreadReadModelUpdater(readJournal, profile, db).behavior(sqlBatchSize, backoffSettings),
+        name = "threads-rmu")
+      Behaviors.receiveMessagePartial {
+        case Idle => entityContext.shard ! ClusterSharding.Passivate(ctx.self); Behaviors.same
+        case Stop => Behaviors.stopped
+        case msg => childRef ! msg; Behaviors.same
+      }
+    }
+  }
+// ...
 ```
 
-- ShardedThreadReadModelUpdaterProxy
+.bottom-bar[
+APIは異なるがやることは同じ
+]
+---
+
+# ShardedThreadReadModelUpdater(3/3)
+
+- MUST send the ShardingEnvelope to the ShardRegion. ShadedThreadReadModelUpdaterProxy converts CommandRequest into ShardingEnvelope and forwards it
 
 ```scala
 class ShardedThreadReadModelUpdaterProxy(
@@ -1271,6 +1335,11 @@ class ShardedThreadReadModelUpdaterProxy(
     }
 }
 ```
+.bottom-bar[
+ShardedThreadReadModelUpdaterProxyではCommandRequestをShardingEnvelopeに変換して転送する
+]
+???
+ShardingEnvelopeをShardRegionに送る必要がある。ShardedThreadReadModelUpdaterProxyではCommandRequestをShardingEnvelopeに変換して転送する
 
 ---
 
@@ -1344,6 +1413,9 @@ class: impact
 ???
 それでは詳細にクエリ側をみていきましょう
 
+.bottom-bar[
+クエリスタック側
+]
 ---
 
 # ThreadQueryControllerImpl
@@ -1378,17 +1450,20 @@ trait ThreadQueryControllerImpl
 ]
 .col-5[
 - The query side uses a stream wrapped Dao object instead of a use case.
-— Same as command side except for this.
+- Same as command side except for this.
+]
+.bottom-bar[
+クエリサイドではユースケースではなくDaoをストリームでラップしたオブジェクトを利用
 ]
 
 ???
-- 最後はクエリサイドのコントローラです
+- クエリサイドのコントローラです
 - クエリサイドではユースケースではなくDaoをストリームでラップしたオブジェクトを利用します。
 - これ以外はコマンドサイドと同様です。
 
 ---
 
-# ThreadControllerSpec 
+# ThreadControllerSpec
 
 .col-6[
 ```scala
@@ -1422,7 +1497,9 @@ Post(RouteNames.CreateThread, entity) ~>
 - Verify threads are readable after they are created
 - Works fine
 ]
-
+.bottom-bar[
+二つのコントローラをつなげたテスト。スレッドを作成後にスレッドが読めるようになるかを検証
+]
 ???
 - 二つのコントローラをつなげたテストです
 - スレッドを作成後にスレッドが読めるようになるかを検証します
@@ -1432,7 +1509,7 @@ Post(RouteNames.CreateThread, entity) ~>
 
 # Bootstrap
 
-- Start AkkaManagement and ClusterBootstrap and start akka-http server
+- Start AkkaManagement and ClusterBootstrap, then start akka-http server
 
 ```scala
 object Main extends App {
@@ -1460,9 +1537,12 @@ object Main extends App {
 
 }
 ```
+.bottom-bar[
+AkkaManagementとClusterBootstrapを開始した後にakka-httpサーバを起動
+]
 
 ???
-- Start AkkaManagement and ClusterBootstrap and start akka-http server
+- Start AkkaManagement and ClusterBootstrap and akka-http server
 
 ---
 
@@ -1485,6 +1565,9 @@ object Main extends App {
 <object type="image/svg+xml" data="images/cluster-image.svg" height="400"></object>
 ]
 ]
+.bottom-bar[
+Akka-Clusterの概念理解は公式ドキュメントを参照してください
+]
 ---
 
 # FYI: Akka Management
@@ -1495,7 +1578,9 @@ object Main extends App {
     - akka-managment-cluster-http:  Provides HTTP endpoints for cluster monitoring and management
     - akka-managment-cluster-bootstrap: Supports cluster bootstrapping by using akka-discovery
     - akka-discovery-kubernetes-api: Module for managing k8s pod as a cluster member
-
+.bottom-bar[
+Akka-Clusterの運用をサポートするツール群がAkka Management
+]
 ???
 - モジュール
     - akka-management: HTTP管理エンドポイントとヘルスチェック機能
@@ -1507,7 +1592,7 @@ object Main extends App {
 
 # Example for akka.conf(1/2)
 
-- Sample Configuration for Production
+- Example configuration for Production
 
 ```scala
 akka {
@@ -1527,17 +1612,18 @@ akka {
     }
   }
 ```
-
+.bottom-bar[
+本番での設定例。シードノードはAkka Managementによって自動管理
+]
 ???
 シードノードの管理は手動で行うのは明らかに不便ですなので、akka-managementを使うため seed-nodesは空で大丈夫です。
 akka-remoteの設定も忘れずに
-
 
 ---
 
 # Example for akka.conf(2/2)
 
-- Sample configuration for akka-management and akka-discovery
+- Example configuration for akka-management and akka-discovery
 - Configuration to find nodes from k8s pod information
 
 .col-6[
@@ -1579,7 +1665,9 @@ akka-remoteの設定も忘れずに
 }
 ```
 ]
-
+.bottom-bar[
+akka-managementとakka-discoveryのための設定。k8s podの検索条件に注目
+]
 ---
 class: impact
 # Deployment to EKS
@@ -1592,12 +1680,19 @@ class: impact
 - [Amazon EKS](https://docs.aws.amazon.com/ja_jp/eks/latest/userguide/what-is-eks.html)
 - [Amazon EKS Workshop](https://eksworkshop.com/)
 
+.bottom-bar[
+Kubernetes/EKSを学ぶためのリソース。EKS Workshopはおすすめ
+]
+
 ---
 
 class: impact
 
 # build.sbt for deployment
 
+.bottom-bar[
+デプロイのためのbuild.sbt設定
+]
 ---
 
 # project/plugins.sbt
@@ -1607,7 +1702,9 @@ addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.3.10")
 
 addSbtPlugin("com.mintbeans" % "sbt-ecr" % "0.14.1")
 ```
-
+.bottom-bar[
+sbt-native-packager, sbt-ecrを使う前提
+]
 ---
 
 # build.sbt
@@ -1629,7 +1726,9 @@ lazy val dockerCommonSettings = Seq(
   )
 )
 ```
-
+.bottom-bar[
+docker buildのための設定
+]
 ---
 
 # build.sbt
@@ -1645,7 +1744,9 @@ val ecrSettings = Seq(
   push in Ecr := ((push in Ecr) dependsOn (publishLocal in Docker, login in Ecr)).value
 )
 ```
-
+.bottom-bar[
+docker pushのための設定
+]
 ---
 
 # build.sbt
@@ -1676,16 +1777,21 @@ val `api-server` = (project in file("api-server"))
       "org.codehaus.janino" % "janino" % "3.0.6"
     )
 ```
-
+.bottom-bar[
+アプリケーション用プロジェクトへの設定
+]
 ---
 
 class: impact
 
-# Deployment to Local Cluster
+# Deployment to Local Cluster(minikube)
 
+.bottom-bar[
+ローカルクラスタ(minikube)へのデプロイ
+]
 ---
 
-# Deployment to Local Cluster
+# Deployment to Local Cluster(minikube)
 
 .col-5[
 - start minikube
@@ -1717,6 +1823,9 @@ $ helm install ./thread-weaver-api-server \
   --namespace thread-weaver \
   -f ./thread-weaver-api-server/environments/${ENV_NAME}-values.yaml
 ```
+]
+.bottom-bar[
+デプロイ手順。アプリケーションやミドルウェアはHelmパッケージとしてデプロイします
 ]
 
 ???
@@ -1759,6 +1868,9 @@ class: impact
   .center[
 <img src="images/helm.png" width="60%"/>
   ]
+]
+.bottom-bar[
+HelmはKubernetesのためのパッケージマネージャ。パッケージ定義はChartと呼ぶ
 ]
 ---
 
@@ -1813,8 +1925,9 @@ spec:
             value: {{.Values.jvmMetaMax | quote}}
 ```
 ]
-
-
+.bottom-bar[
+chartにはテンプレート化されたマニフェストファイルを使うことができる
+]
 ---
 
 # deployment.yaml(2/2)
@@ -1858,7 +1971,9 @@ spec:
 ```
 - Describes the settings for starting the container, such as image name, tags, environment variables, and ports
 ]
-
+.bottom-bar[
+イメージの名前やタグ、環境変数、ポートなどコンテナが起動するための設定を記述する
+]
 ???
 - イメージの名前やタグ、環境変数、ポートなどコンテナが起動するための設定を記述する
 
@@ -1896,7 +2011,9 @@ spec:
 .col-6[
 - Build a Service of type LoadBalancer to make it externally accessible
 ]
-
+.bottom-bar[
+外部からアクセス可能にするためにLoadBalancerタイプのServiceを構築しま
+]
 ???
 - 外部からアクセス可能にするためにLoadBalancerタイプのServiceを構築します
 
@@ -1931,6 +2048,9 @@ roleRef:
 .col6[
 Configure RBAC so that akka-discovery can find the nodes
 ]
+.bottom-bar[
+akka-discoveryがノードを見つけられるようにRBACを設定します
+]
 ???
 - akka-discoveryがノードを見つけられるようにRBACを設定します
 
@@ -1951,15 +2071,23 @@ echo "THREAD_ID=$THREAD_ID"
 sleep 3
 curl -v -X GET "http://$API_HOST:$API_PORT/v1/threads/${THREAD_ID}?account_id=${ACCOUNT_ID}" -H "accept: application/json"
 ```
+
+.bottom-bar[
+ローカルクラスタでの検証方法
+]
+
 ---
 
 class: impact
 
-# Deployment to Production Cluster
+# Deployment to Production Cluster(EKS)
 
+.bottom-bar[
+本番クラスタ(EKS)へのデプロイ
+]
 ---
 
-# Build Kubernetes Cluster
+# Build Kubernetes Cluster(EKS)
 
 - Build the required components for the EKS cluster in advance
     - subnet
@@ -1979,10 +2107,13 @@ $ terraform plan
 $ terraform apply
 ```
 
+.bottom-bar[
+事前に必要なものを揃える
+]
+
 ---
 
-# Build Kubernetes Cluster
-
+# Build Kubernetes Cluster(EKS)
 
 - Build an EKS cluster
     - [eksctl](https://eksctl.io/)
@@ -2012,9 +2143,12 @@ $ kubectl create namespace thread-weaver
 $ kubectl create serviceaccount thread-weaver
 tools/deploy/eks $ kubectl apply -f secret.yaml
 ```
+.bottom-bar[
+eksctlを使えば構築は簡単。ネームスペースなどの初期設定を行う
+]
 ---
 
-# Build Kubernetes Cluster
+# Deploy to Kubernetes Cluster(EKS)
 
 - docker build & push to ecr
 
@@ -2028,7 +2162,20 @@ $ AWS_DEFUALT_PROFILE=xxxxx sbt api-server/ecr:push
 $ docker run --rm -v $(pwd)/tools/flyway/src/test/resources/db-migration:/flyway/sql -v $(pwd):/flyway/conf boxfuse/flyway migrate
 ```
 
-- verification
+- deploy
+
+```sh
+$ helm install ./thread-weaver-api-server \
+  --namespace thread-weaver \
+  -f ./thread-weaver-api-server/environments/${ENV_NAME}-values.yaml
+```
+
+.bottom-bar[
+ビルド&デプロイ
+]
+---
+
+# Verification for Kubernetes Cluster(EKS)
 
 ```sh
 API_HOST=$(kubectl get svc thread-weaver-api-server -n thread-weaver -ojsonpath="{.status.loadBalancer.ingress[0].hostname}")
@@ -2045,6 +2192,10 @@ sleep 3
 curl -v -X GET "http://$API_HOST:$API_PORT/v1/threads/${THREAD_ID}?account_id=${ACCOUNT_ID}" -H "accept: application/json"
 ```
 
+.bottom-bar[
+本番環境での動作確認
+]
+
 ---
 
 # Perspective to be considered for production operations
@@ -2058,6 +2209,8 @@ curl -v -X GET "http://$API_HOST:$API_PORT/v1/threads/${THREAD_ID}?account_id=${
     - [kamon-io/Kamon](https://github.com/kamon-io/Kamon)
     - [alevkhomich/akka-tracing](https://github.com/levkhomich/akka-tracing)
 
+.bottom-bar[
+]
 ---
 
 
