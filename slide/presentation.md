@@ -1843,6 +1843,9 @@ class: impact
 
 # Helm charts
 
+.bottom-bar[
+Helm charts
+]
 ---
 
 # FYI: Helm
@@ -2205,11 +2208,13 @@ curl -v -X GET "http://$API_HOST:$API_PORT/v1/threads/${THREAD_ID}?account_id=${
 - Split-Brain Resolver
     - [Split Brain Resolver](https://doc.akka.io/docs/akka-enhancements/current/split-brain-resolver.html)
     - [TanUkkii007/akka-cluster-custom-downing](https://github.com/TanUkkii007/akka-cluster-custom-downing)
+    - [Akka Clusterの耐障害設計](https://www.slideshare.net/TanUkkii/akka-cluster-66880662)
 - Distributed Tracing
     - [kamon-io/Kamon](https://github.com/kamon-io/Kamon)
     - [alevkhomich/akka-tracing](https://github.com/levkhomich/akka-tracing)
 
 .bottom-bar[
+関連する論点
 ]
 ---
 
@@ -2221,7 +2226,7 @@ curl -v -X GET "http://$API_HOST:$API_PORT/v1/threads/${THREAD_ID}?account_id=${
 ---
 class: impact
 
-# 一緒に働くエンジニアを募集しています！
+# We are hiring engineers who work together
 
 ## http://corp.chatwork.com/ja/recruit/
 
