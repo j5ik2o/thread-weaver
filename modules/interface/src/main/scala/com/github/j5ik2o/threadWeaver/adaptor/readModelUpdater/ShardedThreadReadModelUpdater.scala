@@ -13,6 +13,7 @@ import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUp
   Idle,
   Stop
 }
+import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 import slick.jdbc.JdbcProfile
 
 import scala.concurrent.duration.FiniteDuration
@@ -31,6 +32,7 @@ class ShardedThreadReadModelUpdater(
       backoffSettings: Option[BackoffSettings] = None
   ): EntityContext => Behavior[CommandRequest] = { entityContext =>
     Behaviors.setup[CommandRequest] { ctx =>
+      ctx.setReceiveTimeout(receiveTimeout, Idle)
       val childRef = ctx.spawn(
         new ThreadReadModelUpdater(readJournal, profile, db).behavior(sqlBatchSize, backoffSettings),
         name = "threads-rmu"
@@ -41,9 +43,6 @@ class ShardedThreadReadModelUpdater(
           Behaviors.same
         case Stop =>
           Behaviors.stopped
-        case Stop(_, _, _) =>
-          ctx.self ! Idle
-          Behaviors.same
         case msg =>
           childRef ! msg
           Behaviors.same
