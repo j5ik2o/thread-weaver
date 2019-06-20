@@ -1,42 +1,24 @@
-resource "aws_vpc" "thread-weaver-vpc" {
-  cidr_block = "10.2.0.0/16"
-  enable_dns_support = true
-  enable_dns_hostnames = true
-  instance_tenancy = "default"
-
-  tags {
-    Name = "thread-weaver-vpc"
-    Network = "Public"
-  }
-}
-
-resource "aws_vpc_dhcp_options" "thread-weaver-dhcp-options" {
-  domain_name_servers = [
-    "8.8.8.8",
-    "8.8.4.4"]
-}
-
 resource "aws_subnet" "thread-weaver-subnet-1b" {
-  vpc_id = "${aws_vpc.thread-weaver-vpc.id}"
+  vpc_id = "${var.vpc_id}"
   cidr_block = "10.2.1.0/24"
   availability_zone = "ap-northeast-1b"
   map_public_ip_on_launch = false
   tags {
-    Name = "thread-weaver-subnet-1b"
+    Name = "${var.prefix}-subnet-1b"
   }
 }
 
 resource "aws_internet_gateway" "thread-weaver-public-route" {
-  vpc_id = "${aws_vpc.thread-weaver-vpc.id}"
+  vpc_id = "${var.vpc_id}"
 
   tags = {
-    Name = "main"
+    Name = "${var.prefix}-internet-gw"
     Network = "Public"
   }
 }
 
 resource "aws_route_table" "thread-weaver-route-table" {
-  vpc_id = "${aws_vpc.thread-weaver-vpc.id}"
+  vpc_id = "${var.vpc_id}"
 
   route {
     cidr_block = "0.0.0.0/0"
@@ -55,7 +37,7 @@ resource "aws_route_table_association" "public" {
 }
 
 resource "aws_network_acl" "thread-weaver-network-acl" {
-  vpc_id = "${aws_vpc.thread-weaver-vpc.id}"
+  vpc_id = "${var.vpc_id}"
 }
 
 resource "aws_network_acl_rule" "inbound-ssh" {
@@ -101,7 +83,7 @@ resource "aws_network_acl_rule" "outbound-any" {
 resource "aws_security_group" "allow-ssh-http" {
   name = "allow-ssh-http"
   description = "allow-ssh-http"
-  vpc_id = "${aws_vpc.thread-weaver-vpc.id}"
+  vpc_id = "${var.vpc_id}"
 
   ingress {
     from_port = 80
@@ -126,10 +108,10 @@ resource "aws_security_group" "allow-ssh-http" {
   }
 }
 
-resource "aws_ecs_cluster" "thread-weaver-ecs-cluster" {
-  name = "thread-weaver-route-cluster"
+resource "aws_ecs_cluster" "ecs-cluster" {
+  name = "${var.ecs-cluster-name}"
   tags = {
-    Name = "thread-weaver-route-cluster"
+    Name = "${var.ecs-cluster-name}"
   }
 }
 
@@ -149,7 +131,7 @@ EOT
 data "template_file" "add-instance-to-cluster" {
   template = <<EOT
 #!/bin/bash
-echo ECS_CLUSTER=${aws_ecs_cluster.thread-weaver-ecs-cluster.name} >> /etc/ecs/ecs.config
+echo ECS_CLUSTER=${aws_ecs_cluster.ecs-cluster.name} >> /etc/ecs/ecs.config
 EOT
 }
 
@@ -219,7 +201,7 @@ resource "aws_autoscaling_group" "thread-weaver" {
 }
 
 
-resource "aws_iam_role" "ecs" {
+resource "aws_iam_role" "ecs-service" {
   path = "/"
   assume_role_policy = <<EOF
 {
@@ -234,12 +216,12 @@ resource "aws_iam_role" "ecs" {
 }
 EOF
   tags = {
-    Name = "thread-weaver-route-iam-role-ecs"
+    Name = "${var.prefix}-iam-role-ecs-service"
   }
 }
 
 resource "aws_iam_role_policy" "ecs-service" {
-  role = "${aws_iam_role.ecs.id}"
+  role = "${aws_iam_role.ecs-service.id}"
 
   policy = <<EOF
 {
@@ -278,11 +260,11 @@ resource "aws_iam_role" "ec2" {
 }
 EOF
   tags = {
-    Name = "thread-weaver-route-iam-role-ec2"
+    Name = "${var.prefix}-route-iam-role-ec2"
   }
 }
 
-resource "aws_iam_role_policy" "ec2-ecs-service" {
+resource "aws_iam_role_policy" "ec2" {
   role = "${aws_iam_role.ec2.id}"
   count = "${var.S3PrivateRegistryBucketName == "" ? 1 : 0}"
 
@@ -324,7 +306,7 @@ resource "aws_iam_role_policy" "ec2-ecs-service" {
 EOF
 }
 
-resource "aws_iam_role_policy" "ec2-ecs-service-with-private" {
+resource "aws_iam_role_policy" "ec2-with-private" {
   role = "${aws_iam_role.ec2.id}"
   count = "${var.S3PrivateRegistryBucketName != "" ? 1 : 0}"
 
@@ -375,7 +357,7 @@ EOF
 }
 
 resource "aws_iam_instance_profile" "gatling" {
-  name = "gatling"
+  name = "${var.prefix}-gatling"
   path = "/"
   role = "${aws_iam_role.ec2.name}"
 }
@@ -402,6 +384,3 @@ resource "aws_iam_instance_profile" "gatling" {
 //
 //}
 
-output "vpc_id" {
-  value = "${aws_vpc.thread-weaver-vpc.id}"
-}

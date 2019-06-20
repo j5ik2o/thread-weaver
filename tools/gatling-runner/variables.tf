@@ -1,3 +1,10 @@
+variable "aws_region" {}
+variable "aws_profile" {}
+variable "vpc_id" {}
+variable "prefix" {}
+
+variable "ecs-cluster-name" {}
+
 variable "S3PrivateRegistryBucketName" {
   default = ""
 }
