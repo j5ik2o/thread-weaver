@@ -5,6 +5,14 @@ variable "prefix" {}
 
 variable "ecs-cluster-name" {}
 
+variable "cidr_block" {
+  default = "10.2.1.0/24"
+}
+
+variable "availability_zone" {
+  default = "ap-northeast-1b"
+}
+
 variable "S3PrivateRegistryBucketName" {
   default = ""
 }
