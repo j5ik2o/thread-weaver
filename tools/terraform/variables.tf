@@ -5,6 +5,10 @@ variable "aws_region" {
 variable "aws_profile" {
 }
 
+variable "owner" {
+  default = "j5ik2o"
+}
+
 variable "prefix" {
   default = "j5ik2o"
 }

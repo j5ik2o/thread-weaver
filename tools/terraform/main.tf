@@ -7,7 +7,7 @@ resource "aws_subnet" "public" {
 
   tags = {
     Name    = "${var.prefix}-subnet-public-${element(var.public_subnets_availability_zones, count.index)}"
-    Product = "j5ik2o"
+    Owner = "${var.owner}"
   }
 
   lifecycle {
@@ -23,7 +23,7 @@ resource "aws_subnet" "private" {
 
   tags = {
     Name    = "${var.prefix}-subnet-private-${element(var.private_subnets_availability_zones, count.index)}"
-    Product = "j5ik2o"
+    Owner = "${var.owner}"
   }
 
   lifecycle {
@@ -37,7 +37,7 @@ resource "aws_internet_gateway" "gw" {
 
   tags = {
     Name  = "${var.prefix}-internet-gateway"
-    Owner = "j5ik2o"
+    Owner = "${var.owner}"
   }
 }
 
@@ -45,7 +45,7 @@ resource "aws_eip" "nat" {
   vpc = true
   tags = {
     Name  = "${var.prefix}-eip-nat"
-    Owner = "j5ik2o"
+    Owner = "${var.owner}"
   }
 }
 
@@ -57,7 +57,7 @@ resource "aws_nat_gateway" "nat" {
 
   tags = {
     Name  = "${var.prefix}-nat-gateway"
-    Owner = "j5ik2o"
+    Owner = "${var.owner}"
   }
 }
 
@@ -67,7 +67,7 @@ resource "aws_route_table" "private" {
 
   tags = {
     Name  = "${var.prefix}-route-table-private"
-    Owner = "j5ik2o"
+    Owner = "${var.owner}"
   }
 }
 
@@ -89,7 +89,7 @@ resource "aws_route_table" "public" {
 
   tags = {
     Name  = "${var.prefix}-route-table-public"
-    Owner = "j5ik2o"
+    Owner = "${var.owner}"
   }
 }
 
