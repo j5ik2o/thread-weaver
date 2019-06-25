@@ -27,3 +27,5 @@ dump.rdb
 .DS_Store
 .credentials
 env.sh
+cluster.yaml
+eksctl-env.sh
