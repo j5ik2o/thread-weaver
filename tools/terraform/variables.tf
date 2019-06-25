@@ -36,6 +36,10 @@ variable "private_subnets_cidr_blocks" {
   default = ["10.0.4.0/24", "10.0.5.0/24", "10.0.6.0/24"]
 }
 
+variable "api-server-ecr-name" {
+
+}
+
 variable "db_private_subnets_availability_zones" {
   type    = list
   default = ["ap-northeast-1a", "ap-northeast-1c"]

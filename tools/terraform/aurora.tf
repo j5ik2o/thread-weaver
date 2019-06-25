@@ -5,8 +5,8 @@ resource "aws_subnet" "db-private" {
   cidr_block        = "${element(var.db_private_subnets_cidr_blocks, count.index)}"
 
   tags = {
-    Name    = "${var.prefix}-subnet-db-private-${element(var.db_private_subnets_availability_zones, count.index)}"
-    Product = "j5ik2o"
+    Name  = "${var.prefix}-subnet-db-private-${element(var.db_private_subnets_availability_zones, count.index)}"
+    Owner = "${var.owner}"
   }
 
   lifecycle {
@@ -19,7 +19,7 @@ resource "aws_security_group" "aurora" {
   vpc_id = "${var.vpc_id}"
   tags = {
     Name  = "${var.prefix}-security-group-aurora"
-    Owner = "j5ik2o"
+    Owner = "${var.owner}"
   }
 }
 
@@ -30,7 +30,7 @@ resource "aws_route_table" "db_public" {
 
   tags = {
     Name  = "${var.prefix}-route-table-db-public"
-    Owner = "j5ik2o"
+    Owner = "${var.owner}"
   }
 }
 
@@ -59,12 +59,12 @@ resource "aws_security_group_rule" "aurora" {
 }
 
 resource "aws_db_subnet_group" "aurora" {
-  name       = "tf_dbsubnet"
+  name       = "${var.prefix}-db-subnet-group-aurora"
   subnet_ids = "${aws_subnet.db-private.*.id}"
 
   tags = {
     Name  = "${var.prefix}-db-subnet-group-aurora"
-    Owner = "j5ik2o"
+    Owner = "${var.owner}"
   }
 }
 
@@ -75,7 +75,7 @@ resource "aws_db_parameter_group" "default" {
 
   tags = {
     Name  = "${var.prefix}-db-parameter-group-default"
-    Owner = "j5ik2o"
+    Owner = "${var.owner}"
   }
 }
 
@@ -86,7 +86,7 @@ resource "aws_rds_cluster_parameter_group" "default" {
 
   tags = {
     Name  = "${var.prefix}-rds-cluster-parameter-group-default"
-    Owner = "j5ik2o"
+    Owner = "${var.owner}"
   }
 }
 
@@ -102,7 +102,7 @@ resource "aws_rds_cluster" "aurora" {
 
   tags = {
     Name  = "${var.prefix}-rds-cluster-aurora"
-    Owner = "j5ik2o"
+    Owner = "${var.owner}"
   }
 }
 
@@ -119,7 +119,7 @@ resource "aws_rds_cluster_instance" "aurora" {
 
   tags = {
     Name  = "${var.prefix}-rds-cluster-instance-aurora"
-    Owner = "j5ik2o"
+    Owner = "${var.owner}"
   }
 }
 
