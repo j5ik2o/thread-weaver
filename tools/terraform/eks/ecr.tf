@@ -1,8 +1,8 @@
-resource "aws_ecr_repository" "thread-weaver-api-server" {
+resource "aws_ecr_repository" "api-server" {
   name = "${var.api-server-ecr-name}"
 }
 
-resource "aws_ecr_repository_policy" "policy" {
+resource "aws_ecr_repository_policy" "api-server-policy" {
   policy = <<EOF
 {
     "Version": "2008-10-17",
@@ -32,6 +32,6 @@ resource "aws_ecr_repository_policy" "policy" {
 }
 EOF
 
-  repository = aws_ecr_repository.thread-weaver-api-server.name
+  repository = aws_ecr_repository.api-server.name
 }
 

@@ -1,0 +1,12 @@
+aws_region = "ap-northeast-1"
+aws_profile = "xxxxxx"
+aws_vpc_id = "vpc-xxxxxxx"
+aws_az = ["ap-northeast-1a", "ap-northeast-1c", "ap-northeast-1d"]
+aws_subnet_lb_cidr = ["10.0.0.0/24", "10.0.1.0/24", "10.0.2.0/24"]
+aws_subnet_eks_cidr = ["10.0.3.0/24", "10.0.4.0/24", "10.0.5.0/24"]
+
+aws_eks_cluster_name = "j5ik2o-eks"
+cluster_yaml_file = "cluster.yaml"
+
+api-server-ecr-name = "j5ik2o/thread-weaver-api-server"
+aurora_db_master_password = "xxxx"

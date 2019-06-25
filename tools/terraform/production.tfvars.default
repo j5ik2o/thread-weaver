@@ -1,4 +1,0 @@
-aws_profile = "xxx"
-vpc_id = "vpc-xxxxx"
-aurora_db_master_password = "xxxxx"
-api-server-ecr-name = "j5ik2o/thread-weaver-api-server"
