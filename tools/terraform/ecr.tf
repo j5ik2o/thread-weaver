@@ -1,5 +1,5 @@
 resource "aws_ecr_repository" "thread-weaver-api-server" {
-  name = "j5ik2o/thread-weaver-api-server"
+  name = "${var.api-server-ecr-name}"
 }
 
 resource "aws_ecr_repository_policy" "policy" {
@@ -31,7 +31,6 @@ resource "aws_ecr_repository_policy" "policy" {
     ]
 }
 EOF
-
 
   repository = aws_ecr_repository.thread-weaver-api-server.name
 }
