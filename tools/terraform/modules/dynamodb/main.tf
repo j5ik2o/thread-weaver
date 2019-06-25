@@ -1,5 +1,6 @@
 resource "aws_dynamodb_table" "journal-table" {
-  name           = "tw-journal"
+  count          = "${var.enabled ? 1 : 0}"
+  name           = "${var.journal_table_name}"
   billing_mode   = "PROVISIONED"
   read_capacity  = 20
   write_capacity = 20
@@ -45,7 +46,8 @@ resource "aws_dynamodb_table" "journal-table" {
 }
 
 resource "aws_dynamodb_table" "snapshot-table" {
-  name           = "tw-snapshot"
+  count          = "${var.enabled ? 1 : 0}"
+  name           = "${var.snapshot_table_name}"
   billing_mode   = "PROVISIONED"
   read_capacity  = 20
   write_capacity = 20
