@@ -27,7 +27,7 @@ class ShardedThreadAggregatesSpec
       awaitAssert {
         cluster.selfMember.status shouldEqual MemberStatus.Up
       }
-      ShardedThreadAggregatesRegion.startClusterSharding(Seq.empty)
+      ShardedThreadAggregatesRegion.startClusterSharding(Seq.empty, None)
       val threadRef = ShardedThreadAggregatesRegion.shardRegion
 
       val threadId        = ThreadId()

@@ -66,6 +66,8 @@
 
     <logger name="akka.management" level="ERROR"/>
 
+    <logger name="slick.jdbc.JdbcBackend.statement"  level="DEBUG" />
+
     <root level="INFO">
         <appender-ref ref="async"/>
     </root>

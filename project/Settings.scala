@@ -176,7 +176,14 @@ object Settings {
     (compile in Compile) := (compile in Compile).dependsOn(compileScalaStyle).value
   )
 
-  lazy val gatlingEcrSettings = Seq(
+  lazy val gatlingAggregateRunnerEcrSettings = Seq(
+    region in Ecr := Region.getRegion(Regions.AP_NORTHEAST_1),
+    repositoryName in Ecr := "j5ik2o/thread-waever-gatling-aggregate-runner",
+    localDockerImage in Ecr := "j5ik2o/" + (packageName in Docker).value + ":" + (version in Docker).value,
+    push in Ecr := ((push in Ecr) dependsOn (publishLocal in Docker, login in Ecr)).value
+  )
+
+  lazy val gatlingRunnerEcrSettings = Seq(
     region in Ecr := Region.getRegion(Regions.AP_NORTHEAST_1),
     repositoryName in Ecr := "j5ik2o/thread-waever-gatling-runner",
     localDockerImage in Ecr := "j5ik2o/" + (packageName in Docker).value + ":" + (version in Docker).value,
@@ -215,27 +222,22 @@ object Settings {
     )
   )
 
-  val gatling     = taskKey[Unit]("gatling")
-  val runTask     = taskKey[Seq[Task]]("run-task")
-  val runTaskWith = inputKey[Seq[Task]]("run-task-with")
-  // settings
-  val runTaskEcsClient             = settingKey[EcsAsyncClient]("run-task-ecs-client")
-  val runTaskAwaitDuration         = settingKey[Duration]("run-task-await-duration")
-  val runTaskEcsCluster            = settingKey[String]("run-task-ecs-cluster")
-  val runTaskTaskDefinitionPrefix  = taskKey[String]("run-task-task-definition-prefix")
-  val runTaskTaskDefinition        = taskKey[String]("run-task-task-definition")
-  val runTaskCount                 = settingKey[Int]("run-task-count")
-  val runTaskSubnets               = settingKey[Seq[String]]("run-task-subnets")
-  val runTaskAssignPublicIp        = settingKey[AssignPublicIp]("run-task-assign-public-ip")
-  val runTaskEnvironments          = taskKey[Map[String, String]]("run-task-environments")
-  val runTaskContainerOverrideName = settingKey[String]("run-task-container-override-name")
-  val runTaskLogPrefix             = settingKey[String]("run-task-log-prefix")
-  val runTaskExecutionId           = settingKey[String]("run-task-execution-id")
-//
-//  val oneStringParser: Parser[Option[String]] = {
-//    import complete.DefaultParsers._
-//    token(Space ~> some(StringBasic), "simulation-class")
-//  }
+//  val gatling     = taskKey[Unit]("gatling")
+//  val runTask     = taskKey[Seq[Task]]("run-task")
+//  val runTaskWith = inputKey[Seq[Task]]("run-task-with")
+//  // settings
+//  val runTaskEcsClient             = settingKey[EcsAsyncClient]("run-task-ecs-client")
+//  val runTaskAwaitDuration         = settingKey[Duration]("run-task-await-duration")
+//  val runTaskEcsCluster            = settingKey[String]("run-task-ecs-cluster")
+//  val runTaskTaskDefinitionPrefix  = taskKey[String]("run-task-task-definition-prefix")
+//  val runTaskTaskDefinition        = taskKey[String]("run-task-task-definition")
+//  val runTaskCount                 = settingKey[Int]("run-task-count")
+//  val runTaskSubnets               = settingKey[Seq[String]]("run-task-subnets")
+//  val runTaskAssignPublicIp        = settingKey[AssignPublicIp]("run-task-assign-public-ip")
+//  val runTaskEnvironments          = taskKey[Map[String, String]]("run-task-environments")
+//  val runTaskContainerOverrideName = settingKey[String]("run-task-container-override-name")
+//  val runTaskLogPrefix             = settingKey[String]("run-task-log-prefix")
+//  val runTaskExecutionId           = settingKey[String]("run-task-execution-id")
 //
 //  def _runTask(
 //      runTaskEcsClient: EcsAsyncClient,
@@ -291,175 +293,175 @@ object Settings {
 //    val df = new SimpleDateFormat("YYYYMMDDHHmmss")
 //    (runTaskLogPrefix in gatling).value + df.format(now) + "-" + now.getTime.toString
 //  }
-//
-//  val gatlingS3ReporterSettings = Seq(
-//    runTaskEcsClient in gatling := {
-//      val underlying = JavaEcsAsyncClient
-//        .builder()
-//        .build()
-//      EcsAsyncClient(underlying)
-//    },
-//    runTaskEcsCluster in gatling := "gaudi-poc-ecs-cluster",
-//    runTaskTaskDefinitionPrefix in gatling := "arn:aws:ecs:ap-northeast-1:738575627980:task-definition/gaudi-poc-gatling-s3-reporter",
-//    // TODO: トークン対応
-//    runTaskTaskDefinition in gatling := {
-//      val log = streams.value.log
-//      val future = (runTaskEcsClient in gatling).value.listTaskDefinitions.map {
-//        _.taskDefinitionArnsAsScala
-//          .flatMap {
-//            _.find(_.startsWith((runTaskTaskDefinitionPrefix in gatling).value))
-//          }.getOrElse(throw new Exception("TaskDefinition is not found!"))
-//      }
-//      val name = Await.result(future, (runTaskAwaitDuration in gatling).value)
-//      log.info(s"taskDefinition = $name")
-//      name
-//    },
-//    runTaskCount in gatling := 1,
-//    runTaskAwaitDuration in gatling := Duration.Inf,
-//    runTaskSubnets in gatling := Seq("subnet-0242842eb05fa5272"), // 10.0.1.0/24 public
-//    runTaskAssignPublicIp in gatling := AssignPublicIp.ENABLED,
-//    runTaskEnvironments in gatling := Map(
-//      "AWS_REGION"                 -> "ap-northeast-1",
-//      "S3_GATLING_BUCKET_NAME"     -> "gaudi-poc-gatling-logs",
-//      "S3_GATLING_RESULT_DIR_PATH" -> "default"
-//    ),
-//    runTaskContainerOverrideName in gatling := "gatling-s3-reporter",
-//    runTaskLogPrefix in gatling := "gaudi-poc/",
-//    runTaskExecutionId in gatling := executionId.value,
-//    runTask in gatling := {
-//      implicit val log                  = streams.value.log
-//      val _runTaskEcsClient             = (runTaskEcsClient in gatling).value
-//      val _runTaskEcsCluster            = (runTaskEcsCluster in gatling).value
-//      val _runTaskTaskDefinition        = (runTaskTaskDefinition in gatling).value
-//      val _runTaskCount                 = (runTaskCount in gatling).value
-//      val _runTaskSubnets               = (runTaskSubnets in gatling).value
-//      val _runTaskAssignPublicIp        = (runTaskAssignPublicIp in gatling).value
-//      val _runTaskContainerOverrideName = (runTaskContainerOverrideName in gatling).value
-//      val _runTaskEnvironments          = (runTaskEnvironments in gatling).value
-//      val _runTaskExecutionId           = (runTaskExecutionId in gatling).value
-//      val future = _runTask(
-//        _runTaskEcsClient,
-//        _runTaskEcsCluster,
-//        _runTaskTaskDefinition,
-//        _runTaskCount,
-//        _runTaskSubnets,
-//        _runTaskAssignPublicIp,
-//        _runTaskContainerOverrideName,
-//        _runTaskEnvironments ++ Map("S3_GATLING_RESULT_DIR_PATH" -> _runTaskExecutionId)
-//      )
-//      val result = Await.result(future, (runTaskAwaitDuration in gatling).value)
-//      result.foreach { task: Task =>
-//        log.info(s"task.arn = ${task.taskArn()}")
-//      }
-//      log.info(s"executionId = ${_runTaskExecutionId}")
-//      log.info("finish runTask")
-//      result
-//    }
-//  )
-//
-//  val gatlingRunnerSettings = Seq(
-//    runTaskEcsClient in gatling := {
-//      val underlying = JavaEcsAsyncClient
-//        .builder()
-//        .build()
-//      EcsAsyncClient(underlying)
-//    },
-//    runTaskEcsCluster in gatling := "gaudi-poc-ecs-cluster",
-//    runTaskTaskDefinitionPrefix in gatling := "arn:aws:ecs:ap-northeast-1:738575627980:task-definition/gaudi-poc-gatling-runner",
-//    // TODO: トークン対応
-//    runTaskTaskDefinition in gatling := {
-//      "arn:aws:ecs:ap-northeast-1:738575627980:task-definition/gaudi-poc-gatling-runner:4"
-//      //    val log = streams.value.log
-//      //    val future = (runTaskEcsClient in gatling).value.listTaskDefinitions.map {
-//      //      _.taskDefinitionArnsAsScala
-//      //        .flatMap {
-//      //           _.find(_.startsWith((runTaskTaskDefinitionPrefix in gatlingRunner).value))
-//      //        }.getOrElse(throw new Exception("TaskDefinition is not found!"))
-//      //    }
-//      //    val name = Await.result(future, (runTaskAwaitDuration in gatlingRunner).value)
-//      //    log.info(s"taskDefinition = $name")
-//      //    name
-//    },
-//    runTaskCount in gatling := 1,
-//    runTaskAwaitDuration in gatling := Duration.Inf,
-//    runTaskSubnets in gatling := Seq("subnet-0242842eb05fa5272"), // 10.0.1.0/24 public
-//    runTaskAssignPublicIp in gatling := AssignPublicIp.ENABLED,
-//    runTaskEnvironments in gatling := Map(
-//      "AWS_REGION"                         -> "ap-northeast-1",
-//      "GAUDI_POC_GATLING_ENDPOINT"         -> "http://ac6c07014925c11e99c640aa42ffb4e6-16308720.ap-northeast-1.elb.amazonaws.com:8080",
-//      "GAUDI_POC_GATLING_EXECUTION_ID"     -> "default",
-//      "GAUDI_POC_GATLING_HOLD_DURATION"    -> "1m",
-//      "GAUDI_POC_GATLING_RAMP_DURATION"    -> "3m",
-//      "GAUDI_POC_GATLING_RESULT_DIR"       -> "target/gatling",
-//      "GAUDI_POC_GATLING_S3_BUCKET_NAME"   -> "gaudi-poc-gatling-logs",
-//      "GAUDI_POC_GATLING_SIMULATION_CLASS" -> "com.chatwork.gaudiPoc.gatling.GaudiSimulation",
-//      "GAUDI_POC_GATLING_USERS"            -> "1"
-//    ),
-//    runTaskContainerOverrideName in gatling := "gatling-runner",
-//    runTaskLogPrefix in gatling := "gaudi-poc/",
-//    runTaskExecutionId in gatling := executionId.value,
-//    runTask in gatling := {
-//      implicit val log                  = streams.value.log
-//      val _runTaskEcsClient             = (runTaskEcsClient in gatling).value
-//      val _runTaskEcsCluster            = (runTaskEcsCluster in gatling).value
-//      val _runTaskTaskDefinition        = (runTaskTaskDefinition in gatling).value
-//      val _runTaskCount                 = (runTaskCount in gatling).value
-//      val _runTaskSubnets               = (runTaskSubnets in gatling).value
-//      val _runTaskAssignPublicIp        = (runTaskAssignPublicIp in gatling).value
-//      val _runTaskContainerOverrideName = (runTaskContainerOverrideName in gatling).value
-//      val _runTaskEnvironments          = (runTaskEnvironments in gatling).value
-//      val _runTaskExecutionId           = (runTaskExecutionId in gatling).value
-//      val future = _runTask(
-//        _runTaskEcsClient,
-//        _runTaskEcsCluster,
-//        _runTaskTaskDefinition,
-//        _runTaskCount,
-//        _runTaskSubnets,
-//        _runTaskAssignPublicIp,
-//        _runTaskContainerOverrideName,
-//        _runTaskEnvironments ++ Map("GAUDI_POC_GATLING_EXECUTION_ID" -> _runTaskExecutionId)
-//      )
-//      val result = Await.result(future, (runTaskAwaitDuration in gatling).value)
-//      result.foreach { task: Task =>
-//        log.info(s"task.arn = ${task.taskArn()}")
-//      }
-//      log.info(s"executionId = ${_runTaskExecutionId}")
-//      log.info("finish runTask")
-//      result
-//    },
-//    runTaskWith in gatling := {
-//      implicit val log                  = streams.value.log
-//      val _simulationClassName          = oneStringParser.parsed
-//      val _runTaskEcsClient             = (runTaskEcsClient in gatling).value
-//      val _runTaskEcsCluster            = (runTaskEcsCluster in gatling).value
-//      val _runTaskTaskDefinition        = (runTaskTaskDefinition in gatling).value
-//      val _runTaskCount                 = (runTaskCount in gatling).value
-//      val _runTaskSubnets               = (runTaskSubnets in gatling).value
-//      val _runTaskAssignPublicIp        = (runTaskAssignPublicIp in gatling).value
-//      val _runTaskContainerOverrideName = (runTaskContainerOverrideName in gatling).value
-//      val _runTaskEnvironments          = (runTaskEnvironments in gatling).value
-//      val _runTaskExecutionId           = (runTaskExecutionId in gatling).value
-//      val future = _runTask(
-//        _runTaskEcsClient,
-//        _runTaskEcsCluster,
-//        _runTaskTaskDefinition,
-//        _runTaskCount,
-//        _runTaskSubnets,
-//        _runTaskAssignPublicIp,
-//        _runTaskContainerOverrideName,
-//        _runTaskEnvironments ++ Map("GAUDI_POC_GATLING_RESULT_DIR" -> _runTaskExecutionId) ++
-//        _simulationClassName.fold[Map[String, String]](Map.empty) { v =>
-//          Map("GAUDI_POC_GATLING_SIMULATION_CLASS" -> v)
-//        }
-//      )
-//      val result = Await.result(future, (runTaskAwaitDuration in gatling).value)
-//      result.foreach { task: Task =>
-//        log.info(s"task.arn = ${task.taskArn()}")
-//      }
-//      log.info(s"executionId = ${_runTaskExecutionId}")
-//      log.info("finish runTask")
-//      result
-//    }
-//  )
+////
+////  val gatlingS3ReporterSettings = Seq(
+////    runTaskEcsClient in gatling := {
+////      val underlying = JavaEcsAsyncClient
+////        .builder()
+////        .build()
+////      EcsAsyncClient(underlying)
+////    },
+////    runTaskEcsCluster in gatling := "gaudi-poc-ecs-cluster",
+////    runTaskTaskDefinitionPrefix in gatling := "arn:aws:ecs:ap-northeast-1:738575627980:task-definition/gaudi-poc-gatling-s3-reporter",
+////    // TODO: トークン対応
+////    runTaskTaskDefinition in gatling := {
+////      val log = streams.value.log
+////      val future = (runTaskEcsClient in gatling).value.listTaskDefinitions.map {
+////        _.taskDefinitionArnsAsScala
+////          .flatMap {
+////            _.find(_.startsWith((runTaskTaskDefinitionPrefix in gatling).value))
+////          }.getOrElse(throw new Exception("TaskDefinition is not found!"))
+////      }
+////      val name = Await.result(future, (runTaskAwaitDuration in gatling).value)
+////      log.info(s"taskDefinition = $name")
+////      name
+////    },
+////    runTaskCount in gatling := 1,
+////    runTaskAwaitDuration in gatling := Duration.Inf,
+////    runTaskSubnets in gatling := Seq("subnet-0242842eb05fa5272"), // 10.0.1.0/24 public
+////    runTaskAssignPublicIp in gatling := AssignPublicIp.ENABLED,
+////    runTaskEnvironments in gatling := Map(
+////      "AWS_REGION"                 -> "ap-northeast-1",
+////      "S3_GATLING_BUCKET_NAME"     -> "gaudi-poc-gatling-logs",
+////      "S3_GATLING_RESULT_DIR_PATH" -> "default"
+////    ),
+////    runTaskContainerOverrideName in gatling := "gatling-s3-reporter",
+////    runTaskLogPrefix in gatling := "gaudi-poc/",
+////    runTaskExecutionId in gatling := executionId.value,
+////    runTask in gatling := {
+////      implicit val log                  = streams.value.log
+////      val _runTaskEcsClient             = (runTaskEcsClient in gatling).value
+////      val _runTaskEcsCluster            = (runTaskEcsCluster in gatling).value
+////      val _runTaskTaskDefinition        = (runTaskTaskDefinition in gatling).value
+////      val _runTaskCount                 = (runTaskCount in gatling).value
+////      val _runTaskSubnets               = (runTaskSubnets in gatling).value
+////      val _runTaskAssignPublicIp        = (runTaskAssignPublicIp in gatling).value
+////      val _runTaskContainerOverrideName = (runTaskContainerOverrideName in gatling).value
+////      val _runTaskEnvironments          = (runTaskEnvironments in gatling).value
+////      val _runTaskExecutionId           = (runTaskExecutionId in gatling).value
+////      val future = _runTask(
+////        _runTaskEcsClient,
+////        _runTaskEcsCluster,
+////        _runTaskTaskDefinition,
+////        _runTaskCount,
+////        _runTaskSubnets,
+////        _runTaskAssignPublicIp,
+////        _runTaskContainerOverrideName,
+////        _runTaskEnvironments ++ Map("S3_GATLING_RESULT_DIR_PATH" -> _runTaskExecutionId)
+////      )
+////      val result = Await.result(future, (runTaskAwaitDuration in gatling).value)
+////      result.foreach { task: Task =>
+////        log.info(s"task.arn = ${task.taskArn()}")
+////      }
+////      log.info(s"executionId = ${_runTaskExecutionId}")
+////      log.info("finish runTask")
+////      result
+////    }
+////  )
+////
+////  val gatlingRunnerSettings = Seq(
+////    runTaskEcsClient in gatling := {
+////      val underlying = JavaEcsAsyncClient
+////        .builder()
+////        .build()
+////      EcsAsyncClient(underlying)
+////    },
+////    runTaskEcsCluster in gatling := "gaudi-poc-ecs-cluster",
+////    runTaskTaskDefinitionPrefix in gatling := "arn:aws:ecs:ap-northeast-1:738575627980:task-definition/gaudi-poc-gatling-runner",
+////    // TODO: トークン対応
+////    runTaskTaskDefinition in gatling := {
+////      "arn:aws:ecs:ap-northeast-1:738575627980:task-definition/gaudi-poc-gatling-runner:4"
+////      //    val log = streams.value.log
+////      //    val future = (runTaskEcsClient in gatling).value.listTaskDefinitions.map {
+////      //      _.taskDefinitionArnsAsScala
+////      //        .flatMap {
+////      //           _.find(_.startsWith((runTaskTaskDefinitionPrefix in gatlingRunner).value))
+////      //        }.getOrElse(throw new Exception("TaskDefinition is not found!"))
+////      //    }
+////      //    val name = Await.result(future, (runTaskAwaitDuration in gatlingRunner).value)
+////      //    log.info(s"taskDefinition = $name")
+////      //    name
+////    },
+////    runTaskCount in gatling := 1,
+////    runTaskAwaitDuration in gatling := Duration.Inf,
+////    runTaskSubnets in gatling := Seq("subnet-0242842eb05fa5272"), // 10.0.1.0/24 public
+////    runTaskAssignPublicIp in gatling := AssignPublicIp.ENABLED,
+////    runTaskEnvironments in gatling := Map(
+////      "AWS_REGION"                         -> "ap-northeast-1",
+////      "GAUDI_POC_GATLING_ENDPOINT"         -> "http://ac6c07014925c11e99c640aa42ffb4e6-16308720.ap-northeast-1.elb.amazonaws.com:8080",
+////      "GAUDI_POC_GATLING_EXECUTION_ID"     -> "default",
+////      "GAUDI_POC_GATLING_HOLD_DURATION"    -> "1m",
+////      "GAUDI_POC_GATLING_RAMP_DURATION"    -> "3m",
+////      "GAUDI_POC_GATLING_RESULT_DIR"       -> "target/gatling",
+////      "GAUDI_POC_GATLING_S3_BUCKET_NAME"   -> "gaudi-poc-gatling-logs",
+////      "GAUDI_POC_GATLING_SIMULATION_CLASS" -> "com.chatwork.gaudiPoc.gatling.GaudiSimulation",
+////      "GAUDI_POC_GATLING_USERS"            -> "1"
+////    ),
+////    runTaskContainerOverrideName in gatling := "gatling-runner",
+////    runTaskLogPrefix in gatling := "gaudi-poc/",
+////    runTaskExecutionId in gatling := executionId.value,
+////    runTask in gatling := {
+////      implicit val log                  = streams.value.log
+////      val _runTaskEcsClient             = (runTaskEcsClient in gatling).value
+////      val _runTaskEcsCluster            = (runTaskEcsCluster in gatling).value
+////      val _runTaskTaskDefinition        = (runTaskTaskDefinition in gatling).value
+////      val _runTaskCount                 = (runTaskCount in gatling).value
+////      val _runTaskSubnets               = (runTaskSubnets in gatling).value
+////      val _runTaskAssignPublicIp        = (runTaskAssignPublicIp in gatling).value
+////      val _runTaskContainerOverrideName = (runTaskContainerOverrideName in gatling).value
+////      val _runTaskEnvironments          = (runTaskEnvironments in gatling).value
+////      val _runTaskExecutionId           = (runTaskExecutionId in gatling).value
+////      val future = _runTask(
+////        _runTaskEcsClient,
+////        _runTaskEcsCluster,
+////        _runTaskTaskDefinition,
+////        _runTaskCount,
+////        _runTaskSubnets,
+////        _runTaskAssignPublicIp,
+////        _runTaskContainerOverrideName,
+////        _runTaskEnvironments ++ Map("GAUDI_POC_GATLING_EXECUTION_ID" -> _runTaskExecutionId)
+////      )
+////      val result = Await.result(future, (runTaskAwaitDuration in gatling).value)
+////      result.foreach { task: Task =>
+////        log.info(s"task.arn = ${task.taskArn()}")
+////      }
+////      log.info(s"executionId = ${_runTaskExecutionId}")
+////      log.info("finish runTask")
+////      result
+////    },
+////    runTaskWith in gatling := {
+////      implicit val log                  = streams.value.log
+////      val _simulationClassName          = oneStringParser.parsed
+////      val _runTaskEcsClient             = (runTaskEcsClient in gatling).value
+////      val _runTaskEcsCluster            = (runTaskEcsCluster in gatling).value
+////      val _runTaskTaskDefinition        = (runTaskTaskDefinition in gatling).value
+////      val _runTaskCount                 = (runTaskCount in gatling).value
+////      val _runTaskSubnets               = (runTaskSubnets in gatling).value
+////      val _runTaskAssignPublicIp        = (runTaskAssignPublicIp in gatling).value
+////      val _runTaskContainerOverrideName = (runTaskContainerOverrideName in gatling).value
+////      val _runTaskEnvironments          = (runTaskEnvironments in gatling).value
+////      val _runTaskExecutionId           = (runTaskExecutionId in gatling).value
+////      val future = _runTask(
+////        _runTaskEcsClient,
+////        _runTaskEcsCluster,
+////        _runTaskTaskDefinition,
+////        _runTaskCount,
+////        _runTaskSubnets,
+////        _runTaskAssignPublicIp,
+////        _runTaskContainerOverrideName,
+////        _runTaskEnvironments ++ Map("GAUDI_POC_GATLING_RESULT_DIR" -> _runTaskExecutionId) ++
+////        _simulationClassName.fold[Map[String, String]](Map.empty) { v =>
+////          Map("GAUDI_POC_GATLING_SIMULATION_CLASS" -> v)
+////        }
+////      )
+////      val result = Await.result(future, (runTaskAwaitDuration in gatling).value)
+////      result.foreach { task: Task =>
+////        log.info(s"task.arn = ${task.taskArn()}")
+////      }
+////      log.info(s"executionId = ${_runTaskExecutionId}")
+////      log.info("finish runTask")
+////      result
+////    }
+////  )
 
 }

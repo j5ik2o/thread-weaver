@@ -61,7 +61,7 @@ class PersistentThreadAggregateOnDynamoDBSpec
   "PersistentThreadAggregate" - {
     "add messages" in {
       val threadId        = ThreadId()
-      val threadRef       = system.actorOf(PersistentThreadAggregate.props(threadId, Seq.empty))
+      val threadRef       = system.actorOf(PersistentThreadAggregate.props(None)(threadId)(Seq.empty))
       val now             = Instant.now
       val administratorId = AccountId()
       val title           = ThreadTitle("test")
@@ -135,7 +135,7 @@ class PersistentThreadAggregateOnDynamoDBSpec
       // アクターを停止する
       killActors(threadRef)
 
-      val threadRef2 = system.actorOf(PersistentThreadAggregate.props(threadId, Seq.empty))
+      val threadRef2 = system.actorOf(PersistentThreadAggregate.props(None)(threadId)(Seq.empty))
 
       threadRef2 ! GetMessages(ULID(), threadId, memberId, now)
       expectMsgType[GetMessagesResponse] match {

@@ -8,12 +8,12 @@ object ThreadAggregates {
 
   val name = "threads"
 
-  def props(subscribers: Seq[ActorRef], propsF: (ThreadId, Seq[ActorRef]) => Props): Props =
+  def props(subscribers: Seq[ActorRef], propsF: ThreadId => Seq[ActorRef] => Props): Props =
     Props(new ThreadAggregates(subscribers, propsF))
 
 }
 
-class ThreadAggregates(subscribers: Seq[ActorRef], propsF: (ThreadId, Seq[ActorRef]) => Props)
+class ThreadAggregates(subscribers: Seq[ActorRef], propsF: ThreadId => Seq[ActorRef] => Props)
     extends Actor
     with ActorLogging
     with ChildActorLookup {
@@ -23,7 +23,7 @@ class ThreadAggregates(subscribers: Seq[ActorRef], propsF: (ThreadId, Seq[ActorR
 
   override protected def childName(childId: ThreadId): String = childId.value.asString
 
-  override protected def childProps(childId: ThreadId): Props = propsF(childId, subscribers)
+  override protected def childProps(childId: ThreadId): Props = propsF(childId)(subscribers)
 
   override protected def toChildId(commandRequest: BaseCommandRequest): ThreadId =
     commandRequest.asInstanceOf[ThreadProtocol.CommandRequest].threadId

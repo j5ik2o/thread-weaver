@@ -6,11 +6,8 @@ import akka.actor.{ ActorSystem => UntypedActorSystem }
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.stream.Materializer
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ShardedThreadAggregatesProxy
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol.{
-  ThreadActorRefOfCommandTypeRef,
-  ThreadActorRefOfMessageTypeRef,
-  ThreadReadModelUpdaterTypeRef
-}
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol.ThreadActorRefOfCommandTypeRef
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.PersistentThreadAggregate.ReadModelUpdaterConfig
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ShardedThreadAggregatesRegion
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ThreadProtocol.ThreadActorRefOfCommandUntypeRef
 import com.github.j5ik2o.threadWeaver.adaptor.grpc.service.{
@@ -20,9 +17,7 @@ import com.github.j5ik2o.threadWeaver.adaptor.grpc.service.{
   ThreadQueryServiceImpl
 }
 import com.github.j5ik2o.threadWeaver.adaptor.http.controller._
-import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ShardedThreadReadModelUpdaterProxy
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdater.ReadJournalType
-import com.github.j5ik2o.threadWeaver.adaptor.router.AggregateToRMU
 import com.github.j5ik2o.threadWeaver.adaptor.swagger.SwaggerDocService
 import slick.jdbc.JdbcProfile
 import wvlet.airframe._
@@ -86,47 +81,26 @@ trait DISettings {
     newDesign.bind[ReadJournalType].toInstance(readJournal)
   }
 
-  private[adaptor] def designOfShardedReadModelUpdater(
+  private[adaptor] def designOfShardedAggregates(
       clusterSharding: ClusterSharding
-  ): Design = {
+  ): Design =
     newDesign
-      .bind[ThreadReadModelUpdaterTypeRef].toProvider[
+      .bind[ThreadActorRefOfCommandTypeRef].toProvider[UntypedActorSystem] { actorSystem =>
+        actorSystem.spawn(
+          ShardedThreadAggregatesProxy.behavior(clusterSharding, 30 seconds, Seq.empty),
+          name = "sharded-threads-proxy-typed"
+        )
+      }
+      .bind[ThreadActorRefOfCommandUntypeRef].toProvider[
         UntypedActorSystem,
         ReadJournalType,
         JdbcProfile,
         JdbcProfile#Backend#Database
       ] { (actorSystem, readJournal, profile, db) =>
-        actorSystem.spawn(
-          new ShardedThreadReadModelUpdaterProxy(readJournal, profile, db).behavior(clusterSharding, 30 seconds),
-          name = "sharded-thread-rmu-proxy-typed"
-        )
-      }
-  }
-
-  private[adaptor] def designOfShardedAggregates(
-      clusterSharding: ClusterSharding
-  ): Design =
-    newDesign
-      .bind[ThreadActorRefOfCommandTypeRef].toProvider[UntypedActorSystem, ThreadActorRefOfMessageTypeRef] {
-        (actorSystem, subscriber) =>
-          actorSystem.spawn(
-            ShardedThreadAggregatesProxy.behavior(clusterSharding, 30 seconds, Seq(subscriber)),
-            name = "sharded-threads-proxy-typed"
-          )
-      }
-      .bind[ThreadActorRefOfCommandUntypeRef].toProvider[UntypedActorSystem, ThreadActorRefOfMessageTypeRef] {
-        (actorSystem, subscribers) =>
-          ShardedThreadAggregatesRegion.startClusterSharding(Seq(subscribers.toUntyped))(actorSystem)
-      }
-
-  private[adaptor] def designOfMessageRouters: Design =
-    newDesign
-      .bind[ThreadActorRefOfMessageTypeRef].toProvider[UntypedActorSystem, ThreadReadModelUpdaterTypeRef] {
-        (actorSystem, ref) =>
-          actorSystem.spawn(
-            AggregateToRMU.behavior(ref),
-            name = "router"
-          )
+        ShardedThreadAggregatesRegion.startClusterSharding(
+          Seq.empty,
+          Some(ReadModelUpdaterConfig(readJournal, profile, db, 1))
+        )(actorSystem)
       }
 
   def design(
@@ -147,8 +121,6 @@ trait DISettings {
       .add(designOfReadJournal(readJournal))
       .add(designOfSlick(profile, db))
       .add(designOfShardedAggregates(clusterSharding))
-      .add(designOfShardedReadModelUpdater(clusterSharding))
-      .add(designOfMessageRouters)
       .add(designOfRestControllers)
       .add(designOfRestPresenters)
 

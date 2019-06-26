@@ -25,7 +25,7 @@ trait ServiceSpec extends BeforeAndAfterAll {
 
   def design: Design =
     com.github.j5ik2o.threadWeaver.useCase.DISettings
-      .designOfTyped(3 seconds)
+      .designOfUntyped(3 seconds)
       .add(DISettings.designOfActorSystem(typedActorSystem, materializer))
       .add(
         DISettings.designOfReadJournal(
@@ -35,8 +35,6 @@ trait ServiceSpec extends BeforeAndAfterAll {
       .add(DISettings.designOfGrpcPresenters)
       .add(DISettings.designOfGrpcServices)
       .add(DITestSettings.designOfLocalAggregatesWithPersistence)
-      .add(DITestSettings.designOfLocalReadModelUpdater)
-      .add(DISettings.designOfMessageRouters)
 
   override def beforeAll: Unit = {
     super.beforeAll()
