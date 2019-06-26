@@ -1,38 +1,17 @@
 variable "aws_region" {}
 variable "aws_profile" {}
-variable "vpc_id" {}
+
 variable "prefix" {}
 
 variable "ecs-cluster-name" {}
 
-variable "cidr_block" {
-  default = "10.2.1.0/24"
+variable "gatling-s3-log-bucket-name" {
+  default = "gatling-logs"
 }
 
-variable "availability_zone" {
-  default = "ap-northeast-1b"
-}
+variable "gatling-runner-ecr-name" {}
 
-variable "S3PrivateRegistryBucketName" {
-  default = ""
-}
+variable "gatling-s3-reporter-ecr-name" {}
 
-variable "MaxSize" {
-  default = 1
-}
+variable "api-base-url" {}
 
-variable "DesiredCapacity" {
-  default = 1
-}
-
-variable "S3GatlingLogBucketName" {
-  default = "thread-weaver-gatling"
-}
-
-variable "GatlingWriteBaseURL" {
-  default = ""
-}
-
-variable "GatlingReadBaseURL" {
-  default = ""
-}
