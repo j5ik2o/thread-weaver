@@ -116,9 +116,9 @@ tools/deploy $ ./minikube/test-management.sh
 
 ```sh
 $ cd tools/terraform
-tools/terraform $ cp production.tfvars.default productio.tfvars
-tools/terraform $ vi production.tfvars # 編集する
-tools/terraform $ terraform init
+tools/terraform $ cp eks.tfvars.default eks.tfvars
+tools/terraform $ vi eks.tfvars # 編集する
+tools/terraform $ ./terraform-init.sh
 tools/terraform $ ./terraform-plan.sh
 tools/terraform $ ./terraform-apply.sh
 ```
@@ -154,16 +154,13 @@ tools/deploy/eks $ ./migrate-db.sh
 ### EKSの構築
 
 ```sh
-$ cd tools/eks
-tools/eks $ cp env.sh.default env.sh
-tools/eks $ vi env.sh # 編集する
-tools/eks $ ./create-cluster.sh
+tools/terraform $ ./eksctl-create-cluster.sh
 ```
 
-しばらく待つと構築が完了します。`get-cluster.sh`でクラスター情報を確認できます。
+しばらく待つと構築が完了します。`./eksctl-get-cluster.sh`でクラスター情報を確認できます。
 
 ```
-$ ./get-cluster.sh
+$ ./eksctl-get.sh
 NAME		VERSION	STATUS	CREATED			VPC			SUBNETS														SECURITYGROUPS
 j5ik2o-eks	1.12	ACTIVE	2019-05-24T00:52:22Z	vpc-08b6708f6ecc882a8	subnet-02dac1f21d5a615a5,subnet-043eb530606a93243,subnet-07cf3036da717fc39,subnet-0c925b21299b32e99,subnet-0d95b9b58619a28f0,subnet-0f57e4727746109ef	sg-0dd522f9e95ca4571
 ```

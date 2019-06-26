@@ -1,0 +1,21 @@
+helmDefaults:
+  verify: true
+  wait: true
+  timeout: 600
+
+releases:
+#  - name: heapster
+#    namespace: kube-system
+#    chart: stable/heapster
+#    version: 0.3.3
+#    values:
+#      - "./config/heapster/values.yaml"
+#      - "./config/heapster/{{ .Environment.Name }}.yaml"
+#    secrets:
+#      - "./config/heapster/secrets.yaml"
+#      - "./config/heapster/{{ .Environment.Name }}-secrets.yaml"
+  - name: kubernetes-dashboard
+    namespace: kube-system
+    chart: stable/kubernetes-dashboard
+    values:
+      - "./config/kubernetes-dashboard/values.yaml"
