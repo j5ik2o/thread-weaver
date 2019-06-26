@@ -61,20 +61,17 @@ $ sbt
 
 ```sh
 # terminal 3
-$ THREAD_WEAVER_API_SERVER_HTTP_PORT=18080 THREAD_WEAVER_MANAGEMENT_PORT=8558 sbt
-> api-server/run
+$ THREAD_WEAVER_API_SERVER_HTTP_PORT=18080 THREAD_WEAVER_MANAGEMENT_PORT=8558 sbt api-server/run
 ```
 
 ```sh
 # terminal 4
-$ THREAD_WEAVER_API_SERVER_HTTP_PORT=18081 THREAD_WEAVER_MANAGEMENT_PORT=8559 sbt
-> api-server/run
+$ THREAD_WEAVER_API_SERVER_HTTP_PORT=18081 THREAD_WEAVER_MANAGEMENT_PORT=8559 sbt api-server/run
 ```
 
 ```sh
 # terminal 5
-$ THREAD_WEAVER_API_SERVER_HTTP_PORT=18082 THREAD_WEAVER_MANAGEMENT_PORT=8560 sbt
-> api-server/run
+$ THREAD_WEAVER_API_SERVER_HTTP_PORT=18082 THREAD_WEAVER_MANAGEMENT_PORT=8560 sbt api-server/run
 ```
 
 ```sh
@@ -85,6 +82,16 @@ $ curl -X POST "http://127.0.0.1:18080/v1/threads/create" -H "accept: applicatio
 $ curl -X GET "http://127.0.0.1:18080/v1/threads/01DB6VK6E7PTQQFYJ6NMMEMTEB?account_id=01DB5QXD4NP0XQTV92K42B3XBF" -H "accept: application/json"
 {"result":{"id":"01DB6VK6E7PTQQFYJ6NMMEMTEB","creatorId":"01DB5QXD4NP0XQTV92K42B3XBF","parentThreadId":null,"title":"string","remarks":"string","createdAt":10000,"updatedAt":10000},"error_messages":[]}%
 ```
+
+## Gatling
+
+```sh
+$ sbt gatling-test/gatling-it:testOnly com.github.j5ik2o.gatling.ThreadSimulation
+
+> gatling-test/gatling-it:testOnly com.github.j5ik2o.gatling.ThreadSimulation
+
+```
+
 
 ## minikubeでの動作確認
 
