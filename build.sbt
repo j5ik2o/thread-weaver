@@ -384,47 +384,53 @@ lazy val `migrate-dynamodb` = (project in file("tools/migrate-dynamodb"))
     )
   )
 
-val gatlingVersion                 = "2.2.3"
-val awsSdkVersion = "1.11.169"
-
 lazy val `gatling-test` = (project in file("tools/gatling-test"))
-  .enablePlugins(_root_.io.gatling.sbt.GatlingPlugin)
+  .enablePlugins(GatlingPlugin)
   .settings(gatlingCommonSettings)
   .settings(
-    name := "thread-weaver-gatling-test",
+    name := "gaudi-poc-gatling-test",
     libraryDependencies ++= Seq(
       "io.gatling.highcharts" % "gatling-charts-highcharts" % gatlingVersion,
-      "io.gatling" % "gatling-test-framework" % gatlingVersion,
-      "com.amazonaws" % "aws-java-sdk-core" % awsSdkVersion,
-      "com.amazonaws" % "aws-java-sdk-s3" % awsSdkVersion,
-      "io.circe" %% "circe-core" % circeVersion,
-      "io.circe" %% "circe-generic" % circeVersion,
-      "io.circe" %% "circe-parser" % circeVersion
+      "io.gatling"            % "gatling-test-framework"    % gatlingVersion,
+      "com.amazonaws"         % "aws-java-sdk-core"         % awsSdkVersion,
+      "com.amazonaws"         % "aws-java-sdk-s3"           % awsSdkVersion,
+      "io.circe"              %% "circe-core"               % circeVersion,
+      "io.circe"              %% "circe-generic"            % circeVersion,
+      "io.circe"              %% "circe-parser"             % circeVersion
     ),
-    publishArtifact in(GatlingIt, packageBin) := true
+    publishArtifact in (GatlingIt, packageBin) := true
   )
-  .settings(addArtifact(artifact in(GatlingIt, packageBin), packageBin in GatlingIt))
+  .settings(addArtifact(artifact in (GatlingIt, packageBin), packageBin in GatlingIt))
+  .dependsOn(`infrastructure`, `contract-http-proto-interface`)
+
+lazy val `gatling-s3-reporter` = (project in file("tools/gatling-s3-reporter"))
+//  .settings(gatlingS3ReporterSettings)
+  .settings(
+    name := "gaudi-poc-gatling-s3-reporter"
+  )
 
 lazy val `gatling-runner` = (project in file("tools/gatling-runner"))
-  .enablePlugins(JavaAppPackaging)
+  .enablePlugins(JavaAppPackaging, EcrPlugin)
   .settings(gatlingCommonSettings)
+  .settings(gatlingEcrSettings)
+//  .settings(gatlingRunnerSettings)
   .settings(
-    name := "thread-weaver-gatling-runner",
+    name := "gaudi-poc-gatling-runner",
     libraryDependencies ++= Seq(
-      "io.gatling" % "gatling-app" % gatlingVersion,
+      "io.gatling"    % "gatling-app"       % gatlingVersion,
       "com.amazonaws" % "aws-java-sdk-core" % awsSdkVersion,
-      "com.amazonaws" % "aws-java-sdk-s3" % awsSdkVersion
+      "com.amazonaws" % "aws-java-sdk-s3"   % awsSdkVersion
     ),
-    mainClass in(Compile, bashScriptDefines) := Some("com.github.j5ik2o.gatling.runner.Runner"),
+    mainClass in (Compile, bashScriptDefines) := Some("com.chatwork.gaudiPoc.gatling.runner.Runner"),
     dockerBaseImage := "openjdk:8",
-    dockerUsername := Some("j5ik2o"),
-    packageName in Docker := "thread-weaver-gatling-runner",
+    dockerUsername := Some("chatwork"),
+    packageName in Docker := "gaudi-poc-gatling-runner",
     dockerUpdateLatest := true,
     dockerCommands ++= Seq(
       Cmd("USER", "root"),
       Cmd("RUN", "mkdir /var/log/gatling"),
       Cmd("RUN", "chown daemon:daemon /var/log/gatling"),
-      Cmd("ENV", "TW_GATLING_RESULT_DIR=/var/log/gatling")
+      Cmd("ENV", "GAUDI_POC_GATLING_RESULT_DIR=/var/log/gatling")
     )
   )
   .dependsOn(
