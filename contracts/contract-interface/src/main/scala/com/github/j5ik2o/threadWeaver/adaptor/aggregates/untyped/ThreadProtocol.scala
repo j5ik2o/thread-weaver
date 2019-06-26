@@ -3,7 +3,7 @@ package com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped
 import java.time.Instant
 
 import akka.actor.ActorRef
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.{ BaseCommandRequest, ThreadCommonProtocol }
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol.Event
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
 import com.github.j5ik2o.threadWeaver.domain.model.threads._
@@ -23,7 +23,7 @@ object ThreadProtocol {
     def threadId: ThreadId
     def createAt: Instant
   }
-  sealed trait CommandRequest extends CommandMessage {
+  sealed trait CommandRequest extends CommandMessage with BaseCommandRequest {
     def senderId: AccountId
   }
 

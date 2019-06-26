@@ -13,7 +13,6 @@ import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUp
   Idle,
   Stop
 }
-import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 import slick.jdbc.JdbcProfile
 
 import scala.concurrent.duration.FiniteDuration

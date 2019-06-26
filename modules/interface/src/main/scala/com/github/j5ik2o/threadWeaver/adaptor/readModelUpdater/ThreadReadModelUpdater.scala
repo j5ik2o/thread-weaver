@@ -168,8 +168,9 @@ class ThreadReadModelUpdater(
           }
       }
 
-  private def projectionSource(sqlBatchSize: Long,
-                               threadId: ThreadId)(implicit ec: ExecutionContext): Source[Vector[Unit], NotUsed] = {
+  private def projectionSource(sqlBatchSize: Long, threadId: ThreadId)(
+      implicit ec: ExecutionContext
+  ): Source[Vector[Unit], NotUsed] = {
     Source
       .fromFuture(
         db.run(getSequenceNrAction(threadId)).map(_.getOrElse(0L))
