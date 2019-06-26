@@ -11,7 +11,8 @@ import akka.stream.scaladsl.{ Flow, Keep, RestartSource, Sink, Source }
 import akka.stream.typed.scaladsl.ActorMaterializer
 import akka.stream.{ Attributes, KillSwitch, KillSwitches }
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol.{ CommandRequest => _, Stop => _, _ }
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ThreadProtocol.{ CommandRequest => _, _ }
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ThreadAggregate
 import com.github.j5ik2o.threadWeaver.adaptor.dao.jdbc.{
   ThreadAdministratorIdsComponent,
   ThreadComponent,
@@ -33,6 +34,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
+@SuppressWarnings(Array("org.wartremover.warts.Var"))
 object ThreadReadModelUpdater {
 
   type ReadJournalType = ReadJournal
@@ -62,10 +64,11 @@ class ThreadReadModelUpdater(
 
   import profile.api._
 
-  def behavior(sqlBatchSize: Long = 10, backoffSettings: Option[BackoffSettings] = None): Behavior[CommandRequest] =
+  def behavior(sqlBatchSize: Long = 1, backoffSettings: Option[BackoffSettings] = None): Behavior[CommandRequest] =
     Behaviors.setup[CommandRequest] { ctx =>
       Behaviors.receiveMessagePartial[CommandRequest] {
         case s: Start =>
+          ctx.log.info("RMU start!!")
           ctx.child(s.threadId.value.asString) match {
             case None =>
               ctx.spawn(
@@ -163,8 +166,8 @@ class ThreadReadModelUpdater(
         forLifecycle(threadId)
           .orElse(forAdministrator(threadId)).orElse(forMember(threadId)).orElse(forMessage(threadId))
           .orElse {
-            case _ =>
-              DBIO.successful(())
+            case v =>
+              DBIO.failed(new Exception(v.toString()))
           }
       }
 
@@ -176,11 +179,13 @@ class ThreadReadModelUpdater(
         db.run(getSequenceNrAction(threadId)).map(_.getOrElse(0L))
       ).log("lastSequenceNr").flatMapConcat { lastSequenceNr =>
         readJournal
-          .eventsByPersistenceId(threadId.value.asString, lastSequenceNr + 1, Long.MaxValue)
-      }.log("ee").via(sqlActionFlow(threadId))
-      .batch(sqlBatchSize, ArrayBuffer(_))(_ :+ _).mapAsync(1) { sqlActions =>
+          .eventsByPersistenceId(ThreadAggregate.name(threadId), lastSequenceNr + 1, Long.MaxValue)
+      }.log("ee").via(sqlActionFlow(threadId)).log("sqlAction")
+      .batch(sqlBatchSize, ArrayBuffer(_))(_ :+ _).log("batch").mapAsync(1) { sqlActions =>
         db.run(DBIO.sequence(sqlActions.result.toVector))
-      }.withAttributes(logLevels)
+      }
+      .log("run")
+      .withAttributes(logLevels)
   }
 
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
@@ -202,6 +207,7 @@ class ThreadReadModelUpdater(
       Behaviors
         .receiveMessagePartial[Message] {
           case Start(_, tid, _) if tid == threadId =>
+            ctx.log.info("projectionBehavior start")
             killSwitch = Some {
               RestartSource
                 .withBackoff(minBackoff, maxBackoff, randomFactor, maxRestarts) { () =>
@@ -216,9 +222,11 @@ class ThreadReadModelUpdater(
             }
             Behaviors.same
           case _: Stop =>
+            ctx.log.info("projectionBehavior stop")
             Behaviors.stopped
         }.receiveSignal {
-          case (_, PostStop) =>
+          case (ctx, PostStop) =>
+            ctx.log.info("post-stop")
             killSwitch.foreach(_.shutdown())
             Behaviors.same
         }

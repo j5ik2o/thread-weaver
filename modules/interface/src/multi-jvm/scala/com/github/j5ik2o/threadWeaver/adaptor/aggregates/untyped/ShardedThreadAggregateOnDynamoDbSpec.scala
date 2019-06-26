@@ -50,15 +50,15 @@ class ShardedThreadAggregateOnDynamoDbSpec
     "join cluster" in within(15 seconds) {
       enterBarrier("join controller")
       join(controller, controller) {
-        ShardedThreadAggregatesRegion.startClusterSharding(Seq.empty)
+        ShardedThreadAggregatesRegion.startClusterSharding(Seq.empty, None)
       }
       enterBarrier("join node1")
       join(node1, controller) {
-        ShardedThreadAggregatesRegion.startClusterSharding(Seq.empty)
+        ShardedThreadAggregatesRegion.startClusterSharding(Seq.empty, None)
       }
       enterBarrier("join node2")
       join(node2, controller) {
-        ShardedThreadAggregatesRegion.startClusterSharding(Seq.empty)
+        ShardedThreadAggregatesRegion.startClusterSharding(Seq.empty, None)
       }
       enterBarrier("join all nodes to the cluster")
     }

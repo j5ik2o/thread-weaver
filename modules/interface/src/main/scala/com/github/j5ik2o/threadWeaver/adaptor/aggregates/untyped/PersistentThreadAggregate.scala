@@ -1,20 +1,47 @@
 package com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped
 
+import java.time.Instant
+
 import akka.actor.SupervisorStrategy.Stop
-import akka.actor.{ ActorLogging, ActorRef, OneForOneStrategy, Props, SupervisorStrategy, Terminated }
+import akka.actor.typed.scaladsl.adapter._
+import akka.actor.{ typed, ActorLogging, ActorRef, OneForOneStrategy, Props, SupervisorStrategy, Terminated }
 import akka.persistence.{ PersistentActor, RecoveryCompleted }
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.PersistentThreadAggregate.ReadModelUpdaterConfig
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ThreadProtocol._
+import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdater.ReadJournalType
+import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.{
+  ThreadReadModelUpdater,
+  ThreadReadModelUpdaterProtocol
+}
 import com.github.j5ik2o.threadWeaver.domain.model.threads.ThreadId
+import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
+import slick.jdbc.JdbcProfile
 
 object PersistentThreadAggregate {
 
-  def props(id: ThreadId, subscribers: Seq[ActorRef]): Props =
-    Props(new PersistentThreadAggregate(id, subscribers, ThreadAggregate.props))
+  case class ReadModelUpdaterConfig(
+      readJournal: ReadJournalType,
+      profile: JdbcProfile,
+      db: JdbcProfile#Backend#Database,
+      sqlBatchSize: Long
+  )
+
+  def props: Option[ReadModelUpdaterConfig] => ThreadId => Seq[ActorRef] => Props =
+    readModelUpdaterConfig =>
+      id =>
+        subscribers =>
+          Props(new PersistentThreadAggregate(id, subscribers, ThreadAggregate.props, readModelUpdaterConfig))
+
 }
 
-class PersistentThreadAggregate(id: ThreadId, subscribers: Seq[ActorRef], propsF: (ThreadId, Seq[ActorRef]) => Props)
-    extends PersistentActor
+@SuppressWarnings(Array("org.wartremover.warts.Var"))
+class PersistentThreadAggregate(
+    id: ThreadId,
+    subscribers: Seq[ActorRef],
+    propsF: (ThreadId, Seq[ActorRef]) => Props,
+    readModelUpdaterConfig: Option[ReadModelUpdaterConfig]
+) extends PersistentActor
     with ActorLogging {
 
   override def supervisorStrategy: SupervisorStrategy = OneForOneStrategy() {
@@ -22,11 +49,33 @@ class PersistentThreadAggregate(id: ThreadId, subscribers: Seq[ActorRef], propsF
       Stop
   }
 
+  private val ReadModelUpdaterRefName = "RoomReadModelUpdater"
+
+  private def generateReadModelUpdaterRef: Option[typed.ActorRef[ThreadReadModelUpdaterProtocol.CommandRequest]] =
+    readModelUpdaterConfig.map { config =>
+      val readModelUpdaterBehavior =
+        new ThreadReadModelUpdater(config.readJournal, config.profile, config.db).behavior(config.sqlBatchSize)
+      val result = context.spawn(readModelUpdaterBehavior, ReadModelUpdaterRefName)
+      context.watch(result)
+      result
+    }
+
+  private var readModelUpdaterRef = generateReadModelUpdaterRef
+
   private val childRef =
     context.actorOf(propsF(id, subscribers), name = ThreadAggregate.name(id))
 
   context.watch(childRef)
 
+  override def preStart(): Unit = {
+    super.preStart()
+    readModelUpdaterRef.foreach(_ ! ThreadReadModelUpdaterProtocol.Start(ULID(), id, Instant.now()))
+  }
+
+  override def postStop(): Unit = {
+    readModelUpdaterRef.foreach(_ ! ThreadReadModelUpdaterProtocol.Stop(ULID(), id, Instant.now()))
+    super.postStop()
+  }
   override def persistenceId: String = ThreadAggregate.name(id)
 
   override def receiveRecover: Receive = {
@@ -39,6 +88,7 @@ class PersistentThreadAggregate(id: ThreadId, subscribers: Seq[ActorRef], propsF
   private def sending(replyTo: ActorRef, event: ThreadCommonProtocol.Event): Receive = {
     case s: CommandSuccessResponse =>
       persist(event) { _ =>
+        log.info(s"persist: $event")
         replyTo ! s
         unstashAll()
         context.unbecome()
@@ -54,6 +104,8 @@ class PersistentThreadAggregate(id: ThreadId, subscribers: Seq[ActorRef], propsF
   override def receiveCommand: Receive = {
     case Terminated(c) if c == childRef =>
       context.stop(self)
+    case Terminated(c) if readModelUpdaterRef.contains(c) =>
+      readModelUpdaterRef = generateReadModelUpdaterRef
     case m: CommandRequest with ToEvent =>
       childRef ! m
       context.become(sending(sender(), m.toEvent))

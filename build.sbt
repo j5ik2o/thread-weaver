@@ -388,7 +388,7 @@ lazy val `gatling-test` = (project in file("tools/gatling-test"))
   .enablePlugins(GatlingPlugin)
   .settings(gatlingCommonSettings)
   .settings(
-    name := "gaudi-poc-gatling-test",
+    name := "thread-weaver-gatling-test",
     libraryDependencies ++= Seq(
       "io.gatling.highcharts" % "gatling-charts-highcharts" % gatlingVersion,
       "io.gatling"            % "gatling-test-framework"    % gatlingVersion,
@@ -406,16 +406,30 @@ lazy val `gatling-test` = (project in file("tools/gatling-test"))
 lazy val `gatling-s3-reporter` = (project in file("tools/gatling-s3-reporter"))
 //  .settings(gatlingS3ReporterSettings)
   .settings(
-    name := "gaudi-poc-gatling-s3-reporter"
+    name := "thread-weaver-gatling-s3-reporter"
+  )
+
+lazy val `gatling-aggregate-runner` = (project in file("tools/gatling-aggregate-runner"))
+  .enablePlugins(JavaAppPackaging, EcrPlugin)
+  .settings(gatlingCommonSettings)
+  .settings(gatlingAggregateRunnerEcrSettings)
+  .settings(
+    name := "thread-weaver-gatling-aggregate-runner",
+    libraryDependencies ++= Seq(
+      "org.slf4j"                  % "slf4j-api"               % "1.7.26",
+      "ch.qos.logback" % "logback-classic" % "1.2.3",
+      "org.codehaus.janino" % "janino" % "3.0.6",
+      "com.iheart" %% "ficus" % "1.4.6",
+      "com.github.j5ik2o" %% "reactive-aws-ecs-core" % "1.1.3"
+    )
   )
 
 lazy val `gatling-runner` = (project in file("tools/gatling-runner"))
   .enablePlugins(JavaAppPackaging, EcrPlugin)
   .settings(gatlingCommonSettings)
-  .settings(gatlingEcrSettings)
-//  .settings(gatlingRunnerSettings)
+  .settings(gatlingRunnerEcrSettings)
   .settings(
-    name := "gaudi-poc-gatling-runner",
+    name := "thread-weaver-gatling-runner",
     libraryDependencies ++= Seq(
       "io.gatling"    % "gatling-app"       % gatlingVersion,
       "com.amazonaws" % "aws-java-sdk-core" % awsSdkVersion,
@@ -424,13 +438,13 @@ lazy val `gatling-runner` = (project in file("tools/gatling-runner"))
     mainClass in (Compile, bashScriptDefines) := Some("com.chatwork.gaudiPoc.gatling.runner.Runner"),
     dockerBaseImage := "openjdk:8",
     dockerUsername := Some("chatwork"),
-    packageName in Docker := "gaudi-poc-gatling-runner",
+    packageName in Docker := "thread-weaver-gatling-runner",
     dockerUpdateLatest := true,
     dockerCommands ++= Seq(
       Cmd("USER", "root"),
       Cmd("RUN", "mkdir /var/log/gatling"),
       Cmd("RUN", "chown daemon:daemon /var/log/gatling"),
-      Cmd("ENV", "GAUDI_POC_GATLING_RESULT_DIR=/var/log/gatling")
+      Cmd("ENV", "TW_GATLING_RESULT_DIR=/var/log/gatling")
     )
   )
   .dependsOn(

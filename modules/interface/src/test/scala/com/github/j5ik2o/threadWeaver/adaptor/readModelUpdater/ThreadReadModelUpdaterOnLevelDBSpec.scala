@@ -1,29 +1,31 @@
 package com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater
+
 import java.time.Instant
 
-import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
-import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.scaladsl.adapter._
+import akka.actor.ActorSystem
 import akka.persistence.query.PersistenceQuery
 import akka.persistence.query.journal.leveldb.scaladsl.LeveldbReadJournal
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.{ PersistenceCleanup, ThreadCommonProtocol }
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol.Started
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol._
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.{ PersistentThreadAggregate, TypedActorSpecSupport }
+import akka.testkit.{ ImplicitSender, TestKit }
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.PersistenceCleanup
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.PersistentThreadAggregate
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.PersistentThreadAggregate.ReadModelUpdaterConfig
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ThreadProtocol._
 import com.github.j5ik2o.threadWeaver.adaptor.dao.jdbc.ThreadMessageComponent
-import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdaterProtocol.Start
 import com.github.j5ik2o.threadWeaver.adaptor.util.{ FlywayWithMySQLSpecSupport, Slick3SpecSupport }
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
 import com.github.j5ik2o.threadWeaver.domain.model.threads._
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 import com.typesafe.config.ConfigFactory
-import org.scalatest.FreeSpecLike
+import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{ Seconds, Span }
+import org.scalatest.{ FreeSpecLike, Matchers }
 
 class ThreadReadModelUpdaterOnLevelDBSpec
-    extends ScalaTestWithActorTestKit(
-      ConfigFactory
-        .parseString("""
+    extends TestKit(
+      ActorSystem(
+        "ThreadReadModelUpdaterOnLevelDBSpec",
+        ConfigFactory
+          .parseString("""
           |akka {
           |  persistence {
           |    journal {
@@ -42,11 +44,14 @@ class ThreadReadModelUpdaterOnLevelDBSpec
           |  }
           |}
         """.stripMargin).withFallback(
-          ConfigFactory.load()
-        )
+            ConfigFactory.load()
+          )
+      )
     )
+    with ImplicitSender
+    with Matchers
+    with Eventually
     with FreeSpecLike
-    with TypedActorSpecSupport
     with PersistenceCleanup
     with FlywayWithMySQLSpecSupport
     with Slick3SpecSupport {
@@ -59,13 +64,13 @@ class ThreadReadModelUpdaterOnLevelDBSpec
   var readJournal: LeveldbReadJournal = _
 
   override def beforeAll: Unit = {
-    deleteStorageLocations(system.toUntyped)
+    deleteStorageLocations(system)
     super.beforeAll()
-    readJournal = PersistenceQuery(system.toUntyped).readJournalFor[LeveldbReadJournal](LeveldbReadJournal.Identifier)
+    readJournal = PersistenceQuery(system).readJournalFor[LeveldbReadJournal](LeveldbReadJournal.Identifier)
   }
 
   override def afterAll: Unit = {
-    deleteStorageLocations(system.toUntyped)
+    deleteStorageLocations(system)
     super.afterAll()
   }
 
@@ -78,8 +83,6 @@ class ThreadReadModelUpdaterOnLevelDBSpec
         override val profile = dbConfig.profile
         import profile.api._
 
-        val trmuRef = spawn(new ThreadReadModelUpdater(readJournal, dbConfig.profile, dbConfig.db).behavior())
-
         def assert = eventually {
           val resultMessages =
             dbConfig.db.run(ThreadMessageDao.filter(_.threadId === threadId.value.asString).result).futureValue
@@ -89,17 +92,14 @@ class ThreadReadModelUpdaterOnLevelDBSpec
         }
       }
 
-      val subscriber = spawn(Behaviors.receiveMessagePartial[ThreadCommonProtocol.Message] {
-        case Started(_, tid, _) =>
-          tmc.trmuRef ! Start(ULID(), tid, Instant.now)
-          Behaviors.same
-      })
-
-      val threadRef         = spawn(PersistentThreadAggregate.behavior(threadId, Seq(subscriber)))
-      val now               = Instant.now
-      val createThreadProbe = TestProbe[CreateThreadResponse]()
-      val administratorId   = AccountId()
-      val title             = ThreadTitle("test")
+      val threadRef = system.actorOf(
+        PersistentThreadAggregate.props(Some(ReadModelUpdaterConfig(readJournal, dbConfig.profile, dbConfig.db, 1)))(
+          threadId
+        )(Seq.empty)
+      )
+      val now             = Instant.now
+      val administratorId = AccountId()
+      val title           = ThreadTitle("test")
       threadRef ! CreateThread(
         ULID(),
         threadId,
@@ -110,10 +110,10 @@ class ThreadReadModelUpdaterOnLevelDBSpec
         AdministratorIds(administratorId),
         MemberIds.empty,
         now,
-        Some(createThreadProbe.ref)
+        true
       )
 
-      createThreadProbe.expectMessageType[CreateThreadResponse] match {
+      expectMsgType[CreateThreadResponse] match {
         case f: CreateThreadFailed =>
           fail(f.message)
         case s: CreateThreadSucceeded =>
@@ -121,8 +121,7 @@ class ThreadReadModelUpdaterOnLevelDBSpec
           s.createAt shouldBe now
       }
 
-      val memberId              = AccountId()
-      val joinMemberIdsResponse = TestProbe[JoinMemberIdsResponse]()
+      val memberId = AccountId()
 
       threadRef ! JoinMemberIds(
         ULID(),
@@ -130,10 +129,10 @@ class ThreadReadModelUpdaterOnLevelDBSpec
         administratorId,
         MemberIds(memberId),
         now,
-        Some(joinMemberIdsResponse.ref)
+        true
       )
 
-      joinMemberIdsResponse.expectMessageType[JoinMemberIdsResponse] match {
+      expectMsgType[JoinMemberIdsResponse] match {
         case f: JoinMemberIdsFailed =>
           fail(f.message)
         case s: JoinMemberIdsSucceeded =>
@@ -141,17 +140,16 @@ class ThreadReadModelUpdaterOnLevelDBSpec
           s.createAt shouldBe now
       }
 
-      val addMessagesResponseProbe = TestProbe[AddMessagesResponse]()
-      val messages                 = Messages(TextMessage(MessageId(), None, ToAccountIds.empty, Text("ABC"), memberId, now, now))
+      val messages = Messages(TextMessage(MessageId(), None, ToAccountIds.empty, Text("ABC"), memberId, now, now))
       threadRef ! AddMessages(
         ULID(),
         threadId,
         messages,
         now,
-        Some(addMessagesResponseProbe.ref)
+        true
       )
 
-      addMessagesResponseProbe.expectMessageType[AddMessagesResponse] match {
+      expectMsgType[AddMessagesResponse] match {
         case f: AddMessagesFailed =>
           fail(f.message)
         case s: AddMessagesSucceeded =>
@@ -159,9 +157,8 @@ class ThreadReadModelUpdaterOnLevelDBSpec
           s.createAt shouldBe now
       }
 
-      val getMessagesResponseProbe = TestProbe[GetMessagesResponse]()
-      threadRef ! GetMessages(ULID(), threadId, memberId, now, getMessagesResponseProbe.ref)
-      getMessagesResponseProbe.expectMessageType[GetMessagesResponse] match {
+      threadRef ! GetMessages(ULID(), threadId, memberId, now)
+      expectMsgType[GetMessagesResponse] match {
         case f: GetMessagesFailed =>
           fail(f.message)
         case s: GetMessagesSucceeded =>
