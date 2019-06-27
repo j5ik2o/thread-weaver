@@ -48,12 +48,12 @@ variable "cluster_yaml_file" {
 }
 
 variable "db_private_subnets_availability_zones" {
-  type    = list
+  type    = "list"
   default = ["ap-northeast-1a", "ap-northeast-1c"]
 }
 
 variable "db_private_subnets_cidr_blocks" {
-  type    = list
+  type    = "list"
   default = ["10.0.7.0/24", "10.0.8.0/24"]
 }
 

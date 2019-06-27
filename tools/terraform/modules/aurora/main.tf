@@ -43,7 +43,7 @@ resource "aws_route" "db_public" {
 }
 
 resource "aws_route_table_association" "db_public" {
-  count          = "${var.enabled && var.aurora_public_access ? length(aws_subnet.db-private) : 0}"
+  count          = "${var.enabled && var.aurora_public_access ? length(aws_subnet.db-private.0) : 0}"
   route_table_id = "${aws_route_table.db_public.0.id}"
   subnet_id      = "${element(aws_subnet.db-private.*.id, count.index)}"
 }
