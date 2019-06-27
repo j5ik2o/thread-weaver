@@ -1,3 +1,5 @@
 #!/usr/bin/env bash
 
-terraform destroy --var-file=production.tfvars
+cd $(dirname $0)
+
+terraform destroy --var-file=gatling.tfvars --var-file=production.tfvars
