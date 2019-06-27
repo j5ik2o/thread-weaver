@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Job
+metadata:
+  name: {{ template "name" . }}
+  labels:
+    app: {{ template "name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  completions: 1
+  parallelism: 1
+  backoffLimit: 10
+  template:
+    spec:
+      containers:
+        - name: {{ template "name" . }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command: ["migrate"]
+          volumeMounts:
+            - name: {{ template "name" . }}
+              mountPath: "/flyway/conf/"
+              readOnly: true
+      restartPolicy: Never
+      volumes:
+        - name: {{ template "name" . }}
+          secret:
+            secretName: {{ template "name" . }}
+            items:
+              - key: flyway.conf
+                path: flyway.conf
