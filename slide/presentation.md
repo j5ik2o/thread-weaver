@@ -455,7 +455,7 @@ class ThreadAggregate(id: ThreadId,
 .col-6[
 - Actors that support transactional integrity
 - The boundary of the data update is the same as the boundary the aggregates has.
-- For example, when an actor receives the CreateThead command, a Thread state is generated internally
+- For example, when an actor receives CreateThead command, a Thread state is generated internally
 - Then Messages are also added to the Thread when the AddMessages command is receives
 - If the other commands defined in the protocol are received by the Actor, the Actor will have corresponding side effects.
 ]
