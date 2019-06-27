@@ -435,9 +435,9 @@ lazy val `gatling-runner` = (project in file("tools/gatling-runner"))
       "com.amazonaws" % "aws-java-sdk-core" % awsSdkVersion,
       "com.amazonaws" % "aws-java-sdk-s3"   % awsSdkVersion
     ),
-    mainClass in (Compile, bashScriptDefines) := Some("com.chatwork.gaudiPoc.gatling.runner.Runner"),
+    mainClass in (Compile, bashScriptDefines) := Some("com.github.j5ik2o.gatling.runner.Runner"),
     dockerBaseImage := "openjdk:8",
-    dockerUsername := Some("chatwork"),
+    dockerUsername := Some("j5ik2o"),
     packageName in Docker := "thread-weaver-gatling-runner",
     dockerUpdateLatest := true,
     dockerCommands ++= Seq(

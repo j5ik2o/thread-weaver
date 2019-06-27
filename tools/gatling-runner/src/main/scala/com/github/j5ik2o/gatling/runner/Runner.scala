@@ -9,34 +9,35 @@ import com.amazonaws.services.s3.{ AmazonS3, AmazonS3ClientBuilder }
 import com.typesafe.config.ConfigFactory
 import io.gatling.app.Gatling
 import io.gatling.core.scenario.Simulation
+import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
 
 object Runner extends App {
-  val config = ConfigFactory.load()
 
-  val gatlingConfig = ConfigFactory.load("gatling.conf")
+  val logger = LoggerFactory.getLogger(getClass)
 
-  val simulationClassName = config.getString("gatling.simulation-classname")
-
-  val executionId = config.getString("gatling.execution-id")
-
-  val gatlingDir = gatlingConfig.getString("gatling.core.directory.results")
+  val config              = ConfigFactory.load()
+  val simulationClassName = config.getString("thread-weaver.gatling.simulation-classname")
+  val executionId         = config.getString("thread-weaver.gatling.execution-id")
 
   val s3EndPoint = {
     val endPoint = config.getString("thread-weaver.gatling.aws-s3-endpoint")
     if (endPoint.isEmpty) None else Some(endPoint)
   }
-  val bucketName          = config.getString("gatling.aws-s3-bucket-name")
-  val createBucketOnStart = config.getBoolean("gatling.aws-s3-create-bucket-on-start")
-  val pathStyleAccess     = config.getBoolean("gatling.aws-s3-path-style-access")
+  val bucketName          = config.getString("thread-weaver.gatling.aws-s3-bucket-name")
+  val createBucketOnStart = config.getBoolean("thread-weaver.gatling.aws-s3-create-bucket-on-start")
+  val pathStyleAccess     = config.getBoolean("thread-weaver.gatling.aws-s3-path-style-access")
+
+  val gatlingConfig = ConfigFactory.load("gatling.conf")
+  val gatlingDir    = gatlingConfig.getString("gatling.core.directory.results")
 
   val dynamic                       = new ReflectiveDynamicAccess(getClass.getClassLoader)
   val clazz: Class[_ <: Simulation] = dynamic.getClassFor[Simulation](simulationClassName).get
   val simulationName                = clazz.getSimpleName
 
-  println(s"Simulation class is: ${clazz.getCanonicalName}")
-  println(s"Simulation name is: $simulationName")
+  logger.info(s"Simulation class is: ${clazz.getCanonicalName}")
+  logger.info(s"Simulation name is: $simulationName")
 
   val client: AmazonS3 = {
     val builder = AmazonS3ClientBuilder.standard()
@@ -59,14 +60,14 @@ object Runner extends App {
   val latestTimestamp = new File(gatlingDir).listFiles().map(_.getName.split("-")(1).toLong).max
   val targetLogFile   = s"$gatlingDir/${simulationName.toLowerCase()}-$latestTimestamp/simulation.log"
 
-  println("generated gatling log file is " + targetLogFile)
+  logger.info("generated gatling log file is " + targetLogFile)
 
   val keyName = s"$executionId/${java.util.UUID.randomUUID()}.log"
-  println(s"sending to bucket `$bucketName` with key `$keyName`")
+  logger.info(s"sending to bucket `$bucketName` with key `$keyName`")
 
   client.putObject(bucketName, keyName, new File(targetLogFile))
 
   val currentLogCount = client.listObjects(bucketName, executionId).getObjectSummaries.size()
-  println(s"the number of logs accumulated sor far: $currentLogCount")
+  logger.info(s"the number of logs accumulated sor far: $currentLogCount")
 
 }
