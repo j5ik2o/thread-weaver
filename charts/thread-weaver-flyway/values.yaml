@@ -1,0 +1,9 @@
+replicaCount: 1
+image:
+  repository: j5ik2o/thread-weaver-flyway
+  tag: latest
+  pullPolicy: IfNotPresent
+flyway:
+  url:
+  user:
+  password:
