@@ -1,3 +1,5 @@
 #!/usr/bin/env bash
 
-terraform apply --var-file=production.tfvars
+cd $(dirname $0)
+
+terraform apply --var-file=gatling.tfvars --var-file=gatling.tfvars

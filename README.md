@@ -87,9 +87,6 @@ $ curl -X GET "http://127.0.0.1:18080/v1/threads/01DB6VK6E7PTQQFYJ6NMMEMTEB?acco
 
 ```sh
 $ sbt gatling-test/gatling-it:testOnly com.github.j5ik2o.gatling.ThreadSimulation
-
-> gatling-test/gatling-it:testOnly com.github.j5ik2o.gatling.ThreadSimulation
-
 ```
 
 

@@ -1,3 +1,5 @@
 #!/usr/bin/env bash
 
-terraform plan --var-file=production.tfvars
+cd $(dirname $0)
+
+terraform plan --var-file=gatling.tfvars --var-file=production.tfvars
