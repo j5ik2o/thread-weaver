@@ -32,6 +32,6 @@ resource "aws_ecr_repository_policy" "api-server-policy" {
 }
 EOF
 
-  repository = aws_ecr_repository.api-server.name
+  repository = "${aws_ecr_repository.api-server.name}"
 }
 
