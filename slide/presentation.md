@@ -41,9 +41,9 @@ layout: true
     - [scala-ddd-base-akka-http.g8](https://github.com/j5ik2o/scala-ddd-base-akka-http.g8)
     - [reactive-redis](https://github.com/j5ik2o/reactive-redis)
     - [reactive-memcached](https://github.com/j5ik2o/reactive-memcached)
-- 翻訳レビュー
-    - [エリックエヴァンスのドメイン駆動設計](https://amzn.to/2PmEHuU)
-    - [Akka実践バイブル](https://amzn.to/2Qx54uU)
+- Review
+    - [Domain-Driven Design: Tackling Complexity in the Heart of Software (Japanese Edition)](https://amzn.to/2PmEHuU)
+    - [Akka in Action (Japanese Edition)](https://amzn.to/2Qx54uU)
 ]
 
 .col-6[
