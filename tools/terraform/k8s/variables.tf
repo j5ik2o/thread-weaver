@@ -1,1 +1,0 @@
-variable "aurora_db_master_password" {}
