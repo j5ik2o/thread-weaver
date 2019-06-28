@@ -1,22 +1,33 @@
-FROM adoptopenjdk:11-jre-hotspot
+FROM openjdk:8-jdk-alpine
 
-# Add the flyway user and step in the directory
-RUN adduser --system --home /flyway --disabled-password --group flyway
-WORKDIR /flyway
+LABEL version=0.0.1
 
-# Change to the flyway user
-USER flyway
+ARG AWS_VERSION=1.16.58
+ARG GATLING_VERSION=3.1.2
 
-ENV FLYWAY_VERSION 6.0.0-beta2
-ENV MYSQL_DRIVER_VERSION 5.1.47
 
-RUN curl -L https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/${FLYWAY_VERSION}/flyway-commandline-${FLYWAY_VERSION}.tar.gz -o flyway-commandline-${FLYWAY_VERSION}.tar.gz \
-  && tar -xzf flyway-commandline-${FLYWAY_VERSION}.tar.gz --strip-components=1 \
-  && rm flyway-commandline-${FLYWAY_VERSION}.tar.gz
+RUN apk --no-cache add py3-pip jq \
+    && pip3 install --no-cache-dir --upgrade pip \
+    && pip3 install --no-cache-dir awscli==${AWS_VERSION}
 
-ADD https://repo1.maven.org/maven2/mysql/mysql-connector-java/${MYSQL_DRIVER_VERSION}/mysql-connector-java-${MYSQL_DRIVER_VERSION}.jar /flyway/drivers
+WORKDIR /opt
 
-COPY ./src/test/resources/db-migration /flyway/sql
+# install gatling
+RUN mkdir -p gatling && mkdir -p work && apk add --update wget bash libc6-compat
 
-ENTRYPOINT ["/flyway/flyway"]
-CMD ["-?"]
+RUN mkdir -p /tmp/downloads && \
+  wget -q -O /tmp/downloads/gatling-${GATLING_VERSION}.zip https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/${GATLING_VERSION}/gatling-charts-highcharts-bundle-${GATLING_VERSION}-bundle.zip
+
+RUN mkdir -p /tmp/archive && cd /tmp/archive && \
+  unzip /tmp/downloads/gatling-${GATLING_VERSION}.zip && \
+  mv /tmp/archive/gatling-charts-highcharts-bundle-${GATLING_VERSION}/* /opt/gatling/ && \
+  rm -rf /tmp/*
+
+# change context to gatling directory
+WORKDIR  /opt/work
+
+ENV GATLING_HOME /opt/gatling
+
+COPY generate-report.sh /generate-report.sh
+
+ENTRYPOINT ["/generate-report.sh"]
