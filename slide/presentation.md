@@ -2221,7 +2221,10 @@ curl -v -X GET "http://$API_HOST:$API_PORT/v1/threads/${THREAD_ID}?account_id=${
 
 # Summary
 
-- T.B.D
+- ReadModelUpdater requires a little rethinking of the design. Need a way to react new aggregation IDs to operate on different nodes
+- Multi pods verification can be done on minikube
+- Split-brain resolver is not only commercially available
+- Pods on EKS must be managed as cluster members. Issues remain with cluster new version migration
 
 ---
 class: impact
