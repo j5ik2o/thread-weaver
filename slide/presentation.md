@@ -2221,10 +2221,16 @@ curl -v -X GET "http://$API_HOST:$API_PORT/v1/threads/${THREAD_ID}?account_id=${
 
 # Summary
 
-- ReadModelUpdater requires a little rethinking of the design. Need a way to react new aggregation IDs to operate on different nodes
-- Multi pods verification can be done on minikube
-- Split-brain resolver is not only commercially available
+- ReadModelUpdater needs to be changed in design so that it can be operated on another node
+- Use multi-jvm testing or pods on minikube to validate sharded actors
+- Split Brain Resolver is available in OSS as well as commercial versions
 - Pods on EKS must be managed as cluster members. Issues remain with cluster new version migration
+
+???
+- ReadModelUpdaterは、別のノードで動作させられるように設計を変更する必要がある。
+- シャーディングされたアクターを検証するには multi-jvm-testingもしくはminikube上のpodsを利用する
+- スプリットブレインリゾルバーは、OSSおよび商用バージョンで利用可能です。
+- EKS上のポッドはクラスターメンバーとして管理する必要があります。クラスタの新しいバージョンの移行に問題が残る
 
 ---
 class: impact
