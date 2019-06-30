@@ -1,13 +1,13 @@
 class: animation-fade impact
 
 .top-bar[
-
+ScalaMatsuri 2019
 ]
 .bottom-bar[
-  ScalaMatsuri 2019
+ AWS EKSとAkkaを使ってEvent Sourcingを作るにはどうしたらよいか
 ]
 
-# How to build an Event-Sourcing system Ho
+# How to build an Event-Sourcing system
 # using Akka with EKS
 
 ScalaMatsuri 2019
@@ -681,12 +681,12 @@ SKey: num = <sequenceNr % 100>
 pay = <payload> 
 idx = <atomic write batch index>
 cnt = <atomic write batch max index>
-# 高いシーケンス番号
+# High sequence number
 PKey: par = <journalName>-SH-<persistenceId>-<(sequenceNr / 100)
    % sequenceShards>
 SKey: num = 0 
 seq = <sequenceNr rounded down to nearest multiple of 100>
-# 低シーケンス番号
+# Low sequence number
 PKey: par = <journalName>-SL-<persistenceId>-<(sequenceNr / 100)
    % sequenceShards>
 SKey: num = 0
@@ -1562,7 +1562,7 @@ AkkaManagementとClusterBootstrapを開始した後にakka-httpサーバを起�
 ]
 .col-6[
 .center[
-<object type="image/svg+xml" data="images/cluster-image.svg" height="400"></object>
+<object type="image/svg+xml" data="images/cluster-image.svg" height="500"></object>
 ]
 ]
 .bottom-bar[
