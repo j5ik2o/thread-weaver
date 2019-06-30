@@ -63,7 +63,7 @@ Chatworkテックリード。OSS活動&翻訳レビューなど
 - https://github.com/j5ik2o/thread-weaver
 
 .bottom-bar[
-AkkaでのES実装。EMSへのデプロイなどを話します。動作するソースコードはGithubにあります
+AkkaでのES実装。EKSへのデプロイなどを話します。動作するソースコードはGithubにあります
 ]
 
 ???
@@ -356,7 +356,7 @@ ThreadEvent sub types
 # Projects structure
 
 .center[
-<object type="image/svg+xml" data="images/modules.svg" width="900"></object>
+<img src="images/modules.svg" width="900"/>
 ]
 
 .bottom-bar[
@@ -373,7 +373,7 @@ modulesというものは、実装が含まれます。依存の方向性は循�
 
 .col-8[
 .center[
-<object type="image/svg+xml" data="images/actor-tree.svg" ></object>
+<img src="images/actor-tree.svg" />
 ]
 ]
 .col-4[
@@ -999,7 +999,7 @@ akka-persistenceの初期化とクラスターメンバーのジョイン後に�
 
 .col-8[
 .center[
-<object type="image/svg+xml" data="images/akka-event-sourcing.svg" height="500"></object>
+<img src="images/akka-event-sourcing.svg" height="500"/>
 ]
 ]
 .col-4[
@@ -1162,7 +1162,7 @@ object PingPong extends App {
 
 .col-6[
 .center[
-<object type="image/svg+xml" data="images/separate-node-layout.svg" width="500"></object>
+<img src="images/separate-node-layout.svg" width="500"/>
 ]
 ]
 .col-6[
@@ -1388,7 +1388,7 @@ object AggregateToRMU {
 
 .col-6[
 .center[
-<object type="image/svg+xml" data="images/same-node-layout.svg" width="500"></object>
+<img src="images/same-node-layout.svg" width="500"/>
 ]
 ]
 .col-6[
@@ -1562,7 +1562,7 @@ AkkaManagementとClusterBootstrapを開始した後にakka-httpサーバを起�
 ]
 .col-6[
 .center[
-<object type="image/svg+xml" data="images/cluster-image.svg" height="500"></object>
+<img src="images/cluster-image.svg" height="500"/>
 ]
 ]
 .bottom-bar[
@@ -2125,16 +2125,16 @@ $ terraform apply
 $ eksctl create cluster \
     --name ${CLUSTER_NAME} \
     --region ${AWS_REGION} \
-	  --nodes ${NODES} \
-	  --nodes-min ${NODES_MIN} \
-	  --nodes-max ${NODES_MAX} \
-	  --node-type ${INSTANCE_TYPE} \
-	  --full-ecr-access \
+	--nodes ${NODES} \
+	--nodes-min ${NODES_MIN} \
+	--nodes-max ${NODES_MAX} \
+	--node-type ${INSTANCE_TYPE} \
+	--full-ecr-access \
     --node-ami ${NODE_AMI} \
     --version ${K8S_VERSION} \
     --nodegroup-name ${NODE_GROUP_NAME} \
-	  --vpc-private-subnets=${SUBNET_PRIVATE1},${SUBNET_PRIVATE2},${SUBNET_PRIVATE3} \
-	  --vpc-public-subnets=${SUBNET_PUBLIC1},${SUBNET_PUBLIC2},${SUBNET_PUBLIC3}
+	--vpc-private-subnets=${SUBNET_PRIVATE1},${SUBNET_PRIVATE2},${SUBNET_PRIVATE3} \
+	--vpc-public-subnets=${SUBNET_PUBLIC1},${SUBNET_PUBLIC2},${SUBNET_PUBLIC3}
 ```
 
 - Initial Setup (RBAC settings, etc.)
@@ -2214,7 +2214,7 @@ curl -v -X GET "http://$API_HOST:$API_PORT/v1/threads/${THREAD_ID}?account_id=${
     - [alevkhomich/akka-tracing](https://github.com/levkhomich/akka-tracing)
 
 .bottom-bar[
-関連する論点
+運用に関連する論点
 ]
 ---
 
