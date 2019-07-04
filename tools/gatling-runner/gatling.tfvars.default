@@ -1,8 +1,0 @@
-aws_region = "xxx"
-aws_profile = "xxx"
-prefix = "xxx"
-ecs-cluster-name = "xxx"
-cidr_block = "xxx"
-S3GatlingLogBucketName = "xxx"
-GatlingWriteBaseURL = "xxx"
-GatlingReadBaseURL = "xxx"

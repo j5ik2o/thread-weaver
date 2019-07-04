@@ -114,7 +114,7 @@ tools/deploy $ ./minikube/test-management.sh
 
 ## EKS環境の構築
 
-### AWS環境の構築
+### EKS環境の構築
 
 以下で本番環境を構築する。
 
@@ -127,68 +127,39 @@ tools/terraform $ ./terraform-plan.sh
 tools/terraform $ ./terraform-apply.sh
 ```
 
-などが生成されます
-
-- VPC
-- ECR
-- DynamoDB
-- RDS(Aurora Cluster)
-
-### Auroa接続確認
+生成されると`config/`に`kubeconfig`が生成されます。KUBECONFIGを設定してください。
 
 ```sh
-$ cd eks/terraform
-# viなどでaurora_public_access を trueにする
-$ terraform plan
-$ terraform apply
-$ mysql -u thread_weaver -p -h $AURORA_ENDPOINT thread_weaver
+$ export KUBECONFIG=$(pwd)/config/kubeconfig_j5ik2o-eks-XXXXX
+$ kubectl get pod --all-namespaces                                                                                                                                                                                       ✔  5944  19:45:55
+NAMESPACE       NAME                                        READY   STATUS      RESTARTS   AGE
+kube-system     aws-node-kffbb                              1/1     Running     0          4h25m
+kube-system     aws-node-ngtpz                              1/1     Running     0          4h25m
+kube-system     aws-node-phhs7                              1/1     Running     0          4h25m
+kube-system     coredns-57df9447f5-8p9rl                    1/1     Running     0          4h28m
+kube-system     coredns-57df9447f5-vhw7x                    1/1     Running     0          4h28m
+kube-system     kube-proxy-bcnb6                            1/1     Running     0          4h25m
+kube-system     kube-proxy-nzh9h                            1/1     Running     0          4h25m
+kube-system     kube-proxy-rq4tn                            1/1     Running     0          4h25m
 ```
+
+### 初期設定
+
+```sh
+tools/deploy $ ./k8s-setup.sh
+```
+
+ネームスペース,サービスアカウント,RBAC設定,Helm(Tiller)のインストールなどが作られます。
+
 
 ### Auroraのスキーマ作成
 
-パブリックアクセス化にしたAuroraに以下のコマンドを実行する
-
 ```sh
-$ cd tools/deploy/eks
-tools/deploy/eks $ cp flyway.conf.default flyway.conf
-tools/deploy/eks $ vi flyway.conf # 編集する
-tools/deploy/eks $ ./migrate-db.sh
-```
-
-### EKSの構築
-
-```sh
-tools/terraform $ ./eksctl-create-cluster.sh
-```
-
-しばらく待つと構築が完了します。`./eksctl-get-cluster.sh`でクラスター情報を確認できます。
-
-```
-$ ./eksctl-get.sh
-NAME		VERSION	STATUS	CREATED			VPC			SUBNETS														SECURITYGROUPS
-j5ik2o-eks	1.12	ACTIVE	2019-05-24T00:52:22Z	vpc-08b6708f6ecc882a8	subnet-02dac1f21d5a615a5,subnet-043eb530606a93243,subnet-07cf3036da717fc39,subnet-0c925b21299b32e99,subnet-0d95b9b58619a28f0,subnet-0f57e4727746109ef	sg-0dd522f9e95ca4571
-```
-
-kubectlから使う場合はコンテキストを切り替えます。
-
-```
-$ kubectl config get-contexts # コンテキストの確認
-CURRENT   NAME                                             CLUSTER                               AUTHINFO                                         NAMESPACE
-*         j5ik2o@j5ik2o-eks.ap-northeast-1.eksctl.io   j5ik2o-eks.ap-northeast-1.eksctl.io   cw_junichi@j5ik2o-eks.ap-northeast-1.eksctl.io
-          docker-for-desktop                               docker-for-desktop-cluster            docker-for-desktop
-          minikube                                         minikube                              minikube
-$ kubectl config use-context j5ik2o@j5ik2o-eks.ap-northeast-1.eksctl.io # コンテキストを切り替える
-```
-
-### EKSのセットアップ
-
-以下のコマンドで、helm(tiller)のインストール, ネームスペース、サービスアカウントなどが作成されます。
-
-```sh
-$ tools/eks/helm
-tools/eks/helm $ kubectl apply -f ./rbac-config.yaml
-$ cd tools/deploy
-tools/deploy $ ./k8s-setup.sh
+$ cd tools/flyway
+tools/flyway $ make release
+tools/flyway $ cd ../../charts/thread-weaver-flyway
+charts/thread-weaver-flyway $ vi environment/prod-values.yaml # 適宜修正する
+charts/thread-weaver-flyway $ helm install . -f environments/prod-values.yaml
 ```
 
 ### Auroraパスワード用Secretを作成
@@ -196,7 +167,7 @@ tools/deploy $ ./k8s-setup.sh
 ```sh
 $ cd tools/deploy/eks
 tools/deploy/eks $ cp secret.yaml.default secret.yaml
-tools/deploy/eks $ echo -n 'xxxx' | base64 # パスワードをエンコードする
+tools/deploy/eks $ echo -n 'xxxx' | base64 # terraform構築時出力されたパスワードをエンコードする
 tools/deploy/eks $ vi secret.yaml # エンコードしたパスワードを設定する
 tools/deploy/eks $ kubectl apply -f secret.yaml
 ```
@@ -204,7 +175,7 @@ tools/deploy/eks $ kubectl apply -f secret.yaml
 ### ECRへのpush 
 
 ```sh
-$ AWS_DEFUALT_PROFILE=xxxxx sbt api-server/ecr:push
+$ AWS_DEFAULT_PROFILE=xxxxx sbt api-server/ecr:push
 ```
 
 ### アプリケーションのデプロイ

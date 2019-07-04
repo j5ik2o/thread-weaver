@@ -15,6 +15,6 @@ done
 
 pushd ../../charts
 
-helm install ./thread-weaver-api-server -f ./thread-weaver-api-server/environments/${ENV_NAME}-values.yaml --wait
+helm install ./thread-weaver-flyway -f ./thread-weaver-flyway/environments/${ENV_NAME}-values.yaml --wait
 
 popd

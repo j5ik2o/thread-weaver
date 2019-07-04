@@ -11,13 +11,15 @@ metadata:
 spec:
   completions: 1
   parallelism: 1
-  backoffLimit: 10
+  backoffLimit: 1
   template:
     spec:
       containers:
         - name: {{ template "name" . }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          command: ["migrate"]
+          workingDir: /flyway
+          command: ["/flyway/flyway"]
+          args: ["migrate"]
           volumeMounts:
             - name: {{ template "name" . }}
               mountPath: "/flyway/conf/"

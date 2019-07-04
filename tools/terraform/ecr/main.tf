@@ -1,14 +1,22 @@
-resource "aws_ecr_repository" "api-server" {
-  name = "${var.api-server-ecr-name}"
+resource "aws_ecr_repository" "this" {
+  count = "${var.enabled ? 1 : 0}"
+  name = "${var.ecr_name}"
+  lifecycle {
+    create_before_destroy = true
+  }
+  tags = {
+    Owner = "${var.owner}"
+  }
 }
 
-resource "aws_ecr_repository_policy" "api-server-policy" {
+resource "aws_ecr_repository_policy" "this" {
+  count = "${var.enabled ? 1 : 0}"
   policy = <<EOF
 {
     "Version": "2008-10-17",
     "Statement": [
         {
-            "Sid": "j5ik2o-eks",
+            "Sid": "${aws_ecr_repository.this[0].name}-policy",
             "Effect": "Allow",
             "Principal": "*",
             "Action": [
@@ -32,6 +40,6 @@ resource "aws_ecr_repository_policy" "api-server-policy" {
 }
 EOF
 
-  repository = "${aws_ecr_repository.api-server.name}"
+  repository = "${aws_ecr_repository.this[0].name}"
 }
 

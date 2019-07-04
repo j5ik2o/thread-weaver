@@ -2,4 +2,4 @@
 
 cd $(dirname $0)
 
-terraform init --var-file=eks.tfvars ./eks
+terraform init --var-file=eks.tfvars

@@ -178,14 +178,14 @@ object Settings {
 
   lazy val gatlingAggregateRunnerEcrSettings = Seq(
     region in Ecr := Region.getRegion(Regions.AP_NORTHEAST_1),
-    repositoryName in Ecr := "j5ik2o/thread-waever-gatling-aggregate-runner",
+    repositoryName in Ecr := "j5ik2o/thread-weaver-gatling-aggregate-runner",
     localDockerImage in Ecr := "j5ik2o/" + (packageName in Docker).value + ":" + (version in Docker).value,
     push in Ecr := ((push in Ecr) dependsOn (publishLocal in Docker, login in Ecr)).value
   )
 
   lazy val gatlingRunnerEcrSettings = Seq(
     region in Ecr := Region.getRegion(Regions.AP_NORTHEAST_1),
-    repositoryName in Ecr := "j5ik2o/thread-waever-gatling-runner",
+    repositoryName in Ecr := "j5ik2o/thread-weaver-gatling-runner",
     localDockerImage in Ecr := "j5ik2o/" + (packageName in Docker).value + ":" + (version in Docker).value,
     push in Ecr := ((push in Ecr) dependsOn (publishLocal in Docker, login in Ecr)).value
   )

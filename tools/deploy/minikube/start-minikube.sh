@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-DRIVER="--vmdriver virtualbox"
+DRIVER="--vm-driver virtualbox"
 
 while getopts d: OPT
 do

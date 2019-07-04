@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ template "name" . }}
+  namespace: thread-weaver
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
@@ -17,6 +18,7 @@ spec:
       labels:
         app: {{ template "name" . }}
     spec:
+      serviceAccount: thread-weaver
       containers:
       - image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{.Values.image.pullPolicy}}
@@ -52,6 +54,10 @@ spec:
             value: {{.Values.db.maxPoolSize | quote}}
           - name: THREAD_WEAVER_SLICK_MIN_IDLE_SIZE
             value: {{.Values.db.minIdleSize | quote}}
+          - name: THREAD_WEAVER_DYNAMO_JOUNAL_TABLE_NAME
+            value: {{.Values.dynamodb.journalTableName}}
+          - name: THREAD_WEAVER_DYNAMO_SNAPSHOT_TABLE_NAME
+            value: {{.Values.dynamodb.snapshotTableName}}
         ports:
         - name: remoting
           containerPort: 2551

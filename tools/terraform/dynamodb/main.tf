@@ -43,6 +43,13 @@ resource "aws_dynamodb_table" "journal-table" {
     read_capacity   = 10
     projection_type = "ALL"
   }
+  lifecycle {
+    create_before_destroy = true
+  }
+  tags = {
+    Name = "${var.prefix}-${var.journal_table_name}"
+    Owner = "${var.owner}"
+  }
 }
 
 resource "aws_dynamodb_table" "snapshot-table" {
@@ -62,6 +69,13 @@ resource "aws_dynamodb_table" "snapshot-table" {
   attribute {
     name = "sequence-nr"
     type = "N"
+  }
+  lifecycle {
+    create_before_destroy = true
+  }
+  tags = {
+    Name = "${var.prefix}-${var.snapshot_table_name}"
+    Owner = "${var.owner}"
   }
 }
 
