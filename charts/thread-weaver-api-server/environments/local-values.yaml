@@ -1,7 +1,8 @@
 # Default values for astraea-elasticmq.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
-envName: production
+envName: development
+prodEnabled: false
 configResource: local-cluster.conf
 jvmHeapMin: 1500m
 jvmHeapMax: 1500m
@@ -12,8 +13,8 @@ image:
   tag: 1.0.0-SNAPSHOT
   pullPolicy: IfNotPresent
 service:
-  name: thread-weaver-api-server
-  type: NodePort
+  name: api
+  type: LoadBalancer
   externalPort: 18080
   externalNodePort: 30080
   internalPort: 18080

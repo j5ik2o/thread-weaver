@@ -2,6 +2,7 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 envName: production
+prodEnabled: true
 configResource: production.conf
 jvmHeapMin: 1500m
 jvmHeapMax: 1500m
