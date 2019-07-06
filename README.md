@@ -83,7 +83,7 @@ $ curl -X GET "http://127.0.0.1:18080/v1/threads/01DB6VK6E7PTQQFYJ6NMMEMTEB?acco
 {"result":{"id":"01DB6VK6E7PTQQFYJ6NMMEMTEB","creatorId":"01DB5QXD4NP0XQTV92K42B3XBF","parentThreadId":null,"title":"string","remarks":"string","createdAt":10000,"updatedAt":10000},"error_messages":[]}%
 ```
 
-## Gatling
+## ローカルでのGatlingシミュレーションの動作確認
 
 ```sh
 $ sbt gatling-test/gatling-it:testOnly com.github.j5ik2o.gatling.ThreadSimulation
@@ -152,14 +152,13 @@ tools/deploy $ ./k8s-setup.sh
 ネームスペース,サービスアカウント,RBAC設定,Helm(Tiller)のインストールなどが作られます。
 
 
-### Auroraのスキーマ作成
+### Auroraのスキーマ作成(flywayの実行)
 
 ```sh
 $ cd tools/flyway
-tools/flyway $ make release
-tools/flyway $ cd ../../charts/thread-weaver-flyway
-charts/thread-weaver-flyway $ vi environment/prod-values.yaml # 適宜修正する
-charts/thread-weaver-flyway $ helm install . -f environments/prod-values.yaml
+tools/flyway $ make release # docker build & push
+tools/flyway $ cd ../deploy
+tools/deploy $ ./deploy-flyway.sh -e prod
 ```
 
 ### Auroraパスワード用Secretを作成
@@ -175,7 +174,7 @@ tools/deploy/eks $ kubectl apply -f secret.yaml
 ### ECRへのpush 
 
 ```sh
-$ AWS_DEFAULT_PROFILE=xxxxx sbt api-server/ecr:push
+$ AWS_DEFAULT_PROFILE=xxxxx sbt api-server/ecr:push # docker build & push
 ```
 
 ### アプリケーションのデプロイ
@@ -192,3 +191,14 @@ $ cd tools/deploy
 tools/deploy $ ./eks/test-application.sh
 tools/deploy $ ./eks/test-management.sh
 ```
+
+### 負荷試験の実行
+
+```sh
+$ AWS_DEFAULT_PROFILE=xxxxx sbt gatling-runner/ecr:push # docker build & push
+$ AWS_DEFAULT_PROFILE=xxxxx sbt gatling-aggregate-runner/ecr:push # docker build & push
+$ cd tools/gatling-s3-reporter
+tools/gatling-s3-reporter $ make release # docker build & push
+```
+
+

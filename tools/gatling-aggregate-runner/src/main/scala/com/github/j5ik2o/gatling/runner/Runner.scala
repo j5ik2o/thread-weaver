@@ -2,30 +2,32 @@ package com.github.j5ik2o.gatling.runner
 
 import java.text.SimpleDateFormat
 import java.util.Date
-import com.github.j5ik2o.reactive.aws.ecs.implicits._
+
 import com.github.j5ik2o.reactive.aws.ecs.EcsAsyncClient
+import com.github.j5ik2o.reactive.aws.ecs.implicits._
 import com.typesafe.config.{ Config, ConfigFactory }
 import net.ceedubs.ficus.Ficus._
 import org.slf4j.LoggerFactory
-import software.amazon.awssdk.auth.credentials.{ AwsBasicCredentials, StaticCredentialsProvider }
 import software.amazon.awssdk.services.ecs.model._
 import software.amazon.awssdk.services.ecs.{ EcsAsyncClient => JavaEcsAsyncClient }
 
 import scala.collection.JavaConverters._
+import scala.compat.java8.OptionConverters._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ Await, ExecutionContext, Future }
-import scala.compat.java8.OptionConverters._
 
 object Runner extends App {
 
-  def runTask(runTaskEcsClient: EcsAsyncClient,
-              runTaskEcsClusterName: String,
-              runTaskTaskDefinition: String,
-              runTaskCount: Int,
-              runTaskSubnets: Seq[String],
-              runTaskAssignPublicIp: AssignPublicIp,
-              runTaskContainerOverrideName: String,
-              runTaskEnvironments: Map[String, String])(implicit ec: ExecutionContext): Future[Seq[Task]] = {
+  def runTask(
+      runTaskEcsClient: EcsAsyncClient,
+      runTaskEcsClusterName: String,
+      runTaskTaskDefinition: String,
+      runTaskCount: Int,
+      runTaskSubnets: Seq[String],
+      runTaskAssignPublicIp: AssignPublicIp,
+      runTaskContainerOverrideName: String,
+      runTaskEnvironments: Map[String, String]
+  )(implicit ec: ExecutionContext): Future[Seq[Task]] = {
     val runTaskRequest = RunTaskRequest
       .builder()
       .cluster(runTaskEcsClusterName)
@@ -85,82 +87,87 @@ object Runner extends App {
   logger.info(s"executionIdPath = $executionIdPath")
 
   val runTaskEnvironments = config.as[Map[String, String]]("gatling.environments") ++ Map(
-    "TW_GATLING_EXECUTION_ID" -> executionIdPath
-  )
+      "TW_GATLING_EXECUTION_ID" -> executionIdPath
+    )
+
+  val runTaskReporterTaskDefinition        = config.as[String]("gatling.reporter.task-definition")
+  val runTaskReporterContainerOverrideName = config.as[String]("gatling.reporter.container-override-name")
+
+  val runTaskReporterEnvironments = config.as[Map[String, String]]("gatling.reporter.environments") ++ Map(
+      "TW_GATLING_RESULT_DIR_PATH" -> executionIdPath
+    )
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  val future = runTask(client,
-                       runTaskEcsClusterName,
-                       runTaskTaskDefinition,
-                       runTaskCount,
-                       runTaskSubnets,
-                       runTaskAssignPublicIp,
-                       runTaskContainerOverrideName,
-                       runTaskEnvironments).flatMap { tasks =>
-    val taskArns = tasks.map(_.taskArn())
-
-    //scalastyle:off
-    def loop(): Future[Unit] = {
-      client
-        .describeTasks(
-          DescribeTasksRequest
-            .builder().cluster(runTaskEcsClusterName).include(TaskField.knownValues()).tasksAsScala(taskArns).build()
-        ).flatMap { res =>
-          val list  = res.getValueForField("tasks", classOf[java.util.List[Task]])
-          val tasks = list.asScala.flatMap(_.asScala.toList)
-          if (tasks.exists(_.forall(_.lastStatus() == "STOPPED"))) {
-            logger.info("Gatling completed")
-            Thread.sleep(1000)
-            val runTaskReporterTaskDefinition        = config.as[String]("gatling.reporter.task-definition")
-            val runTaskReporterContainerOverrideName = config.as[String]("gatling.reporter.container-override-name")
-            val runTaskReporterEnvironments = config.as[Map[String, String]]("gatling.reporter.environments") ++ Map(
-              "TW_GATLING_RESULT_DIR_PATH" -> executionIdPath
-            )
-            runTask(
-              client,
-              runTaskEcsClusterName,
-              runTaskReporterTaskDefinition,
-              1,
-              runTaskSubnets,
-              runTaskAssignPublicIp,
-              runTaskReporterContainerOverrideName,
-              runTaskReporterEnvironments
-            ).flatMap { reporterTasks =>
-              val reporterTaskArns = reporterTasks.map(_.taskArn())
-              def subLoop(): Future[Unit] = {
-                client
-                  .describeTasks(
-                    DescribeTasksRequest
-                      .builder().cluster(runTaskEcsClusterName).include(TaskField.knownValues()).tasksAsScala(
-                        reporterTaskArns
-                      ).build()
-                  ).flatMap { res =>
-                    val list          = res.getValueForField("tasks", classOf[java.util.List[Task]])
-                    val reporterTasks = list.asScala.flatMap(_.asScala.toList)
-                    if (reporterTasks.exists(_.forall(_.lastStatus() == "STOPPED"))) {
-                      logger.info("Gatling Reporter completed")
-                      logger.info(
-                        s"report url: https://thread-weaver-gatling-logs.s3.amazonaws.com/$executionIdPath/index.html"
-                      )
-                      Future.successful(())
-                    } else {
-                      logger.info("---")
-                      Thread.sleep(1000)
-                      subLoop()
-                    }
-                  }
-              }
-              subLoop()
-            }
-          } else {
-            logger.info("---")
-            Thread.sleep(1000)
-            loop()
-          }
+  def gatlingS3ReporterLoop(reporterTaskArns: Seq[String]): Future[Unit] = {
+    client
+      .describeTasks(
+        DescribeTasksRequest
+          .builder().cluster(runTaskEcsClusterName).include(TaskField.knownValues()).tasksAsScala(
+            reporterTaskArns
+          ).build()
+      ).flatMap { res =>
+        val list          = res.getValueForField("tasks", classOf[java.util.List[Task]])
+        val reporterTasks = list.asScala.flatMap(_.asScala.toList)
+        if (reporterTasks.exists(_.forall(_.lastStatus() == "STOPPED"))) {
+          logger.info("Gatling Reporter completed")
+          val bucketName = runTaskEnvironments("TW_GATLING_S3_BUCKET_NAME")
+          logger.info(
+            s"report url: https://$bucketName.s3.amazonaws.com/$executionIdPath/index.html"
+          )
+          Future.successful(())
+        } else {
+          logger.info("---")
+          Thread.sleep(1000)
+          gatlingS3ReporterLoop(reporterTaskArns)
         }
-    }
-    loop()
+      }
+  }
+
+  def gatlingTaskLoop(taskArns: Seq[String]): Future[Unit] = {
+    client
+      .describeTasks(
+        DescribeTasksRequest
+          .builder().cluster(runTaskEcsClusterName).include(TaskField.knownValues()).tasksAsScala(taskArns).build()
+      ).flatMap { res =>
+        val list  = res.getValueForField("tasks", classOf[java.util.List[Task]])
+        val tasks = list.asScala.flatMap(_.asScala.toList)
+        if (tasks.exists(_.forall(_.lastStatus() == "STOPPED"))) {
+          logger.info("Gatling completed")
+          Thread.sleep(1000)
+          runTask(
+            client,
+            runTaskEcsClusterName,
+            runTaskReporterTaskDefinition,
+            1,
+            runTaskSubnets,
+            runTaskAssignPublicIp,
+            runTaskReporterContainerOverrideName,
+            runTaskReporterEnvironments
+          ).flatMap { reporterTasks =>
+            val reporterTaskArns = reporterTasks.map(_.taskArn())
+            gatlingS3ReporterLoop(reporterTaskArns)
+          }
+        } else {
+          logger.info("---")
+          Thread.sleep(1000)
+          gatlingTaskLoop(taskArns)
+        }
+      }
+  }
+
+  val future = runTask(
+    client,
+    runTaskEcsClusterName,
+    runTaskTaskDefinition,
+    runTaskCount,
+    runTaskSubnets,
+    runTaskAssignPublicIp,
+    runTaskContainerOverrideName,
+    runTaskEnvironments
+  ).flatMap { tasks =>
+    val taskArns = tasks.map(_.taskArn())
+    gatlingTaskLoop(taskArns)
   }
   Await.result(future, Duration.Inf)
 }
