@@ -13,6 +13,8 @@ export $(shell sed 's/=.*//' $(dpl))
 # grep the version from the mix file
 VERSION=$(shell ./version.sh)
 
+ACCOUNT_ID=$(shell aws sts get-caller-identity --profile $(AWS_CLI_PROFILE) | jq -r '.Account')
+DOCKER_REPO=$(ACCOUNT_ID).dkr.ecr.ap-northeast-1.amazonaws.com
 
 # HELP
 # This will output the help for each task
