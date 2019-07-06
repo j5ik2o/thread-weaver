@@ -415,7 +415,7 @@ lazy val `gatling-aggregate-runner` = (project in file("tools/gatling-aggregate-
   .enablePlugins(JavaAppPackaging, EcrPlugin)
   .settings(gatlingCommonSettings)
   .settings(gatlingAggregateRunnerEcrSettings)
-  .settings(gatlingRunTaskSettings)
+  .settings(gatlingAggregateRunTaskSettings)
   .settings(
     name := "thread-weaver-gatling-aggregate-runner",
     mainClass in (Compile, bashScriptDefines) := Some("com.github.j5ik2o.gatling.runner.Runner"),

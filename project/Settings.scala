@@ -219,7 +219,7 @@ object Settings {
   val runTaskEnvironments          = taskKey[Map[String, String]]("run-task-environments")
   val runTaskContainerOverrideName = settingKey[String]("run-task-container-override-name")
 
-  val gatlingRunTaskSettings = Seq(
+  val gatlingAggregateRunTaskSettings = Seq(
     runTaskEcsClient in gatling := {
       val underlying = JavaEcsAsyncClient
         .builder()
