@@ -32,7 +32,7 @@ CQRS+ESを採用。実装には以下のakkaのツールキットを利用して
 
 ```sh
 $ brew update 
-$ brew install kubernetes-cli kubernetes-helm
+$ brew install kubernetes-cli kubernetes-helm gettext
 $ brew cask install docker minikube virtualbox
 ```
 
