@@ -36,6 +36,14 @@ object Main extends App {
 
   val config: Config = ConfigFactory.load()
 
+  val journalTableName     = config.getString("dynamo-db-journal.table-name")
+  val snapshotTableName    = config.getString("dynamo-db-snapshot.table-name")
+  val readJournalTableName = config.getString("dynamo-db-read-journal.table-name")
+
+  logger.info(s"journalTableName = $journalTableName")
+  logger.info(s"snapshotTableName = $snapshotTableName")
+  logger.info(s"readJournalTableName = $readJournalTableName")
+
   implicit val system: ActorSystem                        = ActorSystem("thread-weaver-api-server", config)
   implicit val materializer: ActorMaterializer            = ActorMaterializer()
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
@@ -74,7 +82,7 @@ object Main extends App {
   session.start
 
   val routes = session
-      .build[Routes].root ~ readinessProbe(akkaHealthCheck).toRoute ~ livenessProbe(akkaHealthCheck).toRoute
+    .build[Routes].root ~ readinessProbe(akkaHealthCheck).toRoute ~ livenessProbe(akkaHealthCheck).toRoute
 
   val bindingFuture = Http().bindAndHandle(routes, host, port).map { serverBinding =>
     system.log.info(s"Server online at ${serverBinding.localAddress}")
