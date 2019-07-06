@@ -13,11 +13,17 @@ image:
   tag: 1.0.0-SNAPSHOT
   pullPolicy: IfNotPresent
 service:
-  name: api
-  type: LoadBalancer
-  externalPort: 18080
-  externalNodePort: 30080
-  internalPort: 18080
+  type: NodePort
+  api:
+    name: api
+    externalPort: 18080
+    externalNodePort: 30080
+    internalPort: 18080
+  management:
+    name: management
+    externalPort: 18558
+    externalNodePort: 30081
+    internalPort: 18558
 resources:
   requests:
     cpu: 2
@@ -30,3 +36,7 @@ db:
   user: tw
   maxPoolSize: 32
   minIdleSize: 32
+dynamodb:
+  journalTableName: Journal
+  snapshotTableName: Snapshot
+  readJournalTableName : Journal

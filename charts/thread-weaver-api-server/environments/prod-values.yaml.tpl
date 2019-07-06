@@ -13,11 +13,15 @@ image:
   tag: latest
   pullPolicy: Always
 service:
-  name: api
   type: LoadBalancer
-  externalPort: 18080
-  externalNodePort: 30080
-  internalPort: 18080
+  api:
+    name: api
+    externalPort: 18080
+    internalPort: 18080
+  management:
+    name: management
+    externalPort: 18558
+    internalPort: 18558
 resources:
   requests:
     cpu: 2
@@ -30,3 +34,7 @@ db:
   user: root
   maxPoolSize: 10
   minIdleSize: 10
+dynamodb:
+  journalTableName: thread_weaver_journal
+  snapshotTableName: thread_weaver_snapshot
+  readJournalTableName : thread_weaver_journal

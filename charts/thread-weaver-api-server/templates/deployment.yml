@@ -55,14 +55,16 @@ spec:
           - name: THREAD_WEAVER_SLICK_MIN_IDLE_SIZE
             value: {{.Values.db.minIdleSize | quote}}
           - name: THREAD_WEAVER_DYNAMO_JOUNAL_TABLE_NAME
-            value: {{.Values.dynamodb.journalTableName}}
+            value: {{.Values.dynamodb.journalTableName | quote}}
           - name: THREAD_WEAVER_DYNAMO_SNAPSHOT_TABLE_NAME
-            value: {{.Values.dynamodb.snapshotTableName}}
+            value: {{.Values.dynamodb.snapshotTableName | quote}}
+          - name: THREAD_WEAVER_DYNAMO_READ_JOUNAL_TABLE_NAME
+            value: {{.Values.dynamodb.readJournalTableName | quote}}
         ports:
         - name: remoting
           containerPort: 2551
-        - name: {{ .Values.service.name }}
-          containerPort: {{ .Values.service.internalPort }}
+        - name: {{ .Values.service.api.name }}
+          containerPort: {{ .Values.service.api.internalPort }}
         - name: management
           containerPort: 8558
 {{- if .Values.prodEnabled }}

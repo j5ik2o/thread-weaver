@@ -15,12 +15,17 @@ spec:
     app: {{ template "name" . }}
   type: {{ .Values.service.type }}
   ports:
-    - protocol: TCP
-      name: api
-      port: 8080
+    - name: api
+      protocol: TCP
+      port: {{ .Values.service.api.externalPort }}
       targetPort: api
-    - protocol: TCP
-      name: management
-      port: 8558
+{{ if (and (eq .Values.service.type "NodePort") (not (empty .Values.service.api.externalNodePort))) }}
+      nodePort: {{ .Values.service.api.externalNodePort }}
+{{ end }}
+    - name: management
+      protocol: TCP
+      port: {{ .Values.service.management.externalPort }}
       targetPort: management
-
+{{ if (and (eq .Values.service.type "NodePort") (not (empty .Values.service.management.externalNodePort))) }}
+      nodePort: {{ .Values.service.management.externalNodePort }}
+{{ end }}
