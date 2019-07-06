@@ -218,6 +218,20 @@ tools/deploy $ ./eks/test-management.sh
 
 ### 負荷試験
 
+####  概要
+
+ECS(Fargate)上にGatlingコンテナを起動してS3にレポートを出力します。
+
+#### Dockerイメージ
+
+- gatling-runner
+    - Gatlingシナリオを実行するコンテナ(複数起動される場合があります)。実行後にS3にログを出力します
+- gatling-s3-reporter
+    - gatling-runnerが出力したログからレポートを出力します
+- gatling-aggregate-runner
+    - 上記のコンテナを使った一連のタスクを実行するコンテナ。具体的には複数のgatling-runnerの実行→レポート出力までのワークフローを制御します。
+
+
 #### Dockerイメージの準備
 
 ```sh
