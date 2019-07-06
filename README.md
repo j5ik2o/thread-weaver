@@ -114,20 +114,44 @@ tools/deploy $ ./minikube/test-management.sh
 
 ## EKS環境の構築
 
+### IAM Userの作成とアクセスキーの発行
+
+AWS CONSOLEなどからIAM Userを作成しアクセスキーを発行してください。
+アクセス権は面倒なのでAdministratorにしています。
+
+### `~/.aws/credentails`にプロファイルを追加する。
+
+プロファイル名は`thread-weaver`にしてください。
+
+```bash
+$ vi ~/.aws/credentials
+```
+
+```
+[thread-weaver]
+aws_access_key_id = XXXXX
+aws_secret_access_key = XXXXX
+region = ap-northeast-1
+```
+
 ### EKS環境の構築
 
 以下で本番環境を構築する。
+`tfstate`ファイルはS3で管理します。`eks-terraform-env.sh`の`TF_BUCKET_NAME`のバケットを事前に作成してください。
 
 ```sh
 $ cd tools/terraform
+tools/terraform $ cp eks-terraform-env.sh.default eks-terraform-env.sh
+tools/terraform $ vi eks-terraform-env.sh # 編集する。TF_BUCKET_NAMEはユニークなものが必要です。
 tools/terraform $ cp eks.tfvars.default eks.tfvars
 tools/terraform $ vi eks.tfvars # 編集する
-tools/terraform $ ./terraform-init.sh
-tools/terraform $ ./terraform-plan.sh
-tools/terraform $ ./terraform-apply.sh
+tools/terraform $ ./eks-terraform-init.sh
+tools/terraform $ ./eks-terraform-plan.sh
+tools/terraform $ ./eks-terraform-apply.sh
 ```
 
 生成されると`config/`に`kubeconfig`が生成されます。KUBECONFIGを設定してください。
+`KUBECONFIG`にパスを指定して、pod一覧が取得できるか確認してみてください。
 
 ```sh
 $ export KUBECONFIG=$(pwd)/config/kubeconfig_j5ik2o-eks-XXXXX
@@ -174,7 +198,7 @@ tools/deploy/eks $ kubectl apply -f secret.yaml
 ### ECRへのpush 
 
 ```sh
-$ AWS_DEFAULT_PROFILE=xxxxx sbt api-server/ecr:push # docker build & push
+$ AWS_DEFAULT_PROFILE=thread-weaver sbt api-server/ecr:push # docker build & push
 ```
 
 ### アプリケーションのデプロイ
@@ -187,18 +211,36 @@ tools/deploy $ ./deploy-app.sh -e prod
 ### アプリケーションの動作確認
 
 ```sh
+# charts/thread-weaver-api-server/environments/*-values.yamlのECRのURLは修正してください
+# charts/thread-weaver-flyway/environments/*-values.yamlのECRのURLは修正してください
+
 $ cd tools/deploy
 tools/deploy $ ./eks/test-application.sh
 tools/deploy $ ./eks/test-management.sh
 ```
 
-### 負荷試験の実行
+### 負荷試験
+
+#### Dockerイメージの準備
 
 ```sh
-$ AWS_DEFAULT_PROFILE=xxxxx sbt gatling-runner/ecr:push # docker build & push
-$ AWS_DEFAULT_PROFILE=xxxxx sbt gatling-aggregate-runner/ecr:push # docker build & push
+# Gatling RunnerイメージのBuild & Push
+$ AWS_DEFAULT_PROFILE=thread-weaver sbt gatling-runner/ecr:push # docker build & push
+# Gatling Aggregate RunnerイメージのBuild & Push
+$ AWS_DEFAULT_PROFILE=thread-weaver sbt gatling-aggregate-runner/ecr:push # docker build & push
+# Gatling ReporterイメージのBuild & Push
 $ cd tools/gatling-s3-reporter
 tools/gatling-s3-reporter $ make release # docker build & push
+```
+
+#### Gatlingの実行
+
+```sh
+# Gatling Aggregate Runnerの設定調整
+$ vi project/Settings.scala # gatlingAggregateRunTaskSettings の設定を調整
+# Gatling Aggregate Runnerの実行
+$ cd ../../
+$ AWS_PROFILE=thread-weaver sbt gatling-aggregate-runner/gatling::runTask
 ```
 
 
