@@ -23,7 +23,7 @@ BASE_DIR=./thread-weaver-api-server
 if [[ "${ENV_NAME}" = "prod" ]]; then
 if [[ -z "${AWS_PROFILE}" ]]; then
     echo "please set AWS_PROFILE"
-    exit -1
+    exit 2
 fi
 ACCOUNT_ID=$(aws sts get-caller-identity --profile ${AWS_PROFILE} | jq -r '.Account') \
     envsubst < ${BASE_DIR}/environments/${ENV_NAME}-values.yaml.tpl > ${BASE_DIR}/environments/${ENV_NAME}-values.yaml
