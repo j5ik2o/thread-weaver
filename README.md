@@ -1,5 +1,7 @@
 
-# (WIP) Thread Weaver
+# Thread Weaver
+
+このプロジェクトはAWS EKS上で動作するイベントソーシングシステムです。
 
 ## ドメイン
 
@@ -99,12 +101,11 @@ $ cd tools/deploy
 tools/deploy $ ./minikube/start-minikube.sh
 tools/deploy $ ./k8s-setup.sh
 # tillerが有効になるまで待つ
-tools/deploy $ ./minikube/deploy-local-db.sh
-# mysql, dynamodbのpodが立ち上がるまで待つ
+tools/deploy $ ./minikube/deploy-local-db.sh -e local
 tools/deploy $ ./minikube/migrate-local-db.sh
-tools/deploy $ kubectl apply -f ./minikube/secret.yaml
+tools/deploy $ kubectl apply -f ./minikube/secrets.yaml
 tools/deploy $ ./minikube/build-image.sh
-tools/deploy $ ./deploy-app.sh
+tools/deploy $ ./deploy-app.sh -e local
 ```
 
 ```sh

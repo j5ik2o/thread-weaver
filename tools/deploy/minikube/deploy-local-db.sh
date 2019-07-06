@@ -16,7 +16,7 @@ done
 
 pushd ../../../charts
 
-helm install ./mysql --namespace thread-weaver -f ./mysql/environments/${ENV_NAME}-values.yaml
-helm install ./dynamodb --namespace thread-weaver -f ./dynamodb/environments/${ENV_NAME}-values.yaml
+helm install ./mysql --namespace thread-weaver -f ./mysql/environments/${ENV_NAME}-values.yaml --wait
+helm install ./dynamodb --namespace thread-weaver -f ./dynamodb/environments/${ENV_NAME}-values.yaml --wait
 
 popd

@@ -23,6 +23,6 @@ ACCOUNT_ID=$(aws sts get-caller-identity --profile ${AWS_PROFILE} | jq -r '.Acco
     echo "generated ${BASE_DIR}/environments/${ENV_NAME}-values.yaml"
 fi
 
-helm install ${BASE_DIR} -f $BASE_DIR/environments/${ENV_NAME}-values.yaml --wait
+helm install ${BASE_DIR} -f ${BASE_DIR}/environments/${ENV_NAME}-values.yaml --namespace thread-weaver
 
 popd
