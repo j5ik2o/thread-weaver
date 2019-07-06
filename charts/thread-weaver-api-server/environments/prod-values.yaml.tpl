@@ -8,7 +8,7 @@ jvmHeapMax: 1500m
 jvmMetaMax: 500m
 replicaCount: 3
 image:
-  repository: 738575627980.dkr.ecr.ap-northeast-1.amazonaws.com/j5ik2o/thread-weaver-api-server
+  repository: ${ACCOUNT_ID}.dkr.ecr.ap-northeast-1.amazonaws.com/j5ik2o/thread-weaver-api-server
   tag: latest
   pullPolicy: Always
 service:

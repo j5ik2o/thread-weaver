@@ -182,7 +182,7 @@ tools/deploy $ ./k8s-setup.sh
 $ cd tools/flyway
 tools/flyway $ make release # docker build & push
 tools/flyway $ cd ../deploy
-tools/deploy $ ./deploy-flyway.sh -e prod
+tools/deploy $ AWS_PROFILE=thread-weaver ./deploy-flyway.sh -e prod
 ```
 
 ### Auroraパスワード用Secretを作成
@@ -205,15 +205,12 @@ $ AWS_DEFAULT_PROFILE=thread-weaver sbt api-server/ecr:push # docker build & pus
 
 ```sh
 $ cd tools/deploy
-tools/deploy $ ./deploy-app.sh -e prod
+tools/deploy $ AWS_PROFILE=thread-weaver ./deploy-app.sh -e prod
 ```
 
 ### アプリケーションの動作確認
 
 ```sh
-# charts/thread-weaver-api-server/environments/*-values.yamlのECRのURLは修正してください
-# charts/thread-weaver-flyway/environments/*-values.yamlのECRのURLは修正してください
-
 $ cd tools/deploy
 tools/deploy $ ./eks/test-application.sh
 tools/deploy $ ./eks/test-management.sh

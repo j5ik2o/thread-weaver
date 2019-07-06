@@ -15,6 +15,14 @@ done
 
 pushd ../../charts
 
-helm install ./thread-weaver-api-server -f ./thread-weaver-api-server/environments/${ENV_NAME}-values.yaml --wait
+BASE_DIR=./thread-weaver-api-server
+
+if [[ "${ENV_NAME}" = "prod" ]]; then
+ACCOUNT_ID=$(aws sts get-caller-identity --profile ${AWS_PROFILE} | jq -r '.Account') \
+    envsubst < ${BASE_DIR}/environments/${ENV_NAME}-values.yaml.tpl > ${BASE_DIR}/environments/${ENV_NAME}-values.yaml
+    echo "generated ${BASE_DIR}/environments/${ENV_NAME}-values.yaml"
+fi
+
+helm install ${BASE_DIR} -f $BASE_DIR/environments/${ENV_NAME}-values.yaml --wait
 
 popd
