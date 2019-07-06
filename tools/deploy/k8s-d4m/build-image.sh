@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
+set -eu
+
 cd $(dirname $0)
-eval $(minikube docker-env)
+
 pushd ../../../
 sbt api-server/docker:publishLocal
 popd

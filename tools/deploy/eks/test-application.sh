@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 
+set -eu
+
 cd $(dirname $0)
 
 API_HOST=$(kubectl get svc thread-weaver-api-server -n thread-weaver -ojsonpath="{.status.loadBalancer.ingress[0].hostname}")
 API_PORT=$(kubectl get svc thread-weaver-api-server -n thread-weaver -ojsonpath="{.spec.ports[?(@.name==\"api\")].port}")
+
+echo "API_HOST=${API_HOST}"
+echo "API_PORT=${API_PORT}"
 
 ACCOUNT_ID=01DB5QXD4NP0XQTV92K42B3XBF
 ADMINISTRATOR_ID=01DB5QXD4NP0XQTV92K42B3XBF

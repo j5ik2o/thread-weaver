@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 
-API_HOST=$(minikube ip)
-API_PORT=$(kubectl get svc thread-weaver-api-server -n thread-weaver -ojsonpath="{.spec.ports[?(@.name==\"api\")].port}")
+set -eu
+
+API_HOST=localhost
+API_PORT=$(kubectl get svc thread-weaver-api-server -n thread-weaver -ojsonpath="{.spec.ports[?(@.name==\"api\")].nodePort}")
+
+echo "API_HOST=${API_HOST}"
+echo "API_PORT=${API_PORT}"
 
 ACCOUNT_ID=01DB5QXD4NP0XQTV92K42B3XBF
 ADMINISTRATOR_ID=01DB5QXD4NP0XQTV92K42B3XBF

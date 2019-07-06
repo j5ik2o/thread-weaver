@@ -1,6 +1,9 @@
 #!/bin/sh
 
+set -eu
+
 cd $(dirname $0)
+
 if [[ $# == 0 ]]; then
   echo "Parameters are empty."
   exit 1
@@ -18,6 +21,10 @@ pushd ../../charts
 BASE_DIR=./thread-weaver-flyway
 
 if [[ "${ENV_NAME}" = "prod" ]]; then
+if [[ -z "${AWS_PROFILE}" ]]; then
+    echo "please set AWS_PROFILE"
+    exit -1
+fi
 ACCOUNT_ID=$(aws sts get-caller-identity --profile ${AWS_PROFILE} | jq -r '.Account') \
     envsubst < ${BASE_DIR}/environments/${ENV_NAME}-values.yml.tpl > ${BASE_DIR}/environments/${ENV_NAME}-values.yml
     echo "generated ${BASE_DIR}/environments/${ENV_NAME}-values.yaml"
