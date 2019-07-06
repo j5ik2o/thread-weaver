@@ -92,25 +92,23 @@ $ sbt gatling-test/gatling-it:testOnly com.github.j5ik2o.gatling.ThreadSimulatio
 ```
 
 
-## minikubeでの動作確認
+## Kubernetes on Docker for Mac (WIP)
 
-minikubeにデプロイします。
+Docker for MacのKubernetes機能を有効にして、コンテキストを切り替えてください。
 
 ```sh
 $ cd tools/deploy
-tools/deploy $ ./minikube/start-minikube.sh
 tools/deploy $ ./k8s-setup.sh
-# tillerが有効になるまで待つ
-tools/deploy $ ./minikube/deploy-local-db.sh -e local
-tools/deploy $ ./minikube/migrate-local-db.sh
-tools/deploy $ kubectl apply -f ./minikube/secrets.yaml
-tools/deploy $ ./minikube/build-image.sh
+tools/deploy $ ./k8s-d4m/deploy-local-db.sh -e local
+tools/deploy $ ./k8s-d4m/migrate-local-db.sh
+tools/deploy $ kubectl apply -f ./k8s-d4m/secrets.yaml
+tools/deploy $ ./k8s-d4m/build-image.sh
 tools/deploy $ ./deploy-app.sh -e local
 ```
 
 ```sh
-tools/deploy $ ./minikube/test-application.sh
-tools/deploy $ ./minikube/test-management.sh
+tools/deploy $ ./k8s-d4m/test-application.sh
+tools/deploy $ ./k8s-d4m/test-management.sh
 ```
 
 ## EKS環境の構築
