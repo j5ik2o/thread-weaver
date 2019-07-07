@@ -1,7 +1,27 @@
 
 # Thread Weaver
 
-このプロジェクトはAWS EKS上で動作する CQRS+Event Sourcing システムです(ローカルではDocker for MacのKubernetes上で動作確認できます)
+このプロジェクトはAWS EKS上で動作する CQRS + Event Sourcing システムです
+
+## 概要
+
+- インフラ環境
+    - 本番環境はAWS EKS
+    - ローカル環境はDocker for MacのKubernetes
+    - 書き込み用DBはDynamoDB
+    - 読み込み用DBはAurora(MySQL)
+- アプリケーション
+    - DDD(ドメイン駆動設計)がベース
+    - CQRS + Event Sourcingを採用
+    - ツールキットにはakkaを採用
+        - akka-actor
+        - akka-persistence
+        - akka-cluster
+        - akka-cluster-sharding
+        - akka-cluster-tools
+- 負荷試験
+    - アプリケーションに対して、Gatlingコンテナ(複数可)を使って負荷試験を実行できます
+    - 実行したGatlingを集約して、S3静的サイトとしてレポート出力できます
 
 ## ドメイン
 
@@ -15,18 +35,6 @@
     - 当該Threadの管理者
 - Member
     - 当該Threadの利用者
-
-## アーキテクチャ
-
-CQRS+ESを採用。実装には以下のakkaのツールキットを利用しています。
-
-- akka-actor
-- akka-persistence
-- akka-cluster
-- akka-cluster-sharding
-- akka-cluster-tools
-
-関連するakka-typedモジュールも含まれます。
 
 ## セットアップ
 
@@ -45,7 +53,6 @@ $ brew install hyperkit
 $ curl -LO https://storage.googleapis.com/minikube/releases/latest/docker-machine-driver-hyperkit \
 && sudo install -o root -g wheel -m 4755 docker-machine-driver-hyperkit /usr/local/bin/
 ```
-　
 
 ## ローカルでの動作確認
 
