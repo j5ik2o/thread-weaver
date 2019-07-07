@@ -92,7 +92,7 @@ $ sbt gatling-test/gatling-it:testOnly com.github.j5ik2o.gatling.ThreadSimulatio
 ```
 
 
-## Kubernetes on Docker for Mac (WIP)
+## Kubernetes on Docker for Mac
 
 Docker for MacのKubernetes機能を有効にして、コンテキストを切り替えてください。
 
