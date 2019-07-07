@@ -1,7 +1,7 @@
 
 # Thread Weaver
 
-このプロジェクトはAWS EKS上で動作するイベントソーシングシステムです。
+このプロジェクトはAWS EKS上で動作する CQRS+Event Sourcing システムです(ローカルではDocker for MacのKubernetes上で動作確認できます)
 
 ## ドメイン
 
