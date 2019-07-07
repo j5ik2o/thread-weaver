@@ -17,6 +17,7 @@ spec:
       containers:
         - name: {{ template "name" . }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           workingDir: /flyway
           command: ["/flyway/flyway"]
           args: ["migrate"]
