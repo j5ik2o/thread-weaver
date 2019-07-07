@@ -106,6 +106,8 @@ tools/deploy $ ./k8s-d4m/build-image.sh
 tools/deploy $ ./deploy-app.sh -e local
 ```
 
+以下のコマンドで動作確認できます。
+
 ```sh
 tools/deploy $ ./k8s-d4m/test-application.sh
 tools/deploy $ ./k8s-d4m/test-management.sh
