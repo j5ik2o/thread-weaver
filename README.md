@@ -91,7 +91,7 @@ $ sbt gatling-test/gatling-it:testOnly com.github.j5ik2o.gatling.ThreadSimulatio
 ```
 
 
-## Kubernetes on Docker for Mac
+## ローカルでの動作確認: Kubernetes on Docker for Mac
 
 Docker for MacのKubernetes機能を有効にして、コンテキストを切り替えてください。
 
@@ -112,7 +112,7 @@ tools/deploy $ ./k8s-d4m/test-application.sh
 tools/deploy $ ./k8s-d4m/test-management.sh
 ```
 
-## EKS環境の構築
+## 本番環境(EKS)の構築
 
 ### IAM Userの作成とアクセスキーの発行
 
@@ -182,7 +182,10 @@ tools/deploy $ ./k8s-setup.sh
 $ cd tools/flyway
 tools/flyway $ make release # docker build & push
 tools/flyway $ cd ../deploy
-tools/deploy $ AWS_PROFILE=thread-weaver ./deploy-flyway.sh -e prod
+tools/deploy $ AWS_PROFILE=thread-weaver \
+  FLYWAY_HOST=terraformで生成されたAuroraのホスト名 FLYWAY_PORT=3306 \
+  FLYWAY_DB=thread_waver FLYWAY_USER=root FLYWAY_PASSWORD=xxxx \
+  ./deploy-flyway.sh -e prod
 ```
 
 ### Auroraパスワード用Secretを作成

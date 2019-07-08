@@ -5,6 +5,6 @@ image:
 secrets:
   flyway: |
     flyway.driver=com.mysql.jdbc.Driver
-    flyway.url=jdbc:mysql://j5ik2o-rds-cluster-aurora.cluster-ctywrcabnmgr.ap-northeast-1.rds.amazonaws.com:3306/thread_weaver?useSSL=false
-    flyway.user=root
-    flyway.password=3vcpZiQ8SkpKKg
+    flyway.url=jdbc:mysql://${FLYWAY_HOST}:${FLYWAY_PORT}/${FLYWAY_DB}?useSSL=false
+    flyway.user=${FLYWAY_USER}
+    flyway.password=${FLYWAY_PASSWORD}
