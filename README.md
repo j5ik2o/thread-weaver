@@ -263,6 +263,7 @@ $ vi project/Settings.scala # gatlingAggregateRunTaskSettings の設定を調整
 # Gatling Aggregate Runnerの実行
 $ cd ../../
 $ AWS_PROFILE=thread-weaver sbt gatling-aggregate-runner/gatling::runTask
+# 最後にreport urlがログに出力されます
 ```
 
 
