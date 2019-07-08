@@ -7,12 +7,13 @@ import io.swagger.v3.oas.annotations.media.{ Content, Schema }
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.{ Operation, Parameter }
 import javax.ws.rs.{ Consumes, GET, Path, Produces }
+import kamon.trace.TraceContext
 
 @Path("/v1")
 @Produces(Array("application/json"))
 trait ThreadQueryController {
 
-  def toRoutes: Route
+  def toRoutes(implicit traceContext: TraceContext): Route
 
   @GET
   @Path("/threads/{thread_id}")
@@ -52,7 +53,7 @@ trait ThreadQueryController {
       new ApiResponse(responseCode = "500", description = "Internal server error")
     )
   )
-  private[controller] def getThread: Route
+  private[controller] def getThread(implicit traceContext: TraceContext): Route
 
   @GET
   @Path("/threads")
@@ -103,7 +104,7 @@ trait ThreadQueryController {
       new ApiResponse(responseCode = "500", description = "Internal server error")
     )
   )
-  private[controller] def getThreads: Route
+  private[controller] def getThreads(implicit traceContext: TraceContext): Route
 
   @GET
   @Path("/threads/{thread_id}/administrator-ids")
@@ -165,7 +166,7 @@ trait ThreadQueryController {
       new ApiResponse(responseCode = "500", description = "Internal server error")
     )
   )
-  private[controller] def getAdministratorIds: Route
+  private[controller] def getAdministratorIds(implicit traceContext: TraceContext): Route
 
   @GET
   @Path("/threads/{thread_id}/member-ids")
@@ -226,7 +227,7 @@ trait ThreadQueryController {
       new ApiResponse(responseCode = "500", description = "Internal server error")
     )
   )
-  private[controller] def getMemberIds: Route
+  private[controller] def getMemberIds(implicit traceContext: TraceContext): Route
 
   @GET
   @Path("/threads/{thread_id}/messages")
@@ -287,6 +288,6 @@ trait ThreadQueryController {
       new ApiResponse(responseCode = "500", description = "Internal server error")
     )
   )
-  private[controller] def getMessages: Route
+  private[controller] def getMessages(implicit traceContext: TraceContext): Route
 
 }

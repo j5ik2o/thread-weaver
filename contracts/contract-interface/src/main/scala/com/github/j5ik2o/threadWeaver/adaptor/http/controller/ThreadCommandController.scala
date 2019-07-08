@@ -8,12 +8,13 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.{ Operation, Parameter }
 import javax.ws.rs._
+import kamon.trace.TraceContext
 
 @Path("/v1")
 @Produces(Array("application/json"))
 trait ThreadCommandController {
 
-  def toRoutes: Route
+  def toRoutes(implicit traceContext: TraceContext): Route
 
   @POST
   @Path("threads/create")
@@ -37,7 +38,7 @@ trait ThreadCommandController {
       new ApiResponse(responseCode = "500", description = "Internal server error")
     )
   )
-  private[controller] def createThread: Route
+  private[controller] def createThread(implicit traceContext: TraceContext): Route
 
   @POST
   @Path("threads/{thread_id}/destroy")
@@ -73,7 +74,7 @@ trait ThreadCommandController {
       new ApiResponse(responseCode = "500", description = "Internal server error")
     )
   )
-  private[controller] def destroyThread: Route
+  private[controller] def destroyThread(implicit traceContext: TraceContext): Route
 
   @POST
   @Path("/threads/{thread_id}/administrator-ids/join")
@@ -109,7 +110,7 @@ trait ThreadCommandController {
       new ApiResponse(responseCode = "500", description = "Internal server error")
     )
   )
-  private[controller] def joinAdministratorIds: Route
+  private[controller] def joinAdministratorIds(implicit traceContext: TraceContext): Route
 
   @POST
   @Path("/threads/{thread_id}/administrator-ids/leave")
@@ -145,7 +146,7 @@ trait ThreadCommandController {
       new ApiResponse(responseCode = "500", description = "Internal server error")
     )
   )
-  private[controller] def leaveAdministratorIds: Route
+  private[controller] def leaveAdministratorIds(implicit traceContext: TraceContext): Route
 
   @POST
   @Path("/threads/{thread_id}/member-ids/join")
@@ -181,7 +182,7 @@ trait ThreadCommandController {
       new ApiResponse(responseCode = "500", description = "Internal server error")
     )
   )
-  private[controller] def joinMemberIds: Route
+  private[controller] def joinMemberIds(implicit traceContext: TraceContext): Route
 
   @POST
   @Path("/threads/{thread_id}/member-ids/leave")
@@ -217,7 +218,7 @@ trait ThreadCommandController {
       new ApiResponse(responseCode = "500", description = "Internal server error")
     )
   )
-  private[controller] def leaveMemberIds: Route
+  private[controller] def leaveMemberIds(implicit traceContext: TraceContext): Route
 
   @POST
   @Path("/threads/{thread_id}/messages/add")
@@ -253,7 +254,7 @@ trait ThreadCommandController {
       new ApiResponse(responseCode = "500", description = "Internal server error")
     )
   )
-  private[controller] def addMessages: Route
+  private[controller] def addMessages(implicit traceContext: TraceContext): Route
 
   @POST
   @Path("/threads/{thread_id}/messages/remove")
@@ -289,6 +290,6 @@ trait ThreadCommandController {
       new ApiResponse(responseCode = "500", description = "Internal server error")
     )
   )
-  private[controller] def removeMessages: Route
+  private[controller] def removeMessages(implicit traceContext: TraceContext): Route
 
 }

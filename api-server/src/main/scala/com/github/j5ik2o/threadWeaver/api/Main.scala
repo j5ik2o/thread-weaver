@@ -16,17 +16,18 @@ import com.github.j5ik2o.akka.persistence.dynamodb.query.scaladsl.DynamoDBReadJo
 import com.github.j5ik2o.threadWeaver.adaptor.DISettings
 import com.github.j5ik2o.threadWeaver.adaptor.http.routes.Routes
 import com.typesafe.config.{ Config, ConfigFactory }
+import kamon.Kamon
 import org.slf4j.LoggerFactory
 import org.slf4j.bridge.SLF4JBridgeHandler
 import slick.basic.DatabaseConfig
 import slick.jdbc.JdbcProfile
 
-import scala.concurrent.ExecutionContextExecutor
+import scala.concurrent.{ Await, ExecutionContextExecutor }
 import scala.concurrent.duration._
 
 object Main extends App {
-
   SLF4JBridgeHandler.install()
+  Kamon.start()
 
   implicit val logger = LoggerFactory.getLogger(getClass)
 
@@ -49,11 +50,6 @@ object Main extends App {
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
   implicit val cluster                                    = Cluster(system)
   logger.info(s"Started [$system], cluster.selfAddress = ${cluster.selfAddress}")
-//  if (envName.toLowerCase != "development")
-//    Kamon.addReporter(new DatadogAgentReporter())
-
-//  SystemMetrics.startCollecting()
-//  KamonJmxMetricCollector()
 
   AkkaManagement(system).start()
   ClusterBootstrap(system).start()
@@ -94,13 +90,16 @@ object Main extends App {
   })
 
   sys.addShutdownHook {
-//    SystemMetrics.stopCollecting()
-//    Kamon.stopAllReporters()
-//    Kamon.scheduler().shutdown()
-    session.shutdown
-    bindingFuture
-      .flatMap(_.unbind())
-      .onComplete(_ => system.terminate())
+    val future = bindingFuture
+      .flatMap { serverBinding =>
+        session.shutdown
+        Kamon.shutdown()
+        materializer.shutdown()
+        serverBinding.unbind()
+      }.flatMap { _ =>
+        system.terminate()
+      }
+    Await.result(future, config.getDuration("thread-weaver.api-server.terminate.duration").toMillis millis)
   }
 
 }

@@ -100,19 +100,11 @@ object Settings {
       Resolver.bintrayRepo("kamon-io", "snapshots")
     ),
     libraryDependencies ++= Seq(
-      "io.monix"           %% "monix"                % "3.0.0-RC2",
-      "eu.timepit"         %% "refined"              % "0.9.5",
-      "org.wvlet.airframe" %% "airframe"             % "19.4.1",
-      "io.kamon"           %% "kamon-core"           % "1.1.6",
-      "io.kamon"           %% "kamon-system-metrics" % "1.0.1",
-      "io.kamon"           %% "kamon-akka-2.5"       % "1.0.0",
-      "io.kamon"           %% "kamon-akka-http-2.5"  % "1.0.0",
-      "io.kamon"           %% "kamon-jmx-collector"  % "0.1.8",
-      "io.kamon"           %% "kamon-datadog"        % "1.0.0",
-      "io.kamon"           %% "kamon-logback"        % "1.0.2",
-      "io.kamon"           %% "kamon-scala-future"   % "1.0.0",
-      "org.scalatest"      %% "scalatest"            % "3.0.4" % Test,
-      "ch.qos.logback"     % "logback-classic"       % "1.2.3" % Test
+      "io.monix"           %% "monix"          % "3.0.0-RC2",
+      "eu.timepit"         %% "refined"        % "0.9.5",
+      "org.wvlet.airframe" %% "airframe"       % "19.4.1",
+      "org.scalatest"      %% "scalatest"      % "3.0.4" % Test,
+      "ch.qos.logback"     % "logback-classic" % "1.2.3" % Test
     ),
     dependencyOverrides ++= Seq(
       "org.slf4j"                  % "slf4j-api"               % "1.7.26",
@@ -135,7 +127,6 @@ object Settings {
       "org.typelevel"              %% "machinist"              % "0.6.6",
       "com.typesafe"               % "config"                  % "1.3.1",
       "com.typesafe"               %% "ssl-config-core"        % "0.3.6",
-      "io.kamon"                   %% "kamon-core"             % "1.1.6",
       "io.netty"                   % "netty-codec-http"        % "4.1.33.Final",
       "io.netty"                   % "netty-handler"           % "4.1.33.Final",
       "org.scala-lang.modules"     %% "scala-java8-compat"     % "0.9.0",
@@ -151,8 +142,7 @@ object Settings {
       "io.swagger.core.v3"         % "swagger-core"            % "2.0.8",
       "io.swagger.core.v3"         % "swagger-models"          % "2.0.8",
       "io.swagger.core.v3"         % "swagger-annotations"     % "2.0.8",
-      "com.fasterxml.jackson.core" % "jackson-annotations"     % "2.9.8",
-      "io.kamon"                   %% "kamon-akka-http-2.5"    % "1.1.2"
+      "com.fasterxml.jackson.core" % "jackson-annotations"     % "2.9.8"
     ),
     parallelExecution in Test := false,
     fork := true,

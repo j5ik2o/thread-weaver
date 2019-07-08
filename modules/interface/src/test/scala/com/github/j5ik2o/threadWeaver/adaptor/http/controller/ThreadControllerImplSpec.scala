@@ -14,6 +14,8 @@ import com.github.j5ik2o.threadWeaver.adaptor.util.{
 }
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 import io.circe.generic.auto._
+import kamon.Kamon
+import kamon.trace.TraceContext
 import org.scalatest.FreeSpec
 import org.scalatest.concurrent.Eventually
 import wvlet.airframe.Design
@@ -49,6 +51,8 @@ class ThreadControllerImplSpec
     """.stripMargin
 
   override val tables: Seq[String] = Seq.empty
+
+  implicit val traceContext: TraceContext = Kamon.tracer.newContext("default")
 
   var commandController: ThreadCommandController = _
   var queryController: ThreadQueryController     = _

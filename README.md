@@ -175,6 +175,14 @@ tools/deploy $ ./k8s-setup.sh
 
 ネームスペース,サービスアカウント,RBAC設定,Helm(Tiller)のインストールなどが作られます。
 
+### datadog-agentのデプロイ
+
+datadog-agentをdaemonsetとしてデプロイします。メトリクスは`thread-weaver-api-server`プレフィクスで取得できます。
+
+```sh
+tools/deploy/eks $ cp dd-agent-values.yaml.default dd-agent-values.yaml # datadog.apiKeyを設定してください
+tools/deploy/eks $ ./eks/deploy-dd-agent.sh
+```
 
 ### Auroraのスキーマ作成(flywayの実行)
 

@@ -1,3 +1,4 @@
+import Dependencies._
 import Settings._
 import Utils.RandomPortSupport
 import com.typesafe.sbt.packager.docker._
@@ -39,7 +40,8 @@ val `contract-use-case` = (project in file("contracts/contract-use-case"))
   .settings(
     name := "thread-weaver-contract-use-case",
     libraryDependencies ++= Seq(
-        "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion
+        "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
+      "com.typesafe.akka"          %% "akka-stream-typed"           % akkaVersion
       )
   )
   .dependsOn(`domain`)
@@ -69,7 +71,8 @@ val `contract-interface` = (project in file("contracts/contract-interface"))
         "io.swagger.core.v3"           % "swagger-annotations"   % swaggerVersion,
         "io.swagger.core.v3"           % "swagger-models"        % swaggerVersion,
         "io.swagger.core.v3"           % "swagger-jaxrs2"        % swaggerVersion
-      )
+      ),
+      libraryDependencies ++= Kamon.all
   )
   .dependsOn(`contract-use-case`, `contract-grpc-proto-interface`, `contract-http-proto-interface`)
 
@@ -163,7 +166,7 @@ val interface = (project in file("modules/interface"))
         "com.github.j5ik2o"          %% "reactive-aws-dynamodb-core"  % "1.1.0" % Test,
         "com.github.j5ik2o"          %% "reactive-aws-dynamodb-test"  % "1.1.0" % Test,
         "com.github.j5ik2o"          %% "scalatestplus-db"            % "1.0.8" % Test,
-        "io.kamon"                   %% "kamon-akka-http-2.5"         % "1.1.2"
+      AspectJ.version
       ),
     // sbt-dao-generator
     // JDBCのドライバークラス名を指定します(必須)

@@ -11,7 +11,6 @@ import com.github.j5ik2o.threadWeaver.adaptor.{ DISettings, DITestSettings }
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import io.circe.Encoder
 import io.circe.syntax._
-import kamon.context.Context
 import org.scalatest.{ BeforeAndAfterAll, Matchers, TestSuite }
 import wvlet.airframe.{ Design, Session }
 
@@ -30,7 +29,6 @@ trait RouteSpec extends ScalatestRouteTest with Matchers with BeforeAndAfterAll 
   }
 
   implicit def timeout: RouteTestTimeout = RouteTestTimeout(5 seconds)
-  implicit val context                   = Context()
   private var _session: Session          = _
   def session: Session                   = _session
 
