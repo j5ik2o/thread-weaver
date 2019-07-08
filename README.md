@@ -46,14 +46,6 @@ $ brew install kubernetes-cli kubernetes-helm gettext
 $ brew cask install docker minikube virtualbox
 ```
 
-- 任意
-
-```sh
-$ brew install hyperkit
-$ curl -LO https://storage.googleapis.com/minikube/releases/latest/docker-machine-driver-hyperkit \
-&& sudo install -o root -g wheel -m 4755 docker-machine-driver-hyperkit /usr/local/bin/
-```
-
 ## ローカルでの動作確認
 
 ```sh
