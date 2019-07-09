@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -eu
+
 if [[ -z ${TW_GATLING_BUCKET_NAME} ]]; then
   echo "env TW_GATLING_BUCKET_NAME does not exist"
   exit 1
