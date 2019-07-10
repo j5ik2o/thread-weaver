@@ -37,8 +37,10 @@ resource "aws_ecr_repository_policy" "gatling_runner_ecr_policy" {
 }
 EOF
 
-
   repository = aws_ecr_repository.gatling_runner_ecr.0.name
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_ecr_repository" "gatling_s3_reporter_ecr" {
@@ -80,8 +82,10 @@ resource "aws_ecr_repository_policy" "gatling_s3_reporter_ecr_policy" {
 }
 EOF
 
-
   repository = aws_ecr_repository.gatling_s3_reporter_ecr.0.name
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_ecr_repository" "gatling_aggregate_runner_ecr" {
@@ -123,7 +127,9 @@ resource "aws_ecr_repository_policy" "gatling_aggregate_runner_ecr_policy" {
 }
 EOF
 
-
   repository = aws_ecr_repository.gatling_aggregate_runner_ecr.0.name
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
