@@ -1,9 +1,6 @@
 #!/bin/sh
 
-set -eu
-
 cd $(dirname $0)
-
 if [[ $# == 0 ]]; then
   echo "Parameters are empty."
   exit 1
@@ -18,18 +15,9 @@ done
 
 pushd ../../charts
 
-BASE_DIR=./thread-weaver-api-server
+KUBE_NAMESPACE=thread-weaver
+APP_NAME=thread-weaver-api-server
 
-if [[ "${ENV_NAME}" = "prod" ]]; then
-if [[ -z "${AWS_PROFILE}" ]]; then
-    echo "please set AWS_PROFILE"
-    exit 2
-fi
-ACCOUNT_ID=$(aws sts get-caller-identity --profile ${AWS_PROFILE} | jq -r '.Account') \
-    envsubst < ${BASE_DIR}/environments/${ENV_NAME}-values.yaml.tpl > ${BASE_DIR}/environments/${ENV_NAME}-values.yaml
-    echo "generated ${BASE_DIR}/environments/${ENV_NAME}-values.yaml"
-fi
-
-helm install ${BASE_DIR} -f ${BASE_DIR}/environments/${ENV_NAME}-values.yaml --namespace thread-weaver
+helm upgrade ${APP_NAME} ./${APP_NAME} -i -f ${APP_NAME}/environments/${ENV_NAME}-values.yaml --namespace ${KUBE_NAMESPACE} --recreate-pods
 
 popd
