@@ -2,7 +2,7 @@
 <configuration>
 
     <property name="envName" value="${ENV_NAME:-development}"/>
-    <property name="appName" value="thread-weaver-${APPLICATION_NAME:-api}"/>
+    <property name="appName" value="thread-weaver-api-server}"/>
 
     <if condition='property("envName").startsWith("production") || property("envName").startsWith("staging")'>
         <then>
