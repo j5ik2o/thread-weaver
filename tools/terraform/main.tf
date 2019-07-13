@@ -135,13 +135,76 @@ resource "aws_rds_cluster_parameter_group" "aurora_57_cluster_parameter_group" {
   description = "test-aurora-57-cluster-parameter-group"
 }
 
-module "aws_dynamodb" {
-  source              = "./dynamodb"
-  prefix              = "${var.prefix}"
-  owner               = "${var.owner}"
-  enabled             = true
-  journal_table_name  = "${var.aws_dyanmodb_journal_table_name}"
-  snapshot_table_name = "${var.aws_dyanmodb_snapshot_table_name}"
+module "dynamodb_journal_table" {
+  source         = "git::https://github.com/cloudposse/terraform-aws-dynamodb.git?ref=master"
+  namespace      = "${var.prefix}"
+  name           = "${var.aws_dyanmodb_journal_table_name}"
+  hash_key       = "pkey"
+  hash_key_type  = "S"
+  range_key      = "sequence-nr"
+  range_key_type = "N"
+
+  dynamodb_attributes = [
+    {
+      name = "persistence-id"
+      type = "S"
+    },
+    {
+      name = "sequence-nr"
+      type = "N"
+    },
+    {
+      name = "tags"
+      type = "S"
+    }
+  ]
+
+  global_secondary_index_map = [
+    {
+      name               = "GetJournalRowsIndex"
+      hash_key           = "persistence-id"
+      range_key          = "sequence-nr"
+      write_capacity     = 5
+      read_capacity      = 20
+      projection_type    = "ALL"
+      non_key_attributes = [] // ["pkey", "tags"]
+    },
+    {
+      name               = "TagsIndex"
+      hash_key           = "tags"
+      range_key          = ""
+      write_capacity     = 5
+      read_capacity      = 20
+      projection_type    = "ALL"
+      non_key_attributes = [] // ["pkey", "persistence-d", "sequence-id"]
+    }
+  ]
+
+  enable_autoscaler            = true
+  autoscale_write_target       = 50
+  autoscale_read_target        = 50
+  autoscale_min_read_capacity  = 5
+  autoscale_max_read_capacity  = 20
+  autoscale_min_write_capacity = 5
+  autoscale_max_write_capacity = 20
+}
+
+module "dynamodb_snapshot_table" {
+  source         = "git::https://github.com/cloudposse/terraform-aws-dynamodb.git?ref=master"
+  namespace      = "${var.prefix}"
+  name           = "${var.aws_dyanmodb_snapshot_table_name}"
+  hash_key       = "persistence-id"
+  hash_key_type  = "S"
+  range_key      = "sequence-nr"
+  range_key_type = "N"
+
+  enable_autoscaler            = true
+  autoscale_write_target       = 50
+  autoscale_read_target        = 50
+  autoscale_min_read_capacity  = 5
+  autoscale_max_read_capacity  = 20
+  autoscale_min_write_capacity = 5
+  autoscale_max_write_capacity = 20
 }
 
 module "gatling" {
