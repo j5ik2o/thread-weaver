@@ -54,6 +54,9 @@ resource "aws_iam_policy" "gatling_ecs_policy" {
         "iam:Get*",
         "iam:List*",
         "iam:PassRole",
+        "ecs:ListClusters",
+        "ecs:ListContainerInstances",
+        "ecs:DescribeContainerInstances",
         "ecr:GetAuthorizationToken",
         "ecr:BatchCheckLayerAvailability",
         "ecr:GetDownloadUrlForLayer",
@@ -108,7 +111,7 @@ EOF
 
 }
 
-resource "aws_ecs_task_definition" "gatling" {
+resource "aws_ecs_task_definition" "gatling_runner" {
   count                    = "${var.enabled ? 1 : 0}"
   family                   = "${var.prefix}-gatling-runner"
   requires_compatibilities = ["FARGATE"]
@@ -133,6 +136,23 @@ resource "aws_ecs_task_definition" "gatling" {
         "awslogs-group":  "${aws_cloudwatch_log_group.gatling_log_group[0].name}",
         "awslogs-region": "ap-northeast-1",
         "awslogs-stream-prefix": "${var.prefix}-gatling-runner"
+      }
+    }
+  },
+  {
+    "name": "dd-agent",
+    "essential": true,
+    "image": "datadog/agent:latest",
+    "environment": [
+      { "name": "DD_API_KEY", "value": "${var.gatling_dd_api_key}" },
+      { "Name": "ECS_FARGATE", "Value": "true" }
+    ],
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group":  "${aws_cloudwatch_log_group.gatling_log_group[0].name}",
+        "awslogs-region": "ap-northeast-1",
+        "awslogs-stream-prefix": "${var.prefix}-dd-agent"
       }
     }
   }

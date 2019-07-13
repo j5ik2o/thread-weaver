@@ -157,4 +157,6 @@ module "gatling" {
 
   gatling_s3_reporter_ecr_name = "${var.gatling_s3_reporter_ecr_name}"
   gatling_s3_log_bucket_name   = "${var.gatling_s3_log_bucket_name}"
+
+  gatling_dd_api_key = "${var.gatling_dd_api_key}"
 }
