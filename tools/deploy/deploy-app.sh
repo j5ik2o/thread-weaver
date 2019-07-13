@@ -1,6 +1,7 @@
 #!/bin/sh
 
 cd $(dirname $0)
+
 if [[ $# == 0 ]]; then
   echo "Parameters are empty."
   exit 1
