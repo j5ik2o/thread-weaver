@@ -16,7 +16,7 @@ import scala.concurrent.duration._
 
 class ThreadSimulation extends Simulation {
   private val config         = ConfigFactory.load()
-  private val endpoint       = config.getString("thread-weaver.gatling.endpoint-base-url")
+  private val endpoint       = config.getString("thread-weaver.gatling.target-endpoint-base-url")
   private val pauseDuration  = config.getDuration("thread-weaver.gatling.pause-duration").toMillis.millis
   private val numOfUser      = config.getInt("thread-weaver.gatling.users")
   private val rampDuration   = config.getDuration("thread-weaver.gatling.ramp-duration").toMillis.millis

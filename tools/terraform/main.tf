@@ -183,10 +183,10 @@ module "dynamodb_journal_table" {
   enable_autoscaler            = true
   autoscale_write_target       = 50
   autoscale_read_target        = 50
-  autoscale_min_read_capacity  = 5
-  autoscale_max_read_capacity  = 20
-  autoscale_min_write_capacity = 5
-  autoscale_max_write_capacity = 20
+  autoscale_min_read_capacity  = 120
+  autoscale_max_read_capacity  = 240
+  autoscale_min_write_capacity = 60
+  autoscale_max_write_capacity = 120
 }
 
 module "dynamodb_snapshot_table" {
