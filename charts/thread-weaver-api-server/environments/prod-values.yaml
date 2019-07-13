@@ -1,6 +1,3 @@
-# Default values for astraea-elasticmq.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
 envName: production
 prodEnabled: true
 configResource: production.conf
@@ -9,19 +6,19 @@ jvmHeapMax: 1500m
 jvmMetaMax: 500m
 replicaCount: 3
 image:
-  repository: ${ACCOUNT_ID}.dkr.ecr.ap-northeast-1.amazonaws.com/j5ik2o/thread-weaver-api-server
+  repository: 738575627980.dkr.ecr.ap-northeast-1.amazonaws.com/j5ik2o/thread-weaver-api-server
   tag: latest
   pullPolicy: Always
 service:
   type: LoadBalancer
   api:
     name: api
-    externalPort: 18080
-    internalPort: 18080
+    externalPort: 8080
+    internalPort: 8080
   management:
     name: management
-    externalPort: 18558
-    internalPort: 18558
+    externalPort: 8558
+    internalPort: 8558
 resources:
   requests:
     cpu: 2
@@ -29,12 +26,16 @@ resources:
   limits:
     cpu: 2
     memory: 4Gi
-db:
+slick:
   url: jdbc:mysql://j5ik2o-rds-cluster-aurora.cluster-ctywrcabnmgr.ap-northeast-1.rds.amazonaws.com:3306/thread_weaver?useSSL=false
   user: root
   maxPoolSize: 10
   minIdleSize: 10
+  numThreads: 16
+  queueSize: 1000
+  connectionTimeout: 30
+  idleTimeout: 30
 dynamodb:
-  journalTableName: thread_weaver_journal
-  snapshotTableName: thread_weaver_snapshot
-  readJournalTableName : thread_weaver_journal
+  journalTableName: j5ik2o-thread-weaver-journal
+  snapshotTableName: j5ik2o-thread-weaver-snapshot
+  readJournalTableName : j5ik2o-thread-weaver-journal

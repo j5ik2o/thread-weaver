@@ -1,6 +1,3 @@
-# Default values for astraea-elasticmq.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
 envName: development
 prodEnabled: false
 configResource: local-cluster.conf
@@ -18,12 +15,12 @@ service:
     name: api
     externalPort: 18080
     externalNodePort: 30080
-    internalPort: 18080
+    internalPort: 8080
   management:
     name: management
     externalPort: 18558
     externalNodePort: 30081
-    internalPort: 18558
+    internalPort: 8558
 resources:
   requests:
     cpu: 2
@@ -31,11 +28,15 @@ resources:
   limits:
     cpu: 2
     memory: 4Gi
-db:
+slick:
   url: jdbc:mysql://mysql:3306/tw?useSSL=false
   user: tw
-  maxPoolSize: 32
-  minIdleSize: 32
+  maxPoolSize: 10
+  minIdleSize: 10
+  numThreads: 10
+  queueSize: 1000
+  connectionTimeout: 30
+  idleTimeout: 30
 dynamodb:
   journalTableName: Journal
   snapshotTableName: Snapshot

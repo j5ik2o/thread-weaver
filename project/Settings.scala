@@ -1,5 +1,7 @@
-import com.amazonaws.regions.{ Region, Regions }
+import com.amazonaws.regions.{Region, Regions}
 import com.github.j5ik2o.reactive.aws.ecs._
+import com.github.j5ik2o.reactive.aws.ecs.implicits._
+
 import com.typesafe.sbt.SbtNativePackager.autoImport._
 import com.typesafe.sbt.packager.archetypes.scripts.BashStartScriptPlugin.autoImport._
 import com.typesafe.sbt.packager.docker.DockerPlugin.autoImport._
@@ -9,14 +11,14 @@ import sbt.Keys._
 import sbt._
 import sbt.internal.util.ManagedLogger
 import sbtecr.EcrPlugin.autoImport._
-import software.amazon.awssdk.services.ecs.model.{ Task, _ }
-import software.amazon.awssdk.services.ecs.{ EcsAsyncClient => JavaEcsAsyncClient }
+import software.amazon.awssdk.services.ecs.model.{Task, _}
+import software.amazon.awssdk.services.ecs.{EcsAsyncClient => JavaEcsAsyncClient}
 import wartremover.WartRemover.autoImport._
 
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.Duration
-import scala.concurrent.{ Await, Future }
+import scala.concurrent.duration.{Duration, FiniteDuration}
+import scala.concurrent.{Await, Future}
 
 object Settings {
   val akkaVersion           = "2.5.22"
@@ -209,6 +211,24 @@ object Settings {
   val runTaskEnvironments          = taskKey[Map[String, String]]("run-task-environments")
   val runTaskContainerOverrideName = settingKey[String]("run-task-container-override-name")
 
+  def getTaskDefinitionName(client: EcsAsyncClient, awaitDuration: Duration, prefix: String): String = {
+    def loop(request: ListTaskDefinitionsRequest) : Future[String]= {
+      client.listTaskDefinitions(request).flatMap{ result =>
+        if (result.sdkHttpResponse().isSuccessful) {
+          result.nextTokenAsScala match {
+            case None => Future.successful(result.taskDefinitionArns().asScala.head)
+            case Some(nextToken) =>
+              val req = ListTaskDefinitionsRequest.builder().familyPrefix(prefix).nextToken(nextToken).sort(SortOrder.DESC).maxResults(1).build()
+              loop(req)
+          }
+        } else
+          Future.failed(new Exception(result.sdkHttpResponse().statusText().asScala.get))
+      }
+    }
+    val req = ListTaskDefinitionsRequest.builder().familyPrefix(prefix).sort(SortOrder.DESC).maxResults(1).build()
+    Await.result(loop(req), awaitDuration)
+  }
+
   val gatlingAggregateRunTaskSettings = Seq(
     runTaskEcsClient in gatling := {
       val underlying = JavaEcsAsyncClient
@@ -217,22 +237,30 @@ object Settings {
       EcsAsyncClient(underlying)
     },
     runTaskEcsCluster in gatling := "j5ik2o-gatling-ecs",
-    runTaskTaskDefinition in gatling := "j5ik2o-gatling-aggregate-runner:2",
+    runTaskTaskDefinition in gatling := {
+      getTaskDefinitionName((runTaskEcsClient in gatling).value, (runTaskAwaitDuration in gatling).value, "j5ik2o-gatling-aggregate-runner")
+    },
     runTaskAwaitDuration in gatling := Duration.Inf,
     runTaskSubnets in gatling := Seq("subnet-096d7af9e31f4f8c7"), // 10.0.1.0/24 public
     runTaskAssignPublicIp in gatling := AssignPublicIp.ENABLED,
     runTaskEnvironments in gatling := Map(
       "AWS_REGION"                          -> "ap-northeast-1",
+      "TW_GATLING_NOTICE_SLACK_INCOMING_WEBHOOK_URL" -> sys.env("TW_GATLING_NOTICE_SLACK_INCOMING_WEBHOOK_URL"),
       "TW_GATLING_ECS_CLUSTER_NAME"         -> (runTaskEcsCluster in gatling).value,
       "TW_GATLING_SUBNET"                   -> (runTaskSubnets in gatling).value.head,
-      "TW_GATLING_TASK_DEFINITION"          -> "j5ik2o-gatling-runner:4",
-      "TW_GATLING_COUNT"                    -> "1",
-      "TW_GATLING_HOLD_DURATION"            -> "1m",
-      "TW_GATLING_RAMP_DURATION"            -> "3m",
-      "TW_GATLING_ENDPOINT_BASE_URL"        -> "http://af1003d2a9f3b11e9a8db0a582f897d4-1563252270.ap-northeast-1.elb.amazonaws.com:8080/v1",
+      "TW_GATLING_TASK_DEFINITION"          -> {
+        getTaskDefinitionName((runTaskEcsClient in gatling).value, (runTaskAwaitDuration in gatling).value, "j5ik2o-gatling-runner")
+      },
+      "TW_GATLING_COUNT"                    -> "3",
+      "TW_GATLING_PAUSE_DURATION"           -> "1s",
+      "TW_GATLING_RAMP_DURATION"            -> "200s",
+      "TW_GATLING_HOLD_DURATION"            -> "3m",
+      "TW_GATLING_TARGET_ENDPOINT_BASE_URL" -> s"http://${sys.env("TW_GATLING_TARGET_HOST")}:8080/v1",
       "TW_GATLING_SIMULATION_CLASS"         -> "com.github.j5ik2o.gatling.ThreadSimulation",
       "TW_GATLING_USERS"                    -> "3",
-      "TW_GATLING_REPORTER_TASK_DEFINITION" -> "j5ik2o-gatling-s3-reporter:6",
+      "TW_GATLING_REPORTER_TASK_DEFINITION" -> {
+        getTaskDefinitionName((runTaskEcsClient in gatling).value, (runTaskAwaitDuration in gatling).value, "j5ik2o-gatling-s3-reporter")
+      },
       "TW_GATLING_BUCKET_NAME"              -> "thread-weaver-gatling-logs"
     ),
     runTaskContainerOverrideName in gatling := "gatling-aggregate-runner",

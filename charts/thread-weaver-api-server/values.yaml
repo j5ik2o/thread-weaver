@@ -2,29 +2,41 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 envName: development
+prodEnabled: false
 configResource: application.conf
 jvmHeapMin: 1500m
 jvmHeapMax: 1500m
 jvmMetaMax: 500m
-replicaCount: 1
+replicaCount: 3
 image:
   repository: j5ik2o/thread-weaver-api-server
   tag: 1.0.0-SNAPSHOT
   pullPolicy: IfNotPresent
 service:
-  name: thread-weaver-api-server
   type: NodePort
-  externalPort: 18080
-  externalNodePort: 38080
-  internalPort: 18080
-db:
+  api:
+    name: api
+    externalPort: 18080
+    externalNodePort: 30080
+    internalPort: 8080
+  management:
+    name: management
+    externalPort: 18558
+    externalNodePort: 30081
+    internalPort: 8558
+slick:
  url: jdbc:mysql://mysql:3306/tw?useSSL=false
  user: tw
  maxPoolSize: 64
  minIdleSize: 64
+ numThreads: 16
+ queueSize: 1000
+ connectionTimeout: 30
+ idleTimeout: 30
 dynamodb:
   journalTableName: thread_weaver_journal
   snapshotTableName: thread_weaver_snapshot
+  readJournalTableName: thread_weaver_journal
 resources:
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
