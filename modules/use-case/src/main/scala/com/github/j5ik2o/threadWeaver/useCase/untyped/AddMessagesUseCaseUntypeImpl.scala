@@ -1,7 +1,7 @@
 package com.github.j5ik2o.threadWeaver.useCase.untyped
 
 import akka.NotUsed
-import akka.actor.{ ActorSystem, Scheduler }
+import akka.actor.ActorSystem
 import akka.pattern.ask
 import akka.stream.scaladsl.Flow
 import akka.util.Timeout
@@ -19,6 +19,7 @@ import com.github.j5ik2o.threadWeaver.useCase.ThreadWeaverProtocol.{
   AddMessagesResponse => UAddMessagesResponse,
   AddMessagesSucceeded => UAddMessagesSucceeded
 }
+import monix.execution.Scheduler
 
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
@@ -29,13 +30,14 @@ class AddMessagesUseCaseUntypeImpl(
     timeout: Timeout = 3 seconds
 )(
     implicit system: ActorSystem
-) extends AddMessagesUseCase {
+) extends AddMessagesUseCase
+    with UseCaseSupport {
   override def execute: Flow[UAddMessages, UAddMessagesResponse, NotUsed] =
     Flow[UAddMessages].mapAsync(parallelism) { request =>
       implicit val to: Timeout                  = timeout
-      implicit val scheduler: Scheduler         = system.scheduler
+      implicit val scheduler                    = system.scheduler
       implicit val ec: ExecutionContextExecutor = system.dispatcher
-      (threadAggregates ? AddMessages(
+      val future = (threadAggregates ? AddMessages(
         ULID(),
         request.threadId,
         Messages(
@@ -54,7 +56,8 @@ class AddMessagesUseCaseUntypeImpl(
         ),
         request.createdAt,
         reply = true
-      )).mapTo[AddMessagesResponse].map {
+      )).mapTo[AddMessagesResponse]
+      retryBackoff(future, maxRetries, firstDelay, request.toString).runToFuture(Scheduler(ec)).map {
         case v: AddMessagesSucceeded =>
           UAddMessagesSucceeded(v.id, v.requestId, v.threadId, v.messageIds, v.createAt)
         case v: AddMessagesFailed =>

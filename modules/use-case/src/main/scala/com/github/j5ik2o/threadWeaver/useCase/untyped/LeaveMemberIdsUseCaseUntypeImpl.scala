@@ -1,9 +1,8 @@
 package com.github.j5ik2o.threadWeaver.useCase.untyped
 
-import akka.pattern.ask
-import akka.actor.ActorSystem
 import akka.NotUsed
-import akka.actor.Scheduler
+import akka.actor.ActorSystem
+import akka.pattern.ask
 import akka.stream.scaladsl.Flow
 import akka.util.Timeout
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ThreadProtocol._
@@ -15,6 +14,7 @@ import com.github.j5ik2o.threadWeaver.useCase.ThreadWeaverProtocol.{
   LeaveMemberIdsResponse => ULeaveMemberIdsResponse,
   LeaveMemberIdsSucceeded => ULeaveMemberIdsSucceeded
 }
+import monix.execution.Scheduler
 
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
@@ -25,20 +25,22 @@ class LeaveMemberIdsUseCaseUntypeImpl(
     timeout: Timeout = 3 seconds
 )(
     implicit system: ActorSystem
-) extends LeaveMemberIdsUseCase {
+) extends LeaveMemberIdsUseCase
+    with UseCaseSupport {
   override def execute: Flow[ULeaveMemberIds, ULeaveMemberIdsResponse, NotUsed] =
     Flow[ULeaveMemberIds].mapAsync(parallelism) { request =>
       implicit val to: Timeout                  = timeout
-      implicit val scheduler: Scheduler         = system.scheduler
+      implicit val scheduler                    = system.scheduler
       implicit val ec: ExecutionContextExecutor = system.dispatcher
-      (threadAggregates ? LeaveMemberIds(
+      val future = (threadAggregates ? LeaveMemberIds(
         ULID(),
         request.threadId,
         request.removerId,
         request.memberIds,
         request.createAt,
         reply = true
-      )).mapTo[LeaveMemberIdsResponse].map {
+      )).mapTo[LeaveMemberIdsResponse]
+      retryBackoff(future, maxRetries, firstDelay, request.toString).runToFuture(Scheduler(ec)).map {
         case v: LeaveMemberIdsSucceeded =>
           ULeaveMemberIdsSucceeded(v.id, v.requestId, v.threadId, v.createAt)
         case v: LeaveMemberIdsFailed =>

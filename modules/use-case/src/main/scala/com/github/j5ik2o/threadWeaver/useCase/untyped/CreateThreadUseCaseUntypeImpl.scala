@@ -14,6 +14,7 @@ import com.github.j5ik2o.threadWeaver.useCase.ThreadWeaverProtocol.{
   CreateThreadResponse => UCreateThreadResponse,
   CreateThreadSucceeded => UCreateThreadSucceeded
 }
+import monix.execution.Scheduler
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.ExecutionContextExecutor
@@ -25,16 +26,17 @@ class CreateThreadUseCaseUntypeImpl(
     timeout: Timeout = 3 seconds
 )(
     implicit system: ActorSystem
-) extends CreateThreadUseCase {
+) extends CreateThreadUseCase
+    with UseCaseSupport {
   private val logger = LoggerFactory.getLogger(getClass)
 
   override def execute: Flow[UCreateThread, UCreateThreadResponse, NotUsed] =
     Flow[UCreateThread].mapAsync(parallelism) { request =>
       implicit val to: Timeout                  = timeout
-      implicit val scheduler: Scheduler         = system.scheduler
+      implicit val scheduler                    = system.scheduler
       implicit val ec: ExecutionContextExecutor = system.dispatcher
       logger.info(s"execute: request = $request")
-      (threadAggregates ? CreateThread(
+      val future = (threadAggregates ? CreateThread(
         ULID(),
         request.threadId,
         request.creatorId,
@@ -45,7 +47,8 @@ class CreateThreadUseCaseUntypeImpl(
         request.memberIds,
         request.createAt,
         reply = true
-      )).mapTo[CreateThreadResponse].map {
+      )).mapTo[CreateThreadResponse]
+      retryBackoff(future, maxRetries, firstDelay, request.toString).runToFuture(Scheduler(ec)).map {
         case v: CreateThreadSucceeded =>
           logger.info(s"execute: response = $v")
           UCreateThreadSucceeded(v.id, v.requestId, v.threadId, v.createAt)
