@@ -262,7 +262,10 @@ tools/gatling-s3-reporter $ make release # docker build & push
 $ vi project/Settings.scala # gatlingAggregateRunTaskSettings の設定を調整
 # Gatling Aggregate Runnerの実行
 $ cd ../../
-$ AWS_PROFILE=thread-weaver sbt gatling-aggregate-runner/gatling::runTask
+$ $ AWS_PROFILE=thread-weaver \
+    TW_GATLING_NOTICE_SLACK_INCOMING_WEBHOOK_URL=https://hooks.slack.com/services/xxxxx \
+    TW_GATLING_TARGET_HOST=$(kubectl get svc thread-weaver-api-server -n thread-weaver -ojsonpath="{.status.loadBalancer.ingress[0].hostname}") \
+    sbt gatling-aggregate-runner/gatling::runTask
 # 最後にreport urlがログに出力されます
 ```
 
