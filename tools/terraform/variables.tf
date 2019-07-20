@@ -48,11 +48,14 @@ variable "eks_asg_desired_capacity" {
 variable "aurora_instance_type" {
   default = "db.t2.medium"
 }
+variable "aurora_database_name" {}
+variable "aurora_username" {}
+variable "aurora_password" {}
 
 variable "aws_dyanmodb_journal_table_name" {}
 variable "aws_dyanmodb_snapshot_table_name" {}
 
-variable "ecs_cluster_name" {}
+variable "gatling_ecs_cluster_name" {}
 variable "gatling_s3_log_bucket_name" {}
 
 variable "gatling_runner_ecr_name" {}

@@ -119,7 +119,7 @@ datadog:
   ##
   ## Learn more about tagging: https://docs.datadoghq.com/tagging/
   #
-  tags: "kubernetes:gaudi-poc"
+  tags: "kubernetes:thread-weaver"
   #   - <KEY_1>:<VALUE_1>
   #   - <KEY_2>:<VALUE_2>
 

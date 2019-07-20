@@ -1,8 +1,8 @@
 resource "aws_ecs_cluster" "ecs_cluster" {
   count = "${var.enabled ? 1 : 0}"
-  name  = "${var.ecs_cluster_name}"
+  name  = "${var.gatling_ecs_cluster_name}"
   tags = {
-    Name = "${var.ecs_cluster_name}"
+    Name = "${var.gatling_ecs_cluster_name}"
     Owner = "${var.owner}"
   }
 }

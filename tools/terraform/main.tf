@@ -1,6 +1,6 @@
 terraform {
   required_version = ">= 0.12"
-  backend "s3" { }
+  backend "s3" {}
 }
 
 provider "aws" {
@@ -111,16 +111,19 @@ module "aurora" {
   subnets                             = module.vpc.database_subnets
   vpc_id                              = "${module.vpc.vpc_id}"
   replica_count                       = 1
-  database_name                       = "thread_weaver"
+  database_name                       = "${var.aurora_database_name}"
+  username                            = "${var.aurora_username}"
+  password                            = "${var.aurora_password}"
   instance_type                       = "${var.aurora_instance_type}"
   allowed_security_groups             = ["${module.eks.worker_security_group_id}"]
   allowed_security_groups_count       = 1
   apply_immediately                   = true
   skip_final_snapshot                 = true
-  db_parameter_group_name             = aws_db_parameter_group.aurora_db_57_parameter_group.id
-  db_cluster_parameter_group_name     = aws_rds_cluster_parameter_group.aurora_57_cluster_parameter_group.id
+  db_parameter_group_name             = "${aws_db_parameter_group.aurora_db_57_parameter_group.id}"
+  db_cluster_parameter_group_name     = "${aws_rds_cluster_parameter_group.aurora_57_cluster_parameter_group.id}"
   iam_database_authentication_enabled = true
   enabled_cloudwatch_logs_exports     = ["audit", "error", "general", "slowquery"]
+  monitoring_interval                 = 10
 }
 
 resource "aws_db_parameter_group" "aurora_db_57_parameter_group" {
@@ -137,6 +140,7 @@ resource "aws_rds_cluster_parameter_group" "aurora_57_cluster_parameter_group" {
 
 module "dynamodb_journal_table" {
   source         = "git::https://github.com/cloudposse/terraform-aws-dynamodb.git?ref=master"
+  enabled        = true
   namespace      = "${var.prefix}"
   name           = "${var.aws_dyanmodb_journal_table_name}"
   hash_key       = "pkey"
@@ -183,14 +187,15 @@ module "dynamodb_journal_table" {
   enable_autoscaler            = true
   autoscale_write_target       = 50
   autoscale_read_target        = 50
-  autoscale_min_read_capacity  = 120
-  autoscale_max_read_capacity  = 240
+  autoscale_min_read_capacity  = 1000
+  autoscale_max_read_capacity  = 2000
   autoscale_min_write_capacity = 60
   autoscale_max_write_capacity = 120
 }
 
 module "dynamodb_snapshot_table" {
   source         = "git::https://github.com/cloudposse/terraform-aws-dynamodb.git?ref=master"
+  enabled        = true
   namespace      = "${var.prefix}"
   name           = "${var.aws_dyanmodb_snapshot_table_name}"
   hash_key       = "persistence-id"
@@ -214,7 +219,7 @@ module "gatling" {
   prefix     = "${var.prefix}"
   owner      = "${var.owner}"
 
-  ecs_cluster_name                  = "${var.ecs_cluster_name}"
+  gatling_ecs_cluster_name          = "${var.gatling_ecs_cluster_name}"
   gatling_runner_ecr_name           = "${var.gatling_runner_ecr_name}"
   gatling_aggregate_runner_ecr_name = "${var.gatling_aggregate_runner_ecr_name}"
 
