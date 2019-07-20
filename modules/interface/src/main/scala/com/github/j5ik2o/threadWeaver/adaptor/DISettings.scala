@@ -99,7 +99,7 @@ trait DISettings {
       ] { (actorSystem, readJournal, profile, db) =>
         ShardedThreadAggregatesRegion.startClusterSharding(
           Seq.empty,
-          Some(ReadModelUpdaterConfig(readJournal, profile, db, 1))
+          Some(ReadModelUpdaterConfig(readJournal, profile, db, 10))
         )(actorSystem)
       }
 

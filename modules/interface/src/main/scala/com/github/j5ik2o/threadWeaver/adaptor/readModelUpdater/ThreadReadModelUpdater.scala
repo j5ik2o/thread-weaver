@@ -11,8 +11,8 @@ import akka.stream.scaladsl.{ Flow, Keep, RestartSource, Sink, Source }
 import akka.stream.typed.scaladsl.ActorMaterializer
 import akka.stream.{ Attributes, KillSwitch, KillSwitches }
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ThreadProtocol.{ CommandRequest => _, _ }
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ThreadAggregate
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ThreadProtocol.{ CommandRequest => _, _ }
 import com.github.j5ik2o.threadWeaver.adaptor.dao.jdbc.{
   ThreadAdministratorIdsComponent,
   ThreadComponent,
@@ -27,12 +27,13 @@ import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUp
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
 import com.github.j5ik2o.threadWeaver.domain.model.threads.{ Message => _, _ }
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
+import kamon.Kamon
 import slick.jdbc.JdbcProfile
 import slick.sql.FixedSqlAction
 
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import scala.concurrent.{ ExecutionContext, Future }
 
 @SuppressWarnings(Array("org.wartremover.warts.Var"))
 object ThreadReadModelUpdater {
@@ -51,6 +52,7 @@ object ThreadReadModelUpdater {
       randomFactor: Double,
       maxRestarts: Int
   )
+
 }
 
 class ThreadReadModelUpdater(
@@ -61,6 +63,11 @@ class ThreadReadModelUpdater(
     with ThreadMessageComponent
     with ThreadAdministratorIdsComponent
     with ThreadMemberIdsComponent {
+
+  private val writeRecordsCounter =
+    Kamon.metrics.registerCounter("thread-rmu", tags = Map("function" -> "write-records-count"))
+  private val readEventsCounter =
+    Kamon.metrics.registerCounter("thread-rmu", tags = Map("function" -> "read-events-count"))
 
   import profile.api._
 
@@ -178,11 +185,38 @@ class ThreadReadModelUpdater(
       .fromFuture(
         db.run(getSequenceNrAction(threadId)).map(_.getOrElse(0L))
       ).log("lastSequenceNr").flatMapConcat { lastSequenceNr =>
-        readJournal
-          .eventsByPersistenceId(ThreadAggregate.name(threadId), lastSequenceNr + 1, Long.MaxValue)
+        Source
+          .repeat(Kamon.tracer.newContext("thread-rmu", token = None, tags = Map("function" -> "read-events-time"))).flatMapConcat {
+            tc =>
+              readJournal
+                .eventsByPersistenceId(ThreadAggregate.name(threadId), lastSequenceNr + 1, Long.MaxValue).map { ee =>
+                  tc.finish()
+                  ee
+                }.recoverWithRetries(attempts = 1, {
+                  case ex =>
+                    tc.finishWithError(ex)
+                    Source.failed[EventEnvelope](ex)
+                })
+          }
+      }.map { events =>
+        readEventsCounter.increment
+        events
       }.log("ee").via(sqlActionFlow(threadId)).log("sqlAction")
       .batch(sqlBatchSize, ArrayBuffer(_))(_ :+ _).log("batch").mapAsync(1) { sqlActions =>
-        db.run(DBIO.sequence(sqlActions.result.toVector))
+        val tc = Kamon.tracer.newContext("thread-rmu", token = None, tags = Map("function" -> "write-records-time"))
+        Future.successful(tc).flatMap { tc =>
+          db.run(DBIO.sequence(sqlActions.result.toVector)).flatMap { result =>
+              tc.finish
+              Future.successful(result)
+            }.recoverWith {
+              case ex =>
+                tc.finishWithError(ex)
+                Future.failed(ex)
+            }
+        }
+      }.map { results =>
+        writeRecordsCounter.increment(results.length.toLong)
+        results
       }
       .log("run")
       .withAttributes(logLevels)

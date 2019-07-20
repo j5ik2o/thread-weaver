@@ -11,12 +11,12 @@ private[adaptor] class CreateThreadPresenterImpl extends CreateThreadPresenter {
     Flow[CreateThreadResponse].map {
       case f: CreateThreadFailed =>
         CreateThreadResponseJson(
-          threadId = None,
+          thread_id = None,
           error_messages = Seq(f.message)
         )
       case s: CreateThreadSucceeded =>
         CreateThreadResponseJson(
-          threadId = Some(s.threadId.value.asString),
+          thread_id = Some(s.threadId.value.asString),
           error_messages = Seq.empty
         )
     }
