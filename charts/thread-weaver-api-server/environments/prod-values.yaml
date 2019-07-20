@@ -21,17 +21,17 @@ service:
     internalPort: 8558
 resources:
   requests:
-    cpu: 2
+    cpu: 3
     memory: 4Gi
   limits:
-    cpu: 2
+    cpu: 3
     memory: 4Gi
 slick:
   url: jdbc:mysql://j5ik2o-rds-cluster-aurora.cluster-ctywrcabnmgr.ap-northeast-1.rds.amazonaws.com:3306/thread_weaver?useSSL=false
   user: root
-  maxPoolSize: 10
-  minIdleSize: 10
-  numThreads: 16
+  maxPoolSize: 64
+  minIdleSize: 32
+  numThreads: 64
   queueSize: 1000
   connectionTimeout: 30
   idleTimeout: 30

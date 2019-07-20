@@ -70,6 +70,10 @@ spec:
             value: {{.Values.dynamodb.snapshotTableName | quote}}
           - name: THREAD_WEAVER_DYNAMO_READ_JOUNAL_TABLE_NAME
             value: {{.Values.dynamodb.readJournalTableName | quote}}
+          - name: DATADOG_HOSTNAME
+            valueFrom:
+              fieldRef:
+                fieldPath: status.hostIP
         ports:
         - name: {{ .Values.service.api.name }}
           containerPort: {{ .Values.service.api.internalPort }}
