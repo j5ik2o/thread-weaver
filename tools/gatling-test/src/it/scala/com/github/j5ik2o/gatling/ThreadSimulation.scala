@@ -31,29 +31,30 @@ class ThreadSimulation extends Simulation {
 
   private val threadIdKey  = "thread_id"
   private val accountIdKey = "account_id"
-  private val titleKey     = "title"
-  private val createAtKey  = "create_at"
 
   val scn = scenario(getClass.getName)
-    .exec { session =>
-      session
-        .set(accountIdKey, ULID().asString)
-        .set(titleKey, ULID().asString)
-        .set(createAtKey, new Date().getTime)
-    }.forever {
-      exec(createThread(threadIdKey))
+    .forever {
+      feed(randomFeeder)
+        .exec(createThread)
         .pause(pauseDuration)
-        .exec(getThread(threadIdKey))
+        .exec(getThread)
     }
 
   setUp(
     scn.inject(rampUsers(numOfUser).during(rampDuration))
   ).protocols(httpConf).maxDuration(entireDuration)
 
-  private def getThread(threadIdInKey: String): HttpRequestBuilder = {
+  private def randomFeeder: Iterator[Map[String, String]] =
+    Iterator.continually(
+      Map(
+        accountIdKey -> ULID().asString
+      )
+    )
+
+  private def getThread: HttpRequestBuilder = {
     http("get-thread")
       .get { session =>
-        val threadId  = session(threadIdInKey).as[String]
+        val threadId  = session(threadIdKey).as[String]
         val accountId = session(accountIdKey).as[String]
         s"$endpoint/threads/$threadId?account_id=$accountId"
       }
@@ -61,8 +62,8 @@ class ThreadSimulation extends Simulation {
       .check(jsonPath("$.result.id").find.exists)
   }
 
-  private def createThread(threadIdOutKey: String): HttpRequestBuilder =
-    http("threads_create")
+  private def createThread: HttpRequestBuilder =
+    http("create-thread")
       .post(s"$endpoint/threads/create")
       .headers(jsonContentHeader)
       .body(
@@ -71,14 +72,14 @@ class ThreadSimulation extends Simulation {
           CreateThreadRequestJson(
             accountId = accountId,
             parentThreadId = None,
-            title = session(titleKey).as[String],
+            title = ULID().asString,
             remarks = None,
             administratorIds = Seq(accountId),
             memberIds = Seq(accountId),
-            createAt = session(createAtKey).as[Long]
+            createAt = new Date().getTime()
           ).asJson.noSpaces
         }
       )
       .check(status.is(200))
-      .check(jsonPath("$['threadId']").find.transform(_.toString).exists.saveAs(threadIdOutKey))
+      .check(jsonPath("$['thread_id']").find.transform(_.toString).exists.saveAs(threadIdKey))
 }
