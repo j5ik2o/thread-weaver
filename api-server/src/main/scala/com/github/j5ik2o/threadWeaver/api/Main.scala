@@ -73,7 +73,7 @@ object Main extends App {
   val akkaHealthCheck = HealthCheck.akka(host, port)
 
   val design =
-    DISettings.design(host, port, system.toTyped, clusterSharding, materializer, readJournal, profile, db, 15 seconds)
+    DISettings.design(host, port, system.toTyped, clusterSharding, materializer, readJournal, profile, db, 3 seconds)
   val session = design.newSession
   session.start
 

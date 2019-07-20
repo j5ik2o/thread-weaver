@@ -37,7 +37,8 @@ object Dependencies {
     val akka = "io.kamon" %% "kamon-akka-2.5" % version excludeAll (
       ExclusionRule(organization = "log4j"),
       ExclusionRule(organization = "org.slf4j"),
-      ExclusionRule(organization = "org.scala-lang.modules")
+      ExclusionRule(organization = "org.scala-lang.modules"),
+      ExclusionRule(organization = "com.typesafe.akka")
     )
 
     val akkaHttp = "io.kamon" %% "kamon-akka-http" % "0.6.8" excludeAll (

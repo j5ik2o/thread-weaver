@@ -1,6 +1,6 @@
 FROM openjdk:8-jre-alpine
 
-RUN apk --no-cache add --update bash openssl curl
+RUN apk --no-cache add --update bash openssl curl mysql-client
 
 # Add the flyway user and step in the directory
 RUN adduser -S -h /flyway -D flyway

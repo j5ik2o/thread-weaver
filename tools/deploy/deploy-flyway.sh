@@ -55,6 +55,6 @@ if [[ "${ENV_NAME}" = "prod" ]]; then
 
 fi
 
-helm install ${BASE_DIR} -f ${BASE_DIR}/environments/${ENV_NAME}-values.yaml --namespace gaudi-poc
+helm install ${BASE_DIR} -f ${BASE_DIR}/environments/${ENV_NAME}-values.yaml --namespace thread-weaver
 
 popd

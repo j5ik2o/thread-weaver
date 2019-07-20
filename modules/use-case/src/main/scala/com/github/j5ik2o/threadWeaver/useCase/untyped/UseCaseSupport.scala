@@ -23,8 +23,8 @@ trait UseCaseSupport {
       case ex: akka.pattern.AskTimeoutException =>
         if (maxRetries > 0) {
           // Recursive call, it's OK as Monix is stack-safe
-          logger.info(s"Retrying...: $retryMessage")
-          retryBackoff(sourceFuture, maxRetries - 1, firstDelay * 2)
+          logger.info(s"Retrying($maxRetries)...: $retryMessage")
+          retryBackoff(sourceFuture, maxRetries - 1, firstDelay * 2, retryMessage)
             .delayExecution(firstDelay)
         } else
           Task.raiseError(ex)
