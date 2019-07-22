@@ -16,6 +16,8 @@ import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.{
 }
 import com.github.j5ik2o.threadWeaver.domain.model.threads.ThreadId
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
+import kamon.Kamon
+import kamon.trace.TraceContext
 import slick.jdbc.JdbcProfile
 
 object PersistentThreadAggregate {
@@ -35,7 +37,7 @@ object PersistentThreadAggregate {
 
 }
 
-@SuppressWarnings(Array("org.wartremover.warts.Var"))
+@SuppressWarnings(Array("org.wartremover.warts.Var", "org.wartremover.warts.Null"))
 class PersistentThreadAggregate(
     id: ThreadId,
     subscribers: Seq[ActorRef],
@@ -62,6 +64,8 @@ class PersistentThreadAggregate(
 
   private var readModelUpdaterRef = generateReadModelUpdaterRef
 
+  private var recoveryContext: TraceContext = _
+
   private val childRef =
     context.actorOf(propsF(id, subscribers), name = ThreadAggregate.name(id))
 
@@ -70,6 +74,7 @@ class PersistentThreadAggregate(
   override def preStart(): Unit = {
     super.preStart()
     readModelUpdaterRef.foreach(_ ! ThreadReadModelUpdaterProtocol.Start(ULID(), id, Instant.now()))
+    recoveryContext = Kamon.tracer.newContext("recovery")
   }
 
   override def postStop(): Unit = {
@@ -82,21 +87,26 @@ class PersistentThreadAggregate(
     case e: ThreadCommonProtocol.Event with ToCommandRequest =>
       childRef ! e.toCommandRequest
     case RecoveryCompleted =>
+      recoveryContext.finish()
       log.debug("recovery completed")
   }
 
-  private def sending(replyTo: ActorRef, event: ThreadCommonProtocol.Event): Receive = {
+  private def sending(commandContext: TraceContext, replyTo: ActorRef, event: ThreadCommonProtocol.Event): Receive = {
     case s: CommandSuccessResponse =>
-      persist(event) { _ =>
+      val segment = commandContext.startSegment("persist", "interface-adaptor", "thread-weaver")
+      persistAsync(event) { _ =>
         log.info(s"persist: $event")
         replyTo ! s
         unstashAll()
         context.unbecome()
+        segment.finish()
+        commandContext.finish()
       }
     case f: CommandFailureResponse =>
       replyTo ! f
       unstashAll()
       context.unbecome()
+      commandContext.finishWithError(new Exception(f.message))
     case _ =>
       stash()
   }
@@ -107,8 +117,9 @@ class PersistentThreadAggregate(
     case Terminated(c) if readModelUpdaterRef.contains(c) =>
       readModelUpdaterRef = generateReadModelUpdaterRef
     case m: CommandRequest with ToEvent =>
+      val commandContext = Kamon.tracer.newContext("command")
       childRef ! m
-      context.become(sending(sender(), m.toEvent))
+      context.become(sending(commandContext, sender(), m.toEvent))
     case m =>
       childRef forward m
   }

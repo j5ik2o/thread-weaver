@@ -50,5 +50,7 @@ class ShardedThreadAggregates(
     case StopThread =>
       log.debug("StopWallet")
       context.stop(self)
+    case msg =>
+      super.unhandled(msg)
   }
 }

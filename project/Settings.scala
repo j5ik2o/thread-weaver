@@ -256,13 +256,13 @@ object Settings {
                               (runTaskAwaitDuration in gatling).value,
                               "j5ik2o-gatling-runner")
       },
-      "TW_GATLING_COUNT"                    -> "3",
+      "TW_GATLING_COUNT"                    -> "10",
       "TW_GATLING_PAUSE_DURATION"           -> "3s",
       "TW_GATLING_RAMP_DURATION"            -> "200s",
-      "TW_GATLING_HOLD_DURATION"            -> "3m",
+      "TW_GATLING_HOLD_DURATION"            -> "5m",
       "TW_GATLING_TARGET_ENDPOINT_BASE_URL" -> s"http://${sys.env("TW_GATLING_TARGET_HOST")}:8080/v1",
       "TW_GATLING_SIMULATION_CLASS"         -> "com.github.j5ik2o.gatling.ThreadSimulation",
-      "TW_GATLING_USERS"                    -> "3",
+      "TW_GATLING_USERS"                    -> "10",
       "TW_GATLING_REPORTER_TASK_DEFINITION" -> {
         getTaskDefinitionName((runTaskEcsClient in gatling).value,
                               (runTaskAwaitDuration in gatling).value,

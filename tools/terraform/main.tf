@@ -189,8 +189,8 @@ module "dynamodb_journal_table" {
   autoscale_read_target        = 50
   autoscale_min_read_capacity  = 1000
   autoscale_max_read_capacity  = 2000
-  autoscale_min_write_capacity = 60
-  autoscale_max_write_capacity = 120
+  autoscale_min_write_capacity = 100
+  autoscale_max_write_capacity = 300
 }
 
 module "dynamodb_snapshot_table" {
@@ -206,10 +206,10 @@ module "dynamodb_snapshot_table" {
   enable_autoscaler            = true
   autoscale_write_target       = 50
   autoscale_read_target        = 50
-  autoscale_min_read_capacity  = 5
-  autoscale_max_read_capacity  = 20
-  autoscale_min_write_capacity = 5
-  autoscale_max_write_capacity = 20
+  autoscale_min_read_capacity  = 50
+  autoscale_max_read_capacity  = 100
+  autoscale_min_write_capacity = 50
+  autoscale_max_write_capacity = 100
 }
 
 module "gatling" {

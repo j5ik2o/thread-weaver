@@ -60,7 +60,7 @@
         <appender-ref ref="akka-async"/>
     </logger>
 
-    <logger name="com.github.j5ik2o" level="INFO" additivity="false">
+    <logger name="com.github.j5ik2o" level="DEBUG" additivity="false">
         <appender-ref ref="akka-async"/>
     </logger>
 

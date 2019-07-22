@@ -34,7 +34,10 @@ object ThreadProtocol {
     def requestId: ULID
   }
   trait CommandSuccessResponse extends CommandResponse
-  trait CommandFailureResponse extends CommandResponse
+
+  trait CommandFailureResponse extends CommandResponse {
+    def message: String
+  }
 
   // --- スレッドの生成
   final case class CreateThread(
@@ -155,7 +158,7 @@ object ThreadProtocol {
   sealed trait JoinAdministratorIdsResponse extends CommandResponse with CommandSuccessResponse
   final case class JoinAdministratorIdsSucceeded(id: ULID, requestId: ULID, threadId: ThreadId, createAt: Instant)
       extends JoinAdministratorIdsResponse
-      with CommandFailureResponse
+      with CommandSuccessResponse
   final case class JoinAdministratorIdsFailed(
       id: ULID,
       requestId: ULID,
@@ -163,6 +166,7 @@ object ThreadProtocol {
       message: String,
       createAt: Instant
   ) extends JoinAdministratorIdsResponse
+      with CommandFailureResponse
   final case class AdministratorIdsJoined(
       id: ULID,
       threadId: ThreadId,

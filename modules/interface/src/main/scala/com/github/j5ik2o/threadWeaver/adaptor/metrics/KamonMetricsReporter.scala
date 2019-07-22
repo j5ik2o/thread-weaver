@@ -44,6 +44,18 @@ class KamonMetricsReporter extends MetricsReporter {
   override def addAsyncReadHighestSequenceNrCallErrorCounter(value: Long): Unit =
     asyncReadHighestSequenceNrErrorCallCounter.increment(value)
 
+  private val putMessagesEnqueueCounter = Kamon.metrics.counter("put-messages-enqueue")
+  private val putMessagesDequeueCounter = Kamon.metrics.counter("put-messages-dequeue")
+
+  override def addPutMessagesEnqueueCounter(value: Long): Unit = putMessagesEnqueueCounter.increment(value)
+  override def addPutMessagesDequeueCounter(value: Long): Unit = putMessagesDequeueCounter.increment(value)
+
+  private val deleteMessagesEnqueueCounter = Kamon.metrics.counter("delete-messages-enqueue")
+  private val deleteMessagesDequeueCounter = Kamon.metrics.counter("delete-messages-dequeue")
+
+  override def addDeleteMessagesEnqueueCounter(value: Long): Unit = deleteMessagesEnqueueCounter.increment(value)
+  override def addDeleteMessagesDequeueCounter(value: Long): Unit = deleteMessagesDequeueCounter.increment(value)
+
   private val putMessagesCallDuration     = Kamon.metrics.histogram("put-messages-call")
   private val putMessagesCallCounter      = Kamon.metrics.counter("put-messages-call")
   private val putMessagesCallErrorCounter = Kamon.metrics.counter("put-messages-call-error")
