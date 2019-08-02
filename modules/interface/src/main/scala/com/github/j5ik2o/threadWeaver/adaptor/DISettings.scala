@@ -109,7 +109,6 @@ trait DISettings {
       system: ActorSystem[Nothing],
       clusterSharding: ClusterSharding,
       materializer: Materializer,
-      readJournal: ReadJournalType,
       profile: JdbcProfile,
       db: JdbcProfile#Backend#Database,
       aggregateAskTimeout: FiniteDuration
@@ -118,7 +117,6 @@ trait DISettings {
       .designOfUntyped(aggregateAskTimeout)
       .add(designOfSwagger(host, port))
       .add(designOfActorSystem(system, materializer))
-      .add(designOfReadJournal(readJournal))
       .add(designOfSlick(profile, db))
       .add(designOfShardedAggregates(clusterSharding))
       .add(designOfRestControllers)

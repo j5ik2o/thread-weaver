@@ -60,10 +60,9 @@ object Main extends App {
     classOf[ClusterDomainEvent]
   )
 
-  val readJournal = PersistenceQuery(system).readJournalFor[DynamoDBReadJournal](DynamoDBReadJournal.Identifier)
-  val dbConfig    = DatabaseConfig.forConfig[JdbcProfile]("slick", config)
-  val profile     = dbConfig.profile
-  val db          = dbConfig.db
+  val dbConfig = DatabaseConfig.forConfig[JdbcProfile]("slick", config)
+  val profile  = dbConfig.profile
+  val db       = dbConfig.db
 
   val clusterSharding = ClusterSharding(system.toTyped)
 
@@ -73,12 +72,12 @@ object Main extends App {
   val akkaHealthCheck = HealthCheck.akka(host, port)
 
   val design =
-    DISettings.design(host, port, system.toTyped, clusterSharding, materializer, readJournal, profile, db, 3 seconds)
+    DISettings.design(host, port, system.toTyped, clusterSharding, materializer, profile, db, 3 seconds)
   val session = design.newSession
   session.start
 
   val routes = session
-      .build[Routes].root ~ readinessProbe(akkaHealthCheck).toRoute ~ livenessProbe(akkaHealthCheck).toRoute
+    .build[Routes].root ~ readinessProbe(akkaHealthCheck).toRoute ~ livenessProbe(akkaHealthCheck).toRoute
 
   val bindingFuture = Http().bindAndHandle(routes, host, port).map { serverBinding =>
     system.log.info(s"Server online at ${serverBinding.localAddress}")
