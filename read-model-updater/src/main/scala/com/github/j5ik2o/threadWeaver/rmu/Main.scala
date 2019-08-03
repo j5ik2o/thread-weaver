@@ -1,4 +1,4 @@
-package com.github.j5ik2o.threadWeaver.api
+package com.github.j5ik2o.threadWeaver.rmu
 
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ ActorSystem, Props }
@@ -12,7 +12,6 @@ import akka.management.scaladsl.AkkaManagement
 import akka.stream.ActorMaterializer
 import com.github.everpeace.healthchecks.k8s._
 import com.github.j5ik2o.threadWeaver.adaptor.DISettings
-import com.github.j5ik2o.threadWeaver.adaptor.http.routes.Routes
 import com.typesafe.config.{ Config, ConfigFactory }
 import kamon.Kamon
 import org.slf4j.LoggerFactory
@@ -35,13 +34,11 @@ object Main extends App {
 
   val config: Config = ConfigFactory.load()
 
-  val journalTableName  = config.getString("dynamo-db-journal.table-name")
-  val snapshotTableName = config.getString("dynamo-db-snapshot.table-name")
+  val readJournalTableName = config.getString("dynamo-db-read-journal.table-name")
 
-  logger.info(s"journalTableName = $journalTableName")
-  logger.info(s"snapshotTableName = $snapshotTableName")
+  logger.info(s"readJournalTableName = $readJournalTableName")
 
-  implicit val system: ActorSystem                        = ActorSystem("thread-weaver-api-server", config)
+  implicit val system: ActorSystem                        = ActorSystem("thread-weaver-read-model-updater", config)
   implicit val materializer: ActorMaterializer            = ActorMaterializer()
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
   implicit val cluster                                    = Cluster(system)
@@ -72,8 +69,7 @@ object Main extends App {
   val session = design.newSession
   session.start
 
-  val routes = session
-      .build[Routes].root ~ readinessProbe(akkaHealthCheck).toRoute ~ livenessProbe(akkaHealthCheck).toRoute
+  val routes = readinessProbe(akkaHealthCheck).toRoute ~ livenessProbe(akkaHealthCheck).toRoute
 
   val bindingFuture = Http().bindAndHandle(routes, host, port).map { serverBinding =>
     system.log.info(s"Server online at ${serverBinding.localAddress}")

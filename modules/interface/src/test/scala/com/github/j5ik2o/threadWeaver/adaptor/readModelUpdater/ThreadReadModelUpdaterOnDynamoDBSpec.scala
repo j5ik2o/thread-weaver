@@ -6,7 +6,6 @@ import akka.actor.ActorSystem
 import akka.persistence.query.PersistenceQuery
 import akka.testkit.{ ImplicitSender, TestKit }
 import com.github.j5ik2o.akka.persistence.dynamodb.query.scaladsl.DynamoDBReadJournal
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.PersistentThreadAggregate.ReadModelUpdaterConfig
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ThreadProtocol._
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.{
   PersistentThreadAggregate,
@@ -113,7 +112,7 @@ class ThreadReadModelUpdaterOnDynamoDBSpec
       }
 
       val threadRef = system.actorOf(
-        PersistentThreadAggregate.props(Some(ReadModelUpdaterConfig(readJournal, dbConfig.profile, dbConfig.db, 1)))(
+        PersistentThreadAggregate.props(
           threadId
         )(Seq.empty)
       )

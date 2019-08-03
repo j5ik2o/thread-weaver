@@ -8,7 +8,6 @@ import akka.persistence.query.journal.leveldb.scaladsl.LeveldbReadJournal
 import akka.testkit.{ ImplicitSender, TestKit }
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.PersistenceCleanup
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.PersistentThreadAggregate
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.PersistentThreadAggregate.ReadModelUpdaterConfig
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ThreadProtocol._
 import com.github.j5ik2o.threadWeaver.adaptor.dao.jdbc.ThreadMessageComponent
 import com.github.j5ik2o.threadWeaver.adaptor.util.{ FlywayWithMySQLSpecSupport, Slick3SpecSupport }
@@ -93,7 +92,7 @@ class ThreadReadModelUpdaterOnLevelDBSpec
       }
 
       val threadRef = system.actorOf(
-        PersistentThreadAggregate.props(Some(ReadModelUpdaterConfig(readJournal, dbConfig.profile, dbConfig.db, 1)))(
+        PersistentThreadAggregate.props(
           threadId
         )(Seq.empty)
       )

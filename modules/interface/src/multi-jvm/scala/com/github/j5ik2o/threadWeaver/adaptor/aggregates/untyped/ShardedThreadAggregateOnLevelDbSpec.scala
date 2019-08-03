@@ -46,11 +46,11 @@ class ShardedThreadAggregateOnLevelDbSpec
     "join cluster" in within(15 seconds) {
       enterBarrier("join node1")
       join(node1, node1) {
-        ShardedThreadAggregatesRegion.startClusterSharding(Seq.empty, None)
+        ShardedThreadAggregatesRegion.startClusterSharding(Seq.empty)
       }
       enterBarrier("join node2")
       join(node2, node1) {
-        ShardedThreadAggregatesRegion.startClusterSharding(Seq.empty, None)
+        ShardedThreadAggregatesRegion.startClusterSharding(Seq.empty)
       }
       enterBarrier("join all nodes to the cluster")
     }
@@ -60,16 +60,18 @@ class ShardedThreadAggregateOnLevelDbSpec
         val threadId  = ThreadId()
         val title     = ThreadTitle("test")
         val threadRef = ShardedThreadAggregatesRegion.shardRegion
-        threadRef ! CreateThread(ULID(),
-                                 threadId,
-                                 accountId,
-                                 None,
-                                 title,
-                                 None,
-                                 AdministratorIds(accountId),
-                                 MemberIds.empty,
-                                 Instant.now,
-                                 reply = true)
+        threadRef ! CreateThread(
+          ULID(),
+          threadId,
+          accountId,
+          None,
+          title,
+          None,
+          AdministratorIds(accountId),
+          MemberIds.empty,
+          Instant.now,
+          reply = true
+        )
         expectMsgType[CreateThreadResponse](10 seconds) match {
           case f: CreateThreadFailed =>
             fail(f.message)

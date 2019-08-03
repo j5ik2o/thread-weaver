@@ -11,9 +11,7 @@ import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.{
   ThreadAggregates
 }
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.PersistentThreadAggregate.ReadModelUpdaterConfig
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ThreadProtocol.ThreadActorRefOfCommandUntypeRef
-import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdater.ReadJournalType
 import slick.jdbc.JdbcProfile
 import wvlet.airframe.{ newDesign, Design }
 
@@ -29,14 +27,13 @@ object DITestSettings extends DISettings {
           name = "local-threads-aggregates-with-persistence"
         )
       }
-      .bind[ThreadActorRefOfCommandUntypeRef].toProvider[ActorSystem[Nothing], ReadJournalType, JdbcProfile, JdbcProfile#Backend#Database] {
-        (actorSystem, readJournal, profile, db) =>
-          actorSystem.toUntyped.actorOf(
-            untyped.ThreadAggregates.props(
-              Seq.empty,
-              untyped.PersistentThreadAggregate.props(Some(ReadModelUpdaterConfig(readJournal, profile, db, 1)))
-            )
+      .bind[ThreadActorRefOfCommandUntypeRef].toProvider[ActorSystem[Nothing]] { actorSystem =>
+        actorSystem.toUntyped.actorOf(
+          untyped.ThreadAggregates.props(
+            Seq.empty,
+            untyped.PersistentThreadAggregate.props
           )
+        )
       }
 
   private[adaptor] def designOfLocalAggregatesWithoutPersistence: Design =
@@ -59,7 +56,6 @@ object DITestSettings extends DISettings {
       system: ActorSystem[Nothing],
       clusterSharding: ClusterSharding,
       materializer: Materializer,
-      readJournal: ReadJournalType,
       profile: JdbcProfile,
       db: JdbcProfile#Backend#Database,
       aggregateAskTimeout: FiniteDuration
@@ -68,7 +64,6 @@ object DITestSettings extends DISettings {
       .design(aggregateAskTimeout)
       .add(designOfSwagger(host, port))
       .add(designOfActorSystem(system, materializer))
-      .add(designOfReadJournal(readJournal))
       .add(designOfSlick(profile, db))
       .add(designOfLocalAggregatesWithPersistence)
       .add(designOfRestControllers)

@@ -7,7 +7,6 @@ import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.stream.Materializer
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ShardedThreadAggregatesProxy
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol.ThreadActorRefOfCommandTypeRef
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.PersistentThreadAggregate.ReadModelUpdaterConfig
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ShardedThreadAggregatesRegion
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ThreadProtocol.ThreadActorRefOfCommandUntypeRef
 import com.github.j5ik2o.threadWeaver.adaptor.grpc.service.{
@@ -98,8 +97,7 @@ trait DISettings {
         JdbcProfile#Backend#Database
       ] { (actorSystem, readJournal, profile, db) =>
         ShardedThreadAggregatesRegion.startClusterSharding(
-          Seq.empty,
-          Some(ReadModelUpdaterConfig(readJournal, profile, db, 10))
+          Seq.empty
         )(actorSystem)
       }
 

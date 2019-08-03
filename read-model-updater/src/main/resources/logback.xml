@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <property name="envName" value="${ENV_NAME:-development}"/>
+    <property name="appName" value="thread-weaver-api-server}"/>
+
+    <if condition='property("envName").startsWith("production") || property("envName").startsWith("staging")'>
+        <then>
+            <appender name="default" class="ch.qos.logback.core.ConsoleAppender">
+                <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                    <fieldNames>
+                        <levelValue>[ignore]</levelValue>
+                    </fieldNames>
+                    <customFields>
+                        { "applicationName": "${appName}" }
+                    </customFields>
+                    <excludeMdcKeyName>akkaTimestamp</excludeMdcKeyName>
+                    <excludeMdcKeyName>sourceActorSystem</excludeMdcKeyName>
+                    <excludeMdcKeyName>sourceThread</excludeMdcKeyName>
+                </encoder>
+            </appender>
+            <appender name="akka" class="ch.qos.logback.core.ConsoleAppender">
+                <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                    <fieldNames>
+                        <levelValue>[ignore]</levelValue>
+                    </fieldNames>
+                    <customFields>
+                        { "applicationName": "${appName}" }
+                    </customFields>
+                    <excludeMdcKeyName>akkaTimestamp</excludeMdcKeyName>
+                    <excludeMdcKeyName>sourceActorSystem</excludeMdcKeyName>
+                    <excludeMdcKeyName>sourceThread</excludeMdcKeyName>
+                </encoder>
+            </appender>
+        </then>
+        <else>
+            <appender name="default" class="ch.qos.logback.core.ConsoleAppender">
+                <encoder>
+                    <pattern>[%level] [%date{yyyy-MM-dd'T'HH:mm:ss.SSSZ}] [%thread] [%logger{36}] - %msg%n</pattern>
+                </encoder>
+            </appender>
+            <appender name="akka" class="ch.qos.logback.core.ConsoleAppender">
+                <encoder>
+                    <pattern>[%level] [%date{yyyy-MM-dd'T'HH:mm:ss.SSSZ}] [%X{sourceThread}] [%logger{36}] [%X{akkaSource}] - %msg%n
+                    </pattern>
+                </encoder>
+            </appender>
+        </else>
+    </if>
+
+    <appender name="async" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="default"/>
+    </appender>
+
+    <appender name="akka-async" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="akka"/>
+    </appender>
+
+    <logger name="akka.actor" level="INFO" additivity="false">
+        <appender-ref ref="akka-async"/>
+    </logger>
+
+    <logger name="com.github.j5ik2o" level="DEBUG" additivity="false">
+        <appender-ref ref="akka-async"/>
+    </logger>
+
+    <logger name="akka.management" level="ERROR"/>
+
+    <logger name="slick.jdbc.JdbcBackend.statement"  level="DEBUG" />
+
+    <root level="INFO">
+        <appender-ref ref="async"/>
+    </root>
+
+</configuration>

@@ -50,15 +50,15 @@ class ShardedThreadAggregateOnDynamoDbSpec
     "join cluster" in within(15 seconds) {
       enterBarrier("join controller")
       join(controller, controller) {
-        ShardedThreadAggregatesRegion.startClusterSharding(Seq.empty, None)
+        ShardedThreadAggregatesRegion.startClusterSharding(Seq.empty)
       }
       enterBarrier("join node1")
       join(node1, controller) {
-        ShardedThreadAggregatesRegion.startClusterSharding(Seq.empty, None)
+        ShardedThreadAggregatesRegion.startClusterSharding(Seq.empty)
       }
       enterBarrier("join node2")
       join(node2, controller) {
-        ShardedThreadAggregatesRegion.startClusterSharding(Seq.empty, None)
+        ShardedThreadAggregatesRegion.startClusterSharding(Seq.empty)
       }
       enterBarrier("join all nodes to the cluster")
     }
@@ -68,16 +68,18 @@ class ShardedThreadAggregateOnDynamoDbSpec
         val threadId  = ThreadId()
         val title     = ThreadTitle("test")
         val threadRef = ShardedThreadAggregatesRegion.shardRegion
-        threadRef ! CreateThread(ULID(),
-                                 threadId,
-                                 accountId,
-                                 None,
-                                 title,
-                                 None,
-                                 AdministratorIds(accountId),
-                                 MemberIds.empty,
-                                 Instant.now,
-                                 true)
+        threadRef ! CreateThread(
+          ULID(),
+          threadId,
+          accountId,
+          None,
+          title,
+          None,
+          AdministratorIds(accountId),
+          MemberIds.empty,
+          Instant.now,
+          true
+        )
         expectMsgType[CreateThreadResponse](10 seconds) match {
           case f: CreateThreadFailed =>
             fail(f.message)
