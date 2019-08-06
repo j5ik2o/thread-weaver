@@ -1,4 +1,4 @@
-package com.github.j5ik2o.threadWeaver.adaptor.serialization
+package com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater
 
 import com.typesafe.config.Config
 

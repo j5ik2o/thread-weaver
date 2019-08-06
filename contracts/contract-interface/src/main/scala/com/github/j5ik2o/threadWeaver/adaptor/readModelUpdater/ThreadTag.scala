@@ -1,6 +1,5 @@
 package com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater
 
-import com.github.j5ik2o.threadWeaver.adaptor.serialization.ThreadReadModelUpdaterSettings
 import com.github.j5ik2o.threadWeaver.domain.model.threads.ThreadId
 import com.typesafe.config.Config
 

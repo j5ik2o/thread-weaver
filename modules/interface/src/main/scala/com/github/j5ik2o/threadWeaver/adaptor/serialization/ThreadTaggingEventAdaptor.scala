@@ -3,6 +3,7 @@ package com.github.j5ik2o.threadWeaver.adaptor.serialization
 import akka.actor.ExtendedActorSystem
 import akka.persistence.journal.{ Tagged, WriteEventAdapter }
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol
+import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdaterSettings
 
 class ThreadTaggingEventAdaptor(system: ExtendedActorSystem) extends WriteEventAdapter with JournalEventTagPartitioner {
   val settings = ThreadReadModelUpdaterSettings.fromConfig(system.settings.config)

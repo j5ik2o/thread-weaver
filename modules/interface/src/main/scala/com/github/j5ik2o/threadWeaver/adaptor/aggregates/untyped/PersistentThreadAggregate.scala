@@ -8,6 +8,7 @@ import akka.persistence.{ PersistentActor, RecoveryCompleted }
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ThreadProtocol._
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdaterProtocol.Start
+import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadTag
 import com.github.j5ik2o.threadWeaver.domain.model.threads.ThreadId
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 import kamon.Kamon
@@ -28,6 +29,8 @@ class PersistentThreadAggregate(
 ) extends PersistentActor
     with ActorLogging {
 
+  implicit val config = context.system.settings.config
+
   override def supervisorStrategy: SupervisorStrategy = OneForOneStrategy() {
     case _: Throwable =>
       Stop
@@ -42,7 +45,7 @@ class PersistentThreadAggregate(
 
   override def preStart(): Unit = {
     super.preStart()
-    subscribers.foreach(_ ! Start(ULID(), id, Instant.now()))
+    subscribers.foreach(_ ! Start(ULID(), ThreadTag.fromThreadId(id), Instant.now()))
     recoveryContext = Kamon.tracer.newContext("recovery")
   }
 
