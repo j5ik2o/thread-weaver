@@ -25,6 +25,13 @@ class ThreadReadModelUpdaterOnLevelDBSpec
         "ThreadReadModelUpdaterOnLevelDBSpec",
         ConfigFactory
           .parseString("""
+          |thread-weaver {
+          |  read-model-updater.thread {
+          |    shard-name = "thread"
+          |    category = "thread"
+          |    num-partition = 1
+          |  }
+          |}
           |akka {
           |  persistence {
           |    journal {
@@ -42,6 +49,14 @@ class ThreadReadModelUpdaterOnLevelDBSpec
           |    }
           |  }
           |}
+          |akka.persistence.journal.leveldb {
+          |  event-adapters {
+          |    thread = "com.github.j5ik2o.threadWeaver.adaptor.serialization.ThreadTaggingEventAdaptor"
+          |  }
+          |  event-adapter-bindings {
+          |    "com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol$Event" = [thread]
+          |  } 
+          |} 
         """.stripMargin).withFallback(
             ConfigFactory.load()
           )
@@ -90,6 +105,11 @@ class ThreadReadModelUpdaterOnLevelDBSpec
           resultMessages.head.body shouldBe "ABC"
         }
       }
+
+      implicit val config = system.settings.config
+
+      val rmu = system.actorOf(ThreadReadModelUpdater.props(readJournal, dbConfig.profile, dbConfig.db))
+      rmu ! ThreadReadModelUpdaterProtocol.Start(ULID(), ThreadTag.fromThreadId(threadId), Instant.now())
 
       val threadRef = system.actorOf(
         PersistentThreadAggregate.props(

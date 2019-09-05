@@ -12,6 +12,7 @@ import akka.management.scaladsl.AkkaManagement
 import akka.stream.ActorMaterializer
 import com.github.everpeace.healthchecks.k8s._
 import com.github.j5ik2o.threadWeaver.adaptor.DISettings
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol.ThreadReadModelUpdaterRef
 import com.typesafe.config.{ Config, ConfigFactory }
 import kamon.Kamon
 import org.slf4j.LoggerFactory
@@ -59,15 +60,28 @@ object Main extends App {
 
   val clusterSharding = ClusterSharding(system.toTyped)
 
-  val host = config.getString("thread-weaver.api-server.host")
-  val port = config.getInt("thread-weaver.api-server.http.port")
-
+  val host            = config.getString("thread-weaver.read-model-updater.host")
+  val port            = config.getInt("thread-weaver.read-model-updater.http.port")
+  val nrOfShardsOfRMU = config.getInt("thread-weaver.read-model-updater.nr-of-shards")
   val akkaHealthCheck = HealthCheck.akka(host, port)
 
-  val design =
-    DISettings.design(host, port, system.toTyped, clusterSharding, materializer, profile, db, 3 seconds)
+  val design = DISettings.designOfRMU(
+    host,
+    port,
+    system.toTyped,
+    clusterSharding,
+    materializer,
+    profile,
+    db,
+    aggregateAskTimeout = 3 seconds,
+    nrOfShardsOfRMU,
+    receiveTimeoutOfRMU = 3 seconds,
+    sqlBatchSizeOfRMU = 1L
+  )
   val session = design.newSession
   session.start
+
+  session.build[ThreadReadModelUpdaterRef]
 
   val routes = readinessProbe(akkaHealthCheck).toRoute ~ livenessProbe(akkaHealthCheck).toRoute
 

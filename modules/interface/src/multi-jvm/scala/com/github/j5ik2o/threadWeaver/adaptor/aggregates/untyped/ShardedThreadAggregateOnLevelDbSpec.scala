@@ -46,11 +46,11 @@ class ShardedThreadAggregateOnLevelDbSpec
     "join cluster" in within(15 seconds) {
       enterBarrier("join node1")
       join(node1, node1) {
-        ShardedThreadAggregatesRegion.startClusterSharding(Seq.empty)
+        ShardedThreadAggregatesRegion.startClusterSharding(10, Seq.empty)
       }
       enterBarrier("join node2")
       join(node2, node1) {
-        ShardedThreadAggregatesRegion.startClusterSharding(Seq.empty)
+        ShardedThreadAggregatesRegion.startClusterSharding(10, Seq.empty)
       }
       enterBarrier("join all nodes to the cluster")
     }

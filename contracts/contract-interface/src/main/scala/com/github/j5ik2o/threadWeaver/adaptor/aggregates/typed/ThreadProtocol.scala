@@ -6,14 +6,13 @@ import akka.actor.typed.ActorRef
 import cats.Id
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol.Event
-import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdaterProtocol
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
 import com.github.j5ik2o.threadWeaver.domain.model.threads._
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 
 object ThreadProtocol {
 
-  type ThreadReadModelUpdaterTypeRef  = ActorRef[ThreadReadModelUpdaterProtocol.CommandRequest]
+  type ThreadReadModelUpdaterRef      = akka.actor.ActorRef
   type ThreadActorRefOfMessageTypeRef = ActorRef[ThreadCommonProtocol.Message]
   type ThreadActorRefOfCommandTypeRef = ActorRef[ThreadProtocol.CommandRequest]
 

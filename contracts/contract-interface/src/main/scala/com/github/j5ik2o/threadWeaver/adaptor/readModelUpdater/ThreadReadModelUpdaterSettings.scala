@@ -7,9 +7,9 @@ case class ThreadReadModelUpdaterSettings(category: String, numPartition: Int, s
 object ThreadReadModelUpdaterSettings {
 
   def fromConfig(config: Config): ThreadReadModelUpdaterSettings = new ThreadReadModelUpdaterSettings(
-    category = config.getString("thread-weaver.read-model-updater.room.category"),
-    numPartition = config.getInt("thread-weaver.read-model-updater.room.num-partition"),
-    shardName = config.getString("thread-weaver.read-model-updater.room.shard-name")
+    category = config.getString("thread-weaver.read-model-updater.thread.category"),
+    numPartition = config.getInt("thread-weaver.read-model-updater.thread.num-partition"),
+    shardName = config.getString("thread-weaver.read-model-updater.thread.shard-name")
   )
 
 }

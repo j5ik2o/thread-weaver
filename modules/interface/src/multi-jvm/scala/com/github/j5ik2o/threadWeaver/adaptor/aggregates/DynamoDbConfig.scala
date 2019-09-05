@@ -22,24 +22,34 @@ object DynamoDbConfig extends MultiNodeConfig {
           |akka.cluster.metrics.enabled=off
           |akka.actor.provider = "cluster"
           |
-          |akka.persistence.journal.plugin = dynamo-db-journal
-          |akka.persistence.snapshot-store.plugin = dynamo-db-snapshot
+          |akka.persistence.journal.plugin = j5ik2o.dynamo-db-journal
+          |akka.persistence.snapshot-store.plugin = j5ik2o.dynamo-db-snapshot
           |
           |passivate-timeout = 60 seconds
           |
-          |dynamo-db-journal {
-          |  dynamodb-client {
-          |    access-key-id = "x"
-          |    secret-access-key = "x"
-          |    endpoint = "http://127.0.0.1:8000/"
+          |thread-weaver {
+          |  read-model-updater.thread {
+          |    shard-name = "thread"
+          |    category = "thread"
+          |    num-partition = 1
           |  }
           |}
           |
-          |dynamo-db-snapshot {
-          |  dynamodb-client {
-          |    access-key-id = "x"
-          |    secret-access-key = "x"
-          |    endpoint = "http://127.0.0.1:8000/"
+          |j5ik2o {
+          |  dynamo-db-journal {
+          |    dynamo-db-client {
+          |      access-key-id = "x"
+          |      secret-access-key = "x"
+          |      endpoint = "http://127.0.0.1:8000/"
+          |    }
+          |  }
+          |
+          |  dynamo-db-snapshot {
+          |    dynamo-db-client {
+          |      access-key-id = "x"
+          |      secret-access-key = "x"
+          |      endpoint = "http://127.0.0.1:8000/"
+          |    }
           |  }
           |}
         """.stripMargin

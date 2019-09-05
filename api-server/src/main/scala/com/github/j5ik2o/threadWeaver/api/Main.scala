@@ -67,8 +67,20 @@ object Main extends App {
 
   val akkaHealthCheck = HealthCheck.akka(host, port)
 
+  val nrOfShardOfAggregates = config.getInt("thread-weaver.api-server.nr-of-shards")
+
   val design =
-    DISettings.design(host, port, system.toTyped, clusterSharding, materializer, profile, db, 3 seconds)
+    DISettings.designOfAPI(
+      host,
+      port,
+      system.toTyped,
+      clusterSharding,
+      materializer,
+      profile,
+      db,
+      3 seconds,
+      nrOfShardOfAggregates
+    )
   val session = design.newSession
   session.start
 

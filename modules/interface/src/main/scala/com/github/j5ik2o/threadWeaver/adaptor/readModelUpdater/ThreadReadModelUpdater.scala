@@ -213,9 +213,10 @@ class ThreadReadModelUpdater(
           .repeat(Kamon.tracer.newContext("thread-rmu", token = None, tags = Map("function" -> "read-events-time"))).flatMapConcat {
             tc =>
               readJournal
-                .eventsByTag(threadTag.value, akka.persistence.query.Sequence(lastSequenceNr)).map { ee =>
-                  tc.finish()
-                  ee
+                .eventsByTag(threadTag.value, akka.persistence.query.Sequence(lastSequenceNr)).log("events-by-tag").map {
+                  ee =>
+                    tc.finish()
+                    ee
                 }.recoverWithRetries(attempts = 1, {
                   case ex =>
                     tc.finishWithError(ex)

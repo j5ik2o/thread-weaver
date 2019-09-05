@@ -25,11 +25,9 @@ object ShardedThreadAggregates {
     case cmd: CommandRequest => (cmd.threadId.value.asString, cmd)
   }
 
-  val extractShardId: ShardRegion.ExtractShardId = {
+  def extractShardId(nrOfShards: Int): ShardRegion.ExtractShardId = {
     case cmd: CommandRequest =>
-      val mostSignificantBits  = cmd.threadId.value.mostSignificantBits  % 3
-      val leastSignificantBits = cmd.threadId.value.leastSignificantBits % 3
-      s"$mostSignificantBits:$leastSignificantBits"
+      (Math.abs(cmd.threadId.value.##) % nrOfShards).toString
   }
 
 }

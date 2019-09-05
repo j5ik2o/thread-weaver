@@ -19,27 +19,43 @@ class PersistentThreadAggregateOnDynamoDBSpec
          |akka {
          |  persistence {
          |    journal {
-         |      plugin = dynamo-db-journal
+         |      plugin = j5ik2o.dynamo-db-journal
          |    }
          |    snapshot-store {
-         |      plugin = dynamo-db-snapshot
+         |      plugin = j5ik2o.dynamo-db-snapshot
          |    }
          |  }
          |}
          |
-         |dynamo-db-journal {
-         |  dynamodb-client {
-         |    access-key-id = "x"
-         |    secret-access-key = "x"
-         |    endpoint = "http://127.0.0.1:${PersistentThreadAggregateOnDynamoDBSpec.dbPort}/"
+         |thread-weaver {
+         |  read-model-updater.thread {
+         |    shard-name = "thread"
+         |    category = "thread"
+         |    num-partition = 1
          |  }
          |}
          |
-         |dynamo-db-snapshot {
-         |  dynamodb-client {
-         |    access-key-id = "x"
-         |    secret-access-key = "x"
-         |    endpoint = "http://127.0.0.1:${PersistentThreadAggregateOnDynamoDBSpec.dbPort}/"
+         |j5ik2o {
+         |  dynamo-db-journal {
+         |    event-adapters {
+         |      thread = "com.github.j5ik2o.threadWeaver.adaptor.serialization.ThreadTaggingEventAdaptor"
+         |    }
+         |    event-adapter-bindings {
+         |      "com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol$$Event" = [thread]
+         |    } 
+         |    dynamo-db-client {
+         |      access-key-id = "x"
+         |      secret-access-key = "x"
+         |      endpoint = "http://127.0.0.1:${PersistentThreadAggregateOnDynamoDBSpec.dbPort}/"
+         |    }
+         |  }
+         |
+         |  dynamo-db-snapshot {
+         |    dynamo-db-client {
+         |      access-key-id = "x"
+         |      secret-access-key = "x"
+         |      endpoint = "http://127.0.0.1:${PersistentThreadAggregateOnDynamoDBSpec.dbPort}/"
+         |    }
          |  }
          |}
       """.stripMargin).withFallback(ConfigFactory.load())

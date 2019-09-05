@@ -22,6 +22,14 @@ object LevelDbConfig extends MultiNodeConfig {
           |akka.cluster.metrics.enabled=off
           |akka.actor.provider = "cluster"
           |
+          |thread-weaver {
+          |  read-model-updater.thread {
+          |    shard-name = "thread"
+          |    category = "thread"
+          |    num-partition = 1
+          |  }
+          |}
+          |
           |akka.persistence.journal.plugin = "akka.persistence.journal.leveldb-shared"
           |akka.persistence.journal.leveldb-shared.store {
           |  native = off

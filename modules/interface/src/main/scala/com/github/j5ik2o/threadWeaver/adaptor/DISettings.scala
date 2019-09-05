@@ -6,7 +6,10 @@ import akka.actor.{ ActorSystem => UntypedActorSystem }
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.stream.Materializer
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ShardedThreadAggregatesProxy
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol.ThreadActorRefOfCommandTypeRef
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol.{
+  ThreadActorRefOfCommandTypeRef,
+  ThreadReadModelUpdaterRef
+}
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ShardedThreadAggregatesRegion
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ThreadProtocol.ThreadActorRefOfCommandUntypeRef
 import com.github.j5ik2o.threadWeaver.adaptor.grpc.service.{
@@ -16,7 +19,9 @@ import com.github.j5ik2o.threadWeaver.adaptor.grpc.service.{
   ThreadQueryServiceImpl
 }
 import com.github.j5ik2o.threadWeaver.adaptor.http.controller._
+import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ShardedThreadReadModelUpdatersRegion
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdater.ReadJournalType
+import com.github.j5ik2o.threadWeaver.adaptor.routing.ThreadToRMURouter
 import com.github.j5ik2o.threadWeaver.adaptor.swagger.SwaggerDocService
 import slick.jdbc.JdbcProfile
 import wvlet.airframe._
@@ -80,9 +85,31 @@ trait DISettings {
     newDesign.bind[ReadJournalType].toInstance(readJournal)
   }
 
-  private[adaptor] def designOfShardedAggregates(
-      clusterSharding: ClusterSharding
-  ): Design =
+  private[adaptor] def designOfReadModelUpdater(
+      receiveTimeout: Duration,
+      nrOfShards: Int,
+      sqlBatchSize: Long
+  ): Design = {
+    newDesign
+      .bind[ThreadReadModelUpdaterRef].toProvider[
+        UntypedActorSystem,
+        ReadJournalType,
+        JdbcProfile,
+        JdbcProfile#Backend#Database
+      ] {
+        case (actorSystem, readJournal, profile, db) =>
+          ShardedThreadReadModelUpdatersRegion.startClusterSharding(
+            receiveTimeout,
+            nrOfShards,
+            readJournal,
+            profile,
+            db,
+            sqlBatchSize
+          )(actorSystem)
+      }
+  }
+
+  private[adaptor] def designOfShardedAggregates(nrOfShards: Int, clusterSharding: ClusterSharding): Design =
     newDesign
       .bind[ThreadActorRefOfCommandTypeRef].toProvider[UntypedActorSystem] { actorSystem =>
         actorSystem.spawn(
@@ -91,17 +118,17 @@ trait DISettings {
         )
       }
       .bind[ThreadActorRefOfCommandUntypeRef].toProvider[
-        UntypedActorSystem,
-        ReadJournalType,
-        JdbcProfile,
-        JdbcProfile#Backend#Database
-      ] { (actorSystem, readJournal, profile, db) =>
+        UntypedActorSystem
+      ] { actorSystem =>
+        val router =
+          actorSystem.actorOf(ThreadToRMURouter.props(ShardedThreadReadModelUpdatersRegion.shardRegion(actorSystem)))
         ShardedThreadAggregatesRegion.startClusterSharding(
-          Seq.empty
+          nrOfShards,
+          Seq(router)
         )(actorSystem)
       }
 
-  def design(
+  def designOfRMU(
       host: String,
       port: Int,
       system: ActorSystem[Nothing],
@@ -109,14 +136,33 @@ trait DISettings {
       materializer: Materializer,
       profile: JdbcProfile,
       db: JdbcProfile#Backend#Database,
-      aggregateAskTimeout: FiniteDuration
+      aggregateAskTimeout: FiniteDuration,
+      nrOfShardsOfRMU: Int,
+      receiveTimeoutOfRMU: Duration,
+      sqlBatchSizeOfRMU: Long
+  ): Design =
+    newDesign
+      .add(designOfActorSystem(system, materializer))
+      .add(designOfSlick(profile, db))
+      .add(designOfReadModelUpdater(receiveTimeoutOfRMU, nrOfShardsOfRMU, sqlBatchSizeOfRMU))
+
+  def designOfAPI(
+      host: String,
+      port: Int,
+      system: ActorSystem[Nothing],
+      clusterSharding: ClusterSharding,
+      materializer: Materializer,
+      profile: JdbcProfile,
+      db: JdbcProfile#Backend#Database,
+      aggregateAskTimeout: FiniteDuration,
+      nrOfShardOfAggregates: Int
   ): Design =
     com.github.j5ik2o.threadWeaver.useCase.DISettings
       .designOfUntyped(aggregateAskTimeout)
       .add(designOfSwagger(host, port))
       .add(designOfActorSystem(system, materializer))
       .add(designOfSlick(profile, db))
-      .add(designOfShardedAggregates(clusterSharding))
+      .add(designOfShardedAggregates(nrOfShardOfAggregates, clusterSharding))
       .add(designOfRestControllers)
       .add(designOfRestPresenters)
 

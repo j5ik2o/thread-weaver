@@ -5,7 +5,7 @@ import akka.cluster.sharding.{ ClusterSharding, ClusterShardingSettings }
 
 object ShardedThreadAggregatesRegion {
 
-  def startClusterSharding(subscribers: Seq[ActorRef])(
+  def startClusterSharding(nrOfShards: Int, subscribers: Seq[ActorRef])(
       implicit system: ActorSystem
   ): ActorRef =
     ClusterSharding(system).start(
@@ -13,7 +13,7 @@ object ShardedThreadAggregatesRegion {
       ShardedThreadAggregates.props(subscribers, PersistentThreadAggregate.props),
       ClusterShardingSettings(system),
       ShardedThreadAggregates.extractEntityId,
-      ShardedThreadAggregates.extractShardId
+      ShardedThreadAggregates.extractShardId(nrOfShards)
     )
 
   def shardRegion(implicit system: ActorSystem): ActorRef =
