@@ -153,7 +153,7 @@ val interface = (project in file("modules/interface"))
         "com.typesafe.akka"          %% "akka-http"                   % akkaHttpVersion,
         "de.heikoseeberger"          %% "akka-http-circe"             % "1.25.2",
         "ch.megard"                  %% "akka-http-cors"              % "0.4.0",
-        "com.github.j5ik2o"          %% "akka-persistence-dynamodb"   % "1.0.6-SNAPSHOT",
+        "com.github.j5ik2o"          %% "akka-persistence-dynamodb"   % "1.0.8",
         "com.typesafe.akka"          %% "akka-testkit"                % akkaVersion % Test,
         "com.typesafe.akka"          %% "akka-actor-testkit-typed"    % akkaVersion % Test,
         "com.typesafe.akka"          %% "akka-multi-node-testkit"     % akkaVersion % Test,
