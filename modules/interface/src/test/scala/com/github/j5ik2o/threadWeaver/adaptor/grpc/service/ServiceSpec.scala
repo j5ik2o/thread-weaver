@@ -3,12 +3,13 @@ package com.github.j5ik2o.threadWeaver.adaptor.grpc.service
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ typed, ActorSystem }
 import akka.persistence.query.PersistenceQuery
-import akka.persistence.query.journal.leveldb.scaladsl.LeveldbReadJournal
 import akka.stream.typed.scaladsl.ActorMaterializer
 import akka.testkit.TestKit
+import com.github.j5ik2o.akka.persistence.dynamodb.query.scaladsl.DynamoDBReadJournal
 import com.github.j5ik2o.threadWeaver.adaptor.{ DISettings, DITestSettings }
 import org.scalatest.{ BeforeAndAfterAll, TestSuite }
 import wvlet.airframe.{ Design, Session }
+
 import scala.concurrent.duration._
 
 trait ServiceSpec extends BeforeAndAfterAll {
@@ -29,11 +30,12 @@ trait ServiceSpec extends BeforeAndAfterAll {
       .add(DISettings.designOfActorSystem(typedActorSystem, materializer))
       .add(
         DISettings.designOfReadJournal(
-          PersistenceQuery(system).readJournalFor[LeveldbReadJournal](LeveldbReadJournal.Identifier)
+          PersistenceQuery(system).readJournalFor[DynamoDBReadJournal](DynamoDBReadJournal.Identifier)
         )
       )
       .add(DISettings.designOfGrpcPresenters)
       .add(DISettings.designOfGrpcServices)
+      .add(DITestSettings.designOfLocalReadModelUpdater(10))
       .add(DITestSettings.designOfLocalAggregatesWithPersistence)
 
   override def beforeAll: Unit = {

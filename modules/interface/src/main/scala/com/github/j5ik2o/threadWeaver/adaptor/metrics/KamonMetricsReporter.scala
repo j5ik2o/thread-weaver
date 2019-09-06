@@ -83,6 +83,10 @@ class KamonMetricsReporter extends MetricsReporter {
   override def addGetJournalRowsItemCallErrorCounter(value: Long): Unit =
     getJournalRowsItemCallErrorCounter.increment(value)
 
+  override def addGetJournalRowsCallCounter(value: Long): Unit      = {}
+  override def setGetJournalRowsCallDuration(value: Long): Unit     = {}
+  override def addGetJournalRowsCallErrorCounter(value: Long): Unit = {}
+
   private val updateMessageCallDuration     = Kamon.metrics.histogram("update-message-call")
   private val updateMessageCallCounter      = Kamon.metrics.counter("update-message-call")
   private val updateMessageCallErrorCounter = Kamon.metrics.counter("update-message-call-error")

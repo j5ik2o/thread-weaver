@@ -11,6 +11,7 @@ trait ThreadComponent extends SlickDaoSupport {
   case class ThreadRecordImpl(
       id: String,
       deleted: Boolean,
+      persistenceTag: String,
       sequenceNr: Long,
       creatorId: String,
       parentId: Option[String],
@@ -27,6 +28,7 @@ trait ThreadComponent extends SlickDaoSupport {
       with SoftDeletableTableSupport[ThreadRecordImpl] {
     def id: Rep[String]                           = column[String]("id")
     def deleted: Rep[Boolean]                     = column[Boolean]("deleted")
+    def persistenceTag: Rep[String]               = column[String]("persistence_tag")
     def sequenceNr: Rep[Long]                     = column[Long]("sequence_nr")
     def creatorId: Rep[String]                    = column[String]("creator_id")
     def parentId: Rep[Option[String]]             = column[Option[String]]("parent_id")
@@ -37,7 +39,7 @@ trait ThreadComponent extends SlickDaoSupport {
     def removedAt: Rep[Option[java.time.Instant]] = column[Option[java.time.Instant]]("removed_at")
     def pk: PrimaryKey                            = primaryKey("pk", (id))
     override def * : ProvenShape[ThreadRecordImpl] =
-      (id, deleted, sequenceNr, creatorId, parentId, title, remarks, createdAt, updatedAt, removedAt) <> (ThreadRecordImpl.tupled, ThreadRecordImpl.unapply)
+      (id, deleted, persistenceTag, sequenceNr, creatorId, parentId, title, remarks, createdAt, updatedAt, removedAt) <> (ThreadRecordImpl.tupled, ThreadRecordImpl.unapply)
   }
 
   object ThreadDao extends TableQuery(Threads)

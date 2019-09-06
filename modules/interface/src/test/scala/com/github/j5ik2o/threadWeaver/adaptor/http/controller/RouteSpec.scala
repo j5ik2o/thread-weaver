@@ -4,9 +4,9 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.http.scaladsl.model.{ HttpEntity, MediaTypes }
 import akka.http.scaladsl.testkit.{ RouteTestTimeout, ScalatestRouteTest }
 import akka.persistence.query.PersistenceQuery
-import akka.persistence.query.journal.leveldb.scaladsl.LeveldbReadJournal
 import akka.testkit.TestKit
 import akka.util.ByteString
+import com.github.j5ik2o.akka.persistence.dynamodb.query.scaladsl.DynamoDBReadJournal
 import com.github.j5ik2o.threadWeaver.adaptor.{ DISettings, DITestSettings }
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import io.circe.Encoder
@@ -38,11 +38,12 @@ trait RouteSpec extends ScalatestRouteTest with Matchers with BeforeAndAfterAll 
       .add(DISettings.designOfActorSystem(system.toTyped, materializer))
       .add(
         DISettings.designOfReadJournal(
-          PersistenceQuery(system).readJournalFor[LeveldbReadJournal](LeveldbReadJournal.Identifier)
+          PersistenceQuery(system).readJournalFor[DynamoDBReadJournal](DynamoDBReadJournal.Identifier)
         )
       )
       .add(DISettings.designOfRestPresenters)
       .add(DISettings.designOfRestControllers)
+      .add(DITestSettings.designOfLocalReadModelUpdater(10))
       .add(DITestSettings.designOfLocalAggregatesWithPersistence)
 
   override def beforeAll(): Unit = {

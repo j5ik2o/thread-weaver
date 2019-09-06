@@ -3,7 +3,6 @@ package com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped
 import akka.actor.{ ActorRef, Props, ReceiveTimeout }
 import akka.cluster.sharding.ShardRegion
 import akka.cluster.sharding.ShardRegion.Passivate
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.PersistentThreadAggregate.ReadModelUpdaterConfig
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ShardedThreadAggregates.StopThread
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ThreadProtocol.CommandRequest
 import com.github.j5ik2o.threadWeaver.domain.model.threads.ThreadId
@@ -12,10 +11,9 @@ object ShardedThreadAggregates {
 
   def props(
       subscribers: Seq[ActorRef],
-      propsF: Option[ReadModelUpdaterConfig] => ThreadId => Seq[ActorRef] => Props,
-      readModelUpdaterConfig: Option[ReadModelUpdaterConfig]
+      propsF: ThreadId => Seq[ActorRef] => Props
   ): Props =
-    Props(new ShardedThreadAggregates(subscribers, propsF, readModelUpdaterConfig))
+    Props(new ShardedThreadAggregates(subscribers, propsF))
 
   def name(id: ThreadId): String = id.value.asString
 
@@ -27,20 +25,17 @@ object ShardedThreadAggregates {
     case cmd: CommandRequest => (cmd.threadId.value.asString, cmd)
   }
 
-  val extractShardId: ShardRegion.ExtractShardId = {
+  def extractShardId(nrOfShards: Int): ShardRegion.ExtractShardId = {
     case cmd: CommandRequest =>
-      val mostSignificantBits  = cmd.threadId.value.mostSignificantBits  % 3
-      val leastSignificantBits = cmd.threadId.value.leastSignificantBits % 3
-      s"$mostSignificantBits:$leastSignificantBits"
+      (Math.abs(cmd.threadId.value.##) % nrOfShards).toString
   }
 
 }
 
 class ShardedThreadAggregates(
     subscribers: Seq[ActorRef],
-    propsF: Option[ReadModelUpdaterConfig] => ThreadId => Seq[ActorRef] => Props,
-    readModelUpdaterConfig: Option[ReadModelUpdaterConfig]
-) extends ThreadAggregates(subscribers, propsF(readModelUpdaterConfig)) {
+    propsF: ThreadId => Seq[ActorRef] => Props
+) extends ThreadAggregates(subscribers, propsF) {
   context.setReceiveTimeout(Settings(context.system).passivateTimeout)
 
   override def unhandled(message: Any): Unit = message match {

@@ -17,6 +17,8 @@ final case class AdministratorIds(breachEncapsulationOfValues: NonEmptyList[Acco
       Right(AdministratorIds(list.head, list.tail: _*))
   }
 
+  def valuesAsString: Seq[String] = breachEncapsulationOfValues.toList.map(_.value.asString)
+
 }
 
 object AdministratorIds {

@@ -40,8 +40,8 @@ val `contract-use-case` = (project in file("contracts/contract-use-case"))
   .settings(
     name := "thread-weaver-contract-use-case",
     libraryDependencies ++= Seq(
-        "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
-      "com.typesafe.akka"          %% "akka-stream-typed"           % akkaVersion
+        "com.typesafe.akka" %% "akka-actor-typed"  % akkaVersion,
+        "com.typesafe.akka" %% "akka-stream-typed" % akkaVersion
       )
   )
   .dependsOn(`domain`)
@@ -72,7 +72,7 @@ val `contract-interface` = (project in file("contracts/contract-interface"))
         "io.swagger.core.v3"           % "swagger-models"        % swaggerVersion,
         "io.swagger.core.v3"           % "swagger-jaxrs2"        % swaggerVersion
       ),
-      libraryDependencies ++= Kamon.all
+    libraryDependencies ++= Kamon.all
   )
   .dependsOn(`contract-use-case`, `contract-grpc-proto-interface`, `contract-http-proto-interface`)
 
@@ -153,7 +153,7 @@ val interface = (project in file("modules/interface"))
         "com.typesafe.akka"          %% "akka-http"                   % akkaHttpVersion,
         "de.heikoseeberger"          %% "akka-http-circe"             % "1.25.2",
         "ch.megard"                  %% "akka-http-cors"              % "0.4.0",
-        "com.github.j5ik2o"          %% "akka-persistence-dynamodb"   % "1.0.3-SNAPSHOT",
+        "com.github.j5ik2o"          %% "akka-persistence-dynamodb"   % "1.0.8",
         "com.typesafe.akka"          %% "akka-testkit"                % akkaVersion % Test,
         "com.typesafe.akka"          %% "akka-actor-testkit-typed"    % akkaVersion % Test,
         "com.typesafe.akka"          %% "akka-multi-node-testkit"     % akkaVersion % Test,
@@ -166,7 +166,7 @@ val interface = (project in file("modules/interface"))
         "com.github.j5ik2o"          %% "reactive-aws-dynamodb-core"  % "1.1.0" % Test,
         "com.github.j5ik2o"          %% "reactive-aws-dynamodb-test"  % "1.1.0" % Test,
         "com.github.j5ik2o"          %% "scalatestplus-db"            % "1.0.8" % Test,
-      AspectJ.version
+        AspectJ.version
       ),
     // sbt-dao-generator
     // JDBCのドライバークラス名を指定します(必須)
@@ -263,6 +263,52 @@ val `api-server` = (project in file("api-server"))
     mainClass in (Compile, run) := Some("com.github.j5ik2o.threadWeaver.api.Main"),
     mainClass in reStart := Some("com.github.j5ik2o.threadWeaver.api.Main"),
     dockerEntrypoint := Seq("/opt/docker/bin/thread-weaver-api-server"),
+    dockerUsername := Some("j5ik2o"),
+    fork in run := true,
+    javaAgents += "org.aspectj"            % "aspectjweaver"    % "1.8.13",
+    javaAgents += "org.mortbay.jetty.alpn" % "jetty-alpn-agent" % "2.0.9" % "runtime;test",
+    javaOptions in Universal += "-Dorg.aspectj.tracing.factory=default",
+    javaOptions in run ++= Seq(
+        s"-Dcom.sun.management.jmxremote.port=${sys.env.getOrElse("JMX_PORT", "8999")}",
+        "-Dcom.sun.management.jmxremote.authenticate=false",
+        "-Dcom.sun.management.jmxremote.ssl=false",
+        "-Dcom.sun.management.jmxremote.local.only=false",
+        "-Dcom.sun.management.jmxremote"
+      ),
+    javaOptions in Universal ++= Seq(
+        "-Dcom.sun.management.jmxremote",
+        "-Dcom.sun.management.jmxremote.local.only=true",
+        "-Dcom.sun.management.jmxremote.authenticate=false"
+      ),
+    libraryDependencies ++= Seq(
+        "com.github.scopt"     %% "scopt"                   % "4.0.0-RC2",
+        "net.logstash.logback" % "logstash-logback-encoder" % "4.11" excludeAll (
+          ExclusionRule(organization = "com.fasterxml.jackson.core", name = "jackson-core"),
+          ExclusionRule(organization = "com.fasterxml.jackson.core", name = "jackson-databind")
+        ),
+        "com.lightbend.akka.management" %% "akka-management"                   % akkaManagementVersion,
+        "com.lightbend.akka.management" %% "akka-management-cluster-http"      % akkaManagementVersion,
+        "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % akkaManagementVersion,
+        "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"     % akkaManagementVersion,
+        "com.github.TanUkkii007"        %% "akka-cluster-custom-downing"       % "0.0.12",
+        "com.github.everpeace"          %% "healthchecks-core"                 % "0.4.0",
+        "com.github.everpeace"          %% "healthchecks-k8s-probes"           % "0.4.0",
+        "org.slf4j"                     % "jul-to-slf4j"                       % "1.7.26",
+        "ch.qos.logback"                % "logback-classic"                    % "1.2.3",
+        "org.codehaus.janino"           % "janino"                             % "3.0.6"
+      )
+  ).dependsOn(`interface`)
+
+val `read-model-updater` = (project in file("read-model-updater"))
+  .enablePlugins(AshScriptPlugin, JavaAgent, EcrPlugin)
+  .settings(baseSettings)
+  .settings(dockerCommonSettings)
+  .settings(ecrSettings)
+  .settings(
+    name := "thread-weaver-read-model-updater",
+    mainClass in (Compile, run) := Some("com.github.j5ik2o.threadWeaver.rmu.Main"),
+    mainClass in reStart := Some("com.github.j5ik2o.threadWeaver.rmu.Main"),
+    dockerEntrypoint := Seq("/opt/docker/bin/thread-weaver-read-model-updater"),
     dockerUsername := Some("j5ik2o"),
     fork in run := true,
     javaAgents += "org.aspectj"            % "aspectjweaver"    % "1.8.13",
@@ -432,7 +478,7 @@ lazy val `gatling-aggregate-runner` = (project in file("tools/gatling-aggregate-
         "org.codehaus.janino" % "janino"                 % "3.0.6",
         "com.iheart"          %% "ficus"                 % "1.4.6",
         "com.github.j5ik2o"   %% "reactive-aws-ecs-core" % "1.1.3",
-      "org.scalaj" %% "scalaj-http" % "2.4.2"
+        "org.scalaj"          %% "scalaj-http"           % "2.4.2"
       )
   )
 

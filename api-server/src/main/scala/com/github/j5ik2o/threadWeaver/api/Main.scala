@@ -1,18 +1,16 @@
 package com.github.j5ik2o.threadWeaver.api
 
-import akka.actor.{ ActorSystem, Props }
 import akka.actor.typed.scaladsl.adapter._
+import akka.actor.{ ActorSystem, Props }
 import akka.cluster.ClusterEvent.ClusterDomainEvent
-import akka.cluster.{ Cluster, ClusterEvent }
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
+import akka.cluster.{ Cluster, ClusterEvent }
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
 import akka.management.cluster.bootstrap.ClusterBootstrap
 import akka.management.scaladsl.AkkaManagement
-import akka.persistence.query.PersistenceQuery
 import akka.stream.ActorMaterializer
 import com.github.everpeace.healthchecks.k8s._
-import com.github.j5ik2o.akka.persistence.dynamodb.query.scaladsl.DynamoDBReadJournal
 import com.github.j5ik2o.threadWeaver.adaptor.DISettings
 import com.github.j5ik2o.threadWeaver.adaptor.http.routes.Routes
 import com.typesafe.config.{ Config, ConfigFactory }
@@ -22,8 +20,8 @@ import org.slf4j.bridge.SLF4JBridgeHandler
 import slick.basic.DatabaseConfig
 import slick.jdbc.JdbcProfile
 
-import scala.concurrent.{ Await, ExecutionContextExecutor }
 import scala.concurrent.duration._
+import scala.concurrent.{ Await, ExecutionContextExecutor }
 
 object Main extends App {
   SLF4JBridgeHandler.install()
@@ -37,13 +35,11 @@ object Main extends App {
 
   val config: Config = ConfigFactory.load()
 
-  val journalTableName     = config.getString("dynamo-db-journal.table-name")
-  val snapshotTableName    = config.getString("dynamo-db-snapshot.table-name")
-  val readJournalTableName = config.getString("dynamo-db-read-journal.table-name")
+  val journalTableName  = config.getString("dynamo-db-journal.table-name")
+  val snapshotTableName = config.getString("dynamo-db-snapshot.table-name")
 
   logger.info(s"journalTableName = $journalTableName")
   logger.info(s"snapshotTableName = $snapshotTableName")
-  logger.info(s"readJournalTableName = $readJournalTableName")
 
   implicit val system: ActorSystem                        = ActorSystem("thread-weaver-api-server", config)
   implicit val materializer: ActorMaterializer            = ActorMaterializer()
@@ -60,10 +56,9 @@ object Main extends App {
     classOf[ClusterDomainEvent]
   )
 
-  val readJournal = PersistenceQuery(system).readJournalFor[DynamoDBReadJournal](DynamoDBReadJournal.Identifier)
-  val dbConfig    = DatabaseConfig.forConfig[JdbcProfile]("slick", config)
-  val profile     = dbConfig.profile
-  val db          = dbConfig.db
+  val dbConfig = DatabaseConfig.forConfig[JdbcProfile]("slick", config)
+  val profile  = dbConfig.profile
+  val db       = dbConfig.db
 
   val clusterSharding = ClusterSharding(system.toTyped)
 
@@ -72,8 +67,20 @@ object Main extends App {
 
   val akkaHealthCheck = HealthCheck.akka(host, port)
 
+  val nrOfShardOfAggregates = config.getInt("thread-weaver.api-server.nr-of-shards")
+
   val design =
-    DISettings.design(host, port, system.toTyped, clusterSharding, materializer, readJournal, profile, db, 3 seconds)
+    DISettings.designOfAPI(
+      host,
+      port,
+      system.toTyped,
+      clusterSharding,
+      materializer,
+      profile,
+      db,
+      3 seconds,
+      nrOfShardOfAggregates
+    )
   val session = design.newSession
   session.start
 

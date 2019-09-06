@@ -4,23 +4,48 @@ import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.adapter._
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.stream.Materializer
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol.ThreadActorRefOfCommandTypeRef
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.ThreadProtocol.{
+  ThreadActorRefOfCommandTypeRef,
+  ThreadReadModelUpdaterRef
+}
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.typed.{
   PersistentThreadAggregate,
   ThreadAggregate,
   ThreadAggregates
 }
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.PersistentThreadAggregate.ReadModelUpdaterConfig
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ThreadProtocol.ThreadActorRefOfCommandUntypeRef
+import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdater
 import com.github.j5ik2o.threadWeaver.adaptor.readModelUpdater.ThreadReadModelUpdater.ReadJournalType
+import com.github.j5ik2o.threadWeaver.adaptor.routing.ThreadToRMURouter
 import slick.jdbc.JdbcProfile
 import wvlet.airframe.{ newDesign, Design }
 
 import scala.concurrent.duration.FiniteDuration
 
 object DITestSettings extends DISettings {
-
+  private[adaptor] def designOfLocalReadModelUpdater(
+      sqlBatchSize: Long
+  ): Design = {
+    newDesign
+      .bind[ThreadReadModelUpdaterRef].toProvider[
+        ActorSystem[Nothing],
+        ReadJournalType,
+        JdbcProfile,
+        JdbcProfile#Backend#Database
+      ] {
+        case (actorSystem, readJournal, profile, db) =>
+          actorSystem.toUntyped.actorOf(
+            ThreadReadModelUpdater.props(
+              readJournal,
+              profile,
+              db,
+              sqlBatchSize,
+              None
+            )
+          )
+      }
+  }
   private[adaptor] def designOfLocalAggregatesWithPersistence: Design =
     newDesign
       .bind[ThreadActorRefOfCommandTypeRef].toProvider[ActorSystem[Nothing]] { actorSystem =>
@@ -29,12 +54,14 @@ object DITestSettings extends DISettings {
           name = "local-threads-aggregates-with-persistence"
         )
       }
-      .bind[ThreadActorRefOfCommandUntypeRef].toProvider[ActorSystem[Nothing], ReadJournalType, JdbcProfile, JdbcProfile#Backend#Database] {
-        (actorSystem, readJournal, profile, db) =>
+      .bind[ThreadActorRefOfCommandUntypeRef].toProvider[ActorSystem[Nothing], ThreadReadModelUpdaterRef] {
+        case (actorSystem, rmuRef) =>
+          val router =
+            actorSystem.toUntyped.actorOf(ThreadToRMURouter.props(rmuRef))
           actorSystem.toUntyped.actorOf(
             untyped.ThreadAggregates.props(
-              Seq.empty,
-              untyped.PersistentThreadAggregate.props(Some(ReadModelUpdaterConfig(readJournal, profile, db, 1)))
+              Seq(router),
+              untyped.PersistentThreadAggregate.props
             )
           )
       }
@@ -53,23 +80,23 @@ object DITestSettings extends DISettings {
         )
       }
 
-  override def design(
+  override def designOfAPI(
       host: String,
       port: Int,
       system: ActorSystem[Nothing],
       clusterSharding: ClusterSharding,
       materializer: Materializer,
-      readJournal: ReadJournalType,
       profile: JdbcProfile,
       db: JdbcProfile#Backend#Database,
-      aggregateAskTimeout: FiniteDuration
+      aggregateAskTimeout: FiniteDuration,
+      nrOfShardOfAggregates: Int
   ): Design =
     com.github.j5ik2o.threadWeaver.useCase.DISettings
       .design(aggregateAskTimeout)
       .add(designOfSwagger(host, port))
       .add(designOfActorSystem(system, materializer))
-      .add(designOfReadJournal(readJournal))
       .add(designOfSlick(profile, db))
+      .add(designOfLocalReadModelUpdater(10))
       .add(designOfLocalAggregatesWithPersistence)
       .add(designOfRestControllers)
       .add(designOfRestPresenters)

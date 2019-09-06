@@ -1,6 +1,7 @@
 CREATE TABLE `thread` (
   `id`            VARCHAR(32)                 NOT NULL,
   `deleted`       BOOLEAN                     NOT NULL,
+  `persistence_tag` VARCHAR(64)               NOT NULL,
   `sequence_nr`   BIGINT                      NOT NULL,
   `creator_id`    VARCHAR(32)                 NOT NULL,
   `parent_id`     VARCHAR(32),

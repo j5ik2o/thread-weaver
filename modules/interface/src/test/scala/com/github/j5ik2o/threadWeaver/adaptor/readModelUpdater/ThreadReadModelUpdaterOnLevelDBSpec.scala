@@ -8,7 +8,6 @@ import akka.persistence.query.journal.leveldb.scaladsl.LeveldbReadJournal
 import akka.testkit.{ ImplicitSender, TestKit }
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.PersistenceCleanup
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.PersistentThreadAggregate
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.PersistentThreadAggregate.ReadModelUpdaterConfig
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ThreadProtocol._
 import com.github.j5ik2o.threadWeaver.adaptor.dao.jdbc.ThreadMessageComponent
 import com.github.j5ik2o.threadWeaver.adaptor.util.{ FlywayWithMySQLSpecSupport, Slick3SpecSupport }
@@ -26,6 +25,13 @@ class ThreadReadModelUpdaterOnLevelDBSpec
         "ThreadReadModelUpdaterOnLevelDBSpec",
         ConfigFactory
           .parseString("""
+          |thread-weaver {
+          |  read-model-updater.thread {
+          |    shard-name = "thread"
+          |    category = "thread"
+          |    num-partition = 1
+          |  }
+          |}
           |akka {
           |  persistence {
           |    journal {
@@ -43,6 +49,14 @@ class ThreadReadModelUpdaterOnLevelDBSpec
           |    }
           |  }
           |}
+          |akka.persistence.journal.leveldb {
+          |  event-adapters {
+          |    thread = "com.github.j5ik2o.threadWeaver.adaptor.serialization.ThreadTaggingEventAdaptor"
+          |  }
+          |  event-adapter-bindings {
+          |    "com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol$Event" = [thread]
+          |  } 
+          |} 
         """.stripMargin).withFallback(
             ConfigFactory.load()
           )
@@ -92,8 +106,13 @@ class ThreadReadModelUpdaterOnLevelDBSpec
         }
       }
 
+      implicit val config = system.settings.config
+
+      val rmu = system.actorOf(ThreadReadModelUpdater.props(readJournal, dbConfig.profile, dbConfig.db))
+      rmu ! ThreadReadModelUpdaterProtocol.Start(ULID(), ThreadTag.fromThreadId(threadId), Instant.now())
+
       val threadRef = system.actorOf(
-        PersistentThreadAggregate.props(Some(ReadModelUpdaterConfig(readJournal, dbConfig.profile, dbConfig.db, 1)))(
+        PersistentThreadAggregate.props(
           threadId
         )(Seq.empty)
       )

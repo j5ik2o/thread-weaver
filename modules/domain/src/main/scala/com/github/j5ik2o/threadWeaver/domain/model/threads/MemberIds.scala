@@ -13,6 +13,8 @@ final case class MemberIds(breachEncapsulationOfValues: Vector[AccountId]) {
     MemberIds(list: _*)
   }
 
+  def valuesAsString: Seq[String] = breachEncapsulationOfValues.map(_.value.asString)
+
 }
 
 object MemberIds {

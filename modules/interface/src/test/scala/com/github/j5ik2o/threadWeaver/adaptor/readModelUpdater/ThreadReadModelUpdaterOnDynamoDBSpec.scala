@@ -6,13 +6,12 @@ import akka.actor.ActorSystem
 import akka.persistence.query.PersistenceQuery
 import akka.testkit.{ ImplicitSender, TestKit }
 import com.github.j5ik2o.akka.persistence.dynamodb.query.scaladsl.DynamoDBReadJournal
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.PersistentThreadAggregate.ReadModelUpdaterConfig
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ThreadProtocol._
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.{
   PersistentThreadAggregate,
   PersistentThreadAggregateOnDynamoDBSpec
 }
-import com.github.j5ik2o.threadWeaver.adaptor.dao.jdbc.ThreadMessageComponent
+import com.github.j5ik2o.threadWeaver.adaptor.dao.jdbc.{ ThreadComponent, ThreadMessageComponent }
 import com.github.j5ik2o.threadWeaver.adaptor.util.{
   DynamoDBSpecSupport,
   FlywayWithMySQLSpecSupport,
@@ -34,37 +33,49 @@ class ThreadReadModelUpdaterOnDynamoDBSpec
            |akka {
            |  persistence {
            |    journal {
-           |      plugin = dynamo-db-journal
-           |      auto-start-journals = ["dynamo-db-journal"]
+           |      plugin = j5ik2o.dynamo-db-journal
            |    }
            |    snapshot-store {
-           |      plugin = dynamo-db-snapshot
-           |      auto-start-snapshot-stores = ["dynamo-db-snapshot"]
+           |      plugin = j5ik2o.dynamo-db-snapshot
            |    }
            |  }
            |}
-           |
-           |dynamo-db-journal {
-           |  dynamodb-client {
-           |    access-key-id = "x"
-           |    secret-access-key = "x"
-           |    endpoint = "http://127.0.0.1:${PersistentThreadAggregateOnDynamoDBSpec.dbPort}/"
+           |thread-weaver {
+           |  read-model-updater.thread {
+           |    shard-name = "thread"
+           |    category = "thread"
+           |    num-partition = 1
            |  }
            |}
-           |
-           |dynamo-db-snapshot {
-           |  dynamodb-client {
-           |    access-key-id = "x"
-           |    secret-access-key = "x"
-           |    endpoint = "http://127.0.0.1:${PersistentThreadAggregateOnDynamoDBSpec.dbPort}/"
+           |j5ik2o {
+           |  dynamo-db-journal {
+           |    event-adapters {
+           |      thread = "com.github.j5ik2o.threadWeaver.adaptor.serialization.ThreadTaggingEventAdaptor"
+           |    }
+           |    event-adapter-bindings {
+           |      "com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol$$Event" = [thread]
+           |    } 
+           |    dynamo-db-client {
+           |      access-key-id = "x"
+           |      secret-access-key = "x"
+           |      endpoint = "http://127.0.0.1:${PersistentThreadAggregateOnDynamoDBSpec.dbPort}/"
+           |    }
            |  }
-           |}
            |
-           |dynamo-db-read-journal {
-           |  dynamodb-client {
-           |    access-key-id = "x"
-           |    secret-access-key = "x"
-           |    endpoint = "http://127.0.0.1:${PersistentThreadAggregateOnDynamoDBSpec.dbPort}/"
+           |  dynamo-db-snapshot {
+           |    dynamo-db-client {
+           |      access-key-id = "x"
+           |      secret-access-key = "x"
+           |      endpoint = "http://127.0.0.1:${PersistentThreadAggregateOnDynamoDBSpec.dbPort}/"
+           |    }
+           |  }
+           |
+           |  dynamo-db-read-journal {
+           |    dynamo-db-client {
+           |      access-key-id = "x"
+           |      secret-access-key = "x"
+           |      endpoint = "http://127.0.0.1:${PersistentThreadAggregateOnDynamoDBSpec.dbPort}/"
+           |    }
            |  }
            |}
       """.stripMargin).withFallback(
@@ -98,12 +109,14 @@ class ThreadReadModelUpdaterOnDynamoDBSpec
     "add messages" in {
       val threadId = ThreadId()
 
-      val tmc = new ThreadMessageComponent {
+      val tmc = new ThreadMessageComponent with ThreadComponent {
 
         override val profile = dbConfig.profile
         import profile.api._
 
         def assert = eventually {
+          val resultThreads = dbConfig.db.run(ThreadDao.filter(_.id === threadId.value.asString).result).futureValue
+          resultThreads.head.persistenceTag shouldBe "thread-0"
           val resultMessages =
             dbConfig.db.run(ThreadMessageDao.filter(_.threadId === threadId.value.asString).result).futureValue
           resultMessages should not be empty
@@ -112,11 +125,17 @@ class ThreadReadModelUpdaterOnDynamoDBSpec
         }
       }
 
+      implicit val config = system.settings.config
+
+      val rmu = system.actorOf(ThreadReadModelUpdater.props(readJournal, dbConfig.profile, dbConfig.db))
+      rmu ! ThreadReadModelUpdaterProtocol.Start(ULID(), ThreadTag.fromThreadId(threadId), Instant.now())
+
       val threadRef = system.actorOf(
-        PersistentThreadAggregate.props(Some(ReadModelUpdaterConfig(readJournal, dbConfig.profile, dbConfig.db, 1)))(
+        PersistentThreadAggregate.props(
           threadId
         )(Seq.empty)
       )
+
       val now             = Instant.now
       val administratorId = AccountId()
       val title           = ThreadTitle("test")
@@ -130,7 +149,7 @@ class ThreadReadModelUpdaterOnDynamoDBSpec
         AdministratorIds(administratorId),
         MemberIds.empty,
         now,
-        true
+        reply = true
       )
 
       expectMsgType[CreateThreadResponse] match {

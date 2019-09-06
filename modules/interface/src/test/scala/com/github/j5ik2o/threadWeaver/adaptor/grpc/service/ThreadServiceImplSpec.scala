@@ -4,56 +4,83 @@ import java.time.Instant
 import akka.actor.ActorSystem
 import akka.testkit.TestKit
 import com.github.j5ik2o.threadWeaver.adaptor.DISettings
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.PersistenceCleanup
 import com.github.j5ik2o.threadWeaver.adaptor.grpc.model._
-import com.github.j5ik2o.threadWeaver.adaptor.util.{
-  FlywayWithMySQLSpecSupport,
-  ScalaFuturesSpecSupport,
-  Slick3SpecSupport
-}
+import com.github.j5ik2o.threadWeaver.adaptor.util._
 import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 import com.typesafe.config.ConfigFactory
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{ FreeSpecLike, Matchers }
 import wvlet.airframe.Design
 
+object ThreadServiceImplSpec extends RandomPortSupport {
+  val dynamoDBPort: Int = temporaryServerPort()
+}
+
 class ThreadServiceImplSpec
     extends TestKit(
       ActorSystem(
         "ThreadServiceImplSpec",
-        ConfigFactory.parseString(
-          """
-          |akka {
-          |  persistence {
-          |    journal {
-          |      plugin = akka.persistence.journal.leveldb
-          |      leveldb {
-          |        dir = "target/persistence/journal"
-          |        native = on
-          |      }
-          |      auto-start-journals = ["akka.persistence.journal.leveldb"]
+        ConfigFactory
+          .parseString(
+            s"""
+          |thread-weaver.read-model-updater.thread { 
+          |  shard-name = "thread"
+          |  category = "thread"
+          |  num-partition = 1
+          |}
+          |
+          |akka.persistence.journal.plugin = "j5ik2o.dynamo-db-journal"
+          |akka.persistence.snapshot-store.plugin = "j5ik2o.dynamo-db-snapshot"
+          |
+          |j5ik2o {
+          |  dynamo-db-journal {
+          |    class = "com.github.j5ik2o.akka.persistence.dynamodb.journal.DynamoDBJournal"
+          |    plugin-dispatcher = "akka.actor.default-dispatcher"
+          |    event-adapters {
+          |      thread = "com.github.j5ik2o.threadWeaver.adaptor.serialization.ThreadTaggingEventAdaptor"
           |    }
-          |    snapshot-store {
-          |      plugin = akka.persistence.snapshot-store.local
-          |      local.dir = "target/persistence/snapshots"
-          |      auto-start-snapshot-stores = ["akka.persistence.snapshot-store.local"]
+          |    event-adapter-bindings {
+          |      "com.github.j5ik2o.threadWeaver.adaptor.aggregates.ThreadCommonProtocol$$Event" = [thread]
+          |    }
+          |    dynamo-db-client {
+          |      access-key-id = "x"
+          |      secret-access-key = "x"
+          |      endpoint = "http://127.0.0.1:${ThreadServiceImplSpec.dynamoDBPort}/"
+          |    }
+          |  }
+          |
+          |  dynamo-db-snapshot {
+          |    dynamo-db-client {
+          |      access-key-id = "x"
+          |      secret-access-key = "x"
+          |      endpoint = "http://127.0.0.1:${ThreadServiceImplSpec.dynamoDBPort}/"
+          |    }
+          |  }
+          |
+          |  dynamo-db-read-journal {
+          |    dynamo-db-client {
+          |      access-key-id = "x"
+          |      secret-access-key = "x"
+          |      endpoint = "http://127.0.0.1:${ThreadServiceImplSpec.dynamoDBPort}/"
           |    }
           |  }
           |}
         """.stripMargin
-        )
+          ).withFallback(
+            ConfigFactory.load()
+          )
       )
     )
     with FreeSpecLike
     with Eventually
     with ScalaFuturesSpecSupport
+    with DynamoDBSpecSupport
     with FlywayWithMySQLSpecSupport
     with Slick3SpecSupport
     with ServiceSpec
-    with PersistenceCleanup
     with Matchers {
-
-  override val tables: Seq[String] = Seq.empty
+  override protected lazy val dynamoDBPort: Int = ThreadServiceImplSpec.dynamoDBPort
+  override val tables: Seq[String]              = Seq.empty
 
   var threadCommandService: ThreadCommandService = _
   var threadQueryService: ThreadQueryService     = _
@@ -61,7 +88,9 @@ class ThreadServiceImplSpec
   override def design: Design = super.design.add(DISettings.designOfSlick(dbConfig.profile, dbConfig.db))
 
   override def beforeAll: Unit = {
-    deleteStorageLocations(system)
+    startDynamoDBLocal()
+    createJournalTable()
+    createSnapshotTable()
     super.beforeAll()
     threadCommandService = session.build[ThreadCommandService]
     threadQueryService = session.build[ThreadQueryService]
@@ -168,7 +197,7 @@ class ThreadServiceImplSpec
       val joinMemberIdsResponse = threadCommandService.joinMemberIds(joinMemberIds).futureValue
       joinMemberIdsResponse.isSuccessful shouldBe true
     }
-    "add messages" in {
+    "add messages" ignore {
       val administratorId = ULID().asString
       val now             = Instant.now.toEpochMilli
       val createThread =
