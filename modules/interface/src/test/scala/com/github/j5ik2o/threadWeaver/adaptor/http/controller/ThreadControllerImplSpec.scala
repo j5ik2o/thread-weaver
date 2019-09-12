@@ -94,7 +94,6 @@ class ThreadControllerImplSpec
     createJournalTable()
     createSnapshotTable()
     super.beforeAll()
-    // session.build[ThreadReadModelUpdaterRef]
     commandController = session.build[ThreadCommandController]
     queryController = session.build[ThreadQueryController]
   }
