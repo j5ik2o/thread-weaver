@@ -34,8 +34,6 @@ class ThreadServiceImplSpec
           |
           |j5ik2o {
           |  dynamo-db-journal {
-          |    class = "com.github.j5ik2o.akka.persistence.dynamodb.journal.DynamoDBJournal"
-          |    plugin-dispatcher = "akka.actor.default-dispatcher"
           |    event-adapters {
           |      thread = "com.github.j5ik2o.threadWeaver.adaptor.serialization.ThreadTaggingEventAdaptor"
           |    }

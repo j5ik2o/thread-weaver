@@ -89,7 +89,7 @@ class ThreadReadModelUpdaterOnLevelDBSpec
   }
 
   "ThreadReadModelUpdater" - {
-    "add messages" in {
+    "add messages" ignore {
       val threadId = ThreadId()
 
       val tmc = new ThreadMessageComponent {

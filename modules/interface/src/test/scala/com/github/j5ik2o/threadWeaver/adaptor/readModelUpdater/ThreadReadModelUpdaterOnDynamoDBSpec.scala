@@ -6,15 +6,13 @@ import akka.actor.ActorSystem
 import akka.persistence.query.PersistenceQuery
 import akka.testkit.{ ImplicitSender, TestKit }
 import com.github.j5ik2o.akka.persistence.dynamodb.query.scaladsl.DynamoDBReadJournal
+import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.PersistentThreadAggregate
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ThreadProtocol._
-import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.{
-  PersistentThreadAggregate,
-  PersistentThreadAggregateOnDynamoDBSpec
-}
 import com.github.j5ik2o.threadWeaver.adaptor.dao.jdbc.{ ThreadComponent, ThreadMessageComponent }
 import com.github.j5ik2o.threadWeaver.adaptor.util.{
   DynamoDBSpecSupport,
   FlywayWithMySQLSpecSupport,
+  RandomPortSupport,
   Slick3SpecSupport
 }
 import com.github.j5ik2o.threadWeaver.domain.model.accounts.AccountId
@@ -23,6 +21,10 @@ import com.github.j5ik2o.threadWeaver.infrastructure.ulid.ULID
 import com.typesafe.config.ConfigFactory
 import org.scalatest.FreeSpecLike
 import org.scalatest.time.{ Seconds, Span }
+
+object ThreadReadModelUpdaterOnDynamoDBSpec extends RandomPortSupport {
+  lazy val dbPort: Int = temporaryServerPort()
+}
 
 class ThreadReadModelUpdaterOnDynamoDBSpec
     extends TestKit(
@@ -58,7 +60,7 @@ class ThreadReadModelUpdaterOnDynamoDBSpec
            |    dynamo-db-client {
            |      access-key-id = "x"
            |      secret-access-key = "x"
-           |      endpoint = "http://127.0.0.1:${PersistentThreadAggregateOnDynamoDBSpec.dbPort}/"
+           |      endpoint = "http://127.0.0.1:${ThreadReadModelUpdaterOnDynamoDBSpec.dbPort}/"
            |    }
            |  }
            |
@@ -66,7 +68,7 @@ class ThreadReadModelUpdaterOnDynamoDBSpec
            |    dynamo-db-client {
            |      access-key-id = "x"
            |      secret-access-key = "x"
-           |      endpoint = "http://127.0.0.1:${PersistentThreadAggregateOnDynamoDBSpec.dbPort}/"
+           |      endpoint = "http://127.0.0.1:${ThreadReadModelUpdaterOnDynamoDBSpec.dbPort}/"
            |    }
            |  }
            |
@@ -74,7 +76,7 @@ class ThreadReadModelUpdaterOnDynamoDBSpec
            |    dynamo-db-client {
            |      access-key-id = "x"
            |      secret-access-key = "x"
-           |      endpoint = "http://127.0.0.1:${PersistentThreadAggregateOnDynamoDBSpec.dbPort}/"
+           |      endpoint = "http://127.0.0.1:${ThreadReadModelUpdaterOnDynamoDBSpec.dbPort}/"
            |    }
            |  }
            |}
@@ -96,7 +98,7 @@ class ThreadReadModelUpdaterOnDynamoDBSpec
 
   var readJournal: DynamoDBReadJournal = _
 
-  override protected lazy val dynamoDBPort: Int = PersistentThreadAggregateOnDynamoDBSpec.dbPort
+  override protected lazy val dynamoDBPort: Int = ThreadReadModelUpdaterOnDynamoDBSpec.dbPort
 
   override def beforeAll: Unit = {
     super.beforeAll()
