@@ -104,7 +104,7 @@ object Main extends App {
       }.flatMap { _ =>
         system.terminate()
       }
-    Await.result(future, config.getDuration("thread-weaver.api-server.terminate.duration").toMillis millis)
+    Await.result(future, config.getDuration("thread-weaver.read-model-updater.terminate.duration").toMillis millis)
   }
 
 }

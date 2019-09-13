@@ -5,6 +5,7 @@ import akka.event.{ Logging, LoggingAdapter }
 import akka.serialization.SerializerWithStringManifest
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ThreadProtocol
 import com.github.j5ik2o.threadWeaver.adaptor.aggregates.untyped.ThreadProtocol.ThreadCreated
+import com.github.j5ik2o.threadWeaver.adaptor.serialization.json.ThreadCreatedJson
 
 object ThreadEventJSONSerializer {
   final val CREATE = ThreadProtocol.ThreadCreated.getClass.getName.stripSuffix("$")
@@ -24,6 +25,6 @@ class ThreadEventJSONSerializer(system: ExtendedActorSystem) extends SerializerW
   }
 
   override def fromBinary(bytes: Array[Byte], manifest: String): AnyRef = manifest match {
-    case ThreadEventJSONSerializer.CREATE => CirceJsonSerialization.fromBinary(bytes)
+    case ThreadEventJSONSerializer.CREATE => CirceJsonSerialization.fromBinary[ThreadCreated, ThreadCreatedJson](bytes)
   }
 }
