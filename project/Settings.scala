@@ -96,6 +96,7 @@ object Settings {
       "Sonatype OSS Snapshot Repository" at "https://oss.sonatype.org/content/repositories/snapshots/",
       "Sonatype OSS Release Repository" at "https://oss.sonatype.org/content/repositories/releases/",
       "DynamoDB Local Repository" at "https://s3-ap-northeast-1.amazonaws.com/dynamodb-local-tokyo/release",
+      "Seasar Repository" at "https://maven.seasar.org/maven2/",
       Resolver.bintrayRepo("segence", "maven-oss-releases"),
       Resolver.bintrayRepo("everpeace", "maven"),
       Resolver.bintrayRepo("tanukkii007", "maven"),
